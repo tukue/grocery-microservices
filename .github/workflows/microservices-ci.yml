@@ -1,28 +1,19 @@
-name: Java CI with Maven
+name: Microservices CI
 
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'microservices/**'
+      - '.github/workflows/microservices-ci.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'microservices/**'
+      - '.github/workflows/microservices-ci.yml'
 
 jobs:
-  test-monolith:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-
-    - name: Test monolith
-      run: mvn -B test --file monolith/pom.xml
-
-  test-microservices:
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
