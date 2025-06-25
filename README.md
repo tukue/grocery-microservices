@@ -11,7 +11,7 @@ A clean code Java application that simulates a grocery store shopping experience
 
 ## Technical Stack
 
-- Java 8
+- Java 17
 - JUnit 5 for testing
 - Maven for build automation
 - GitHub Actions for CI/CD
