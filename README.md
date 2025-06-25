@@ -88,3 +88,26 @@ Planned enhancements with Spring Boot:
 ## License
 
 This project is available under the MIT License.
+
+## API Documentation (Swagger UI)
+
+Each microservice exposes interactive API documentation using Swagger UI (powered by Springdoc OpenAPI).
+
+After starting any microservice (e.g., cart-service, product-service, order-service, receipt-service), you can access its API documentation at:
+
+```
+http://localhost:8080/swagger-ui/index.html
+```
+
+You can also view the raw OpenAPI specification at:
+
+```
+http://localhost:8080/v3/api-docs
+```
+
+> **Note:** If you run multiple services at once, make sure each one uses a different port (set `server.port` in `src/main/resources/application.properties`).
+
+Swagger UI allows you to:
+- Explore all available REST endpoints
+- Try out API requests directly from your browser
+- View request/response schemas and example payloads
