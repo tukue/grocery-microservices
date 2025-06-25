@@ -19,7 +19,7 @@ A clean code Java application that simulates a grocery store shopping experience
 ## Getting Started
 
 ### Prerequisites
-- Java 8+
+- Java 17 +
 - Maven 3.6+
 
 ### Build and Run
