@@ -7,6 +7,7 @@ public class Receipt {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String details;
+    
     // Add fields for orderId, date, etc. as needed
 
     public Long getId() { return id; }
