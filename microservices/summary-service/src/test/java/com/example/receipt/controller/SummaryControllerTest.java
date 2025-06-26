@@ -1,9 +1,9 @@
-package com.example.order.controller;
+package com.example.summary.controller;
 
-import com.example.order.config.SecurityConfig;
-import com.example.order.dto.OrderDTO;
-import com.example.order.model.Order;
-import com.example.order.service.OrderService;
+import com.example.summary.config.SecurityConfig;
+import com.example.summary.dto.SummaryDTO;
+import com.example.summary.model.Summary;
+import com.example.summary.service.SummaryService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,34 +20,34 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(OrderController.class)
+@WebMvcTest(SummaryController.class)
 @Import(SecurityConfig.class)
-public class OrderControllerTest {
+public class SummaryControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockBean
-    private OrderService orderService;
+    private SummaryService summaryService;
 
     @Autowired
     private ObjectMapper objectMapper;
 
     @Test
-    public void testCreateOrder() throws Exception {
-        OrderDTO orderDTO = new OrderDTO();
-        // Set properties for orderDTO as needed
+    public void testCreateSummary() throws Exception {
+        SummaryDTO summaryDTO = new SummaryDTO();
+        // Set properties for summaryDTO as needed
 
-        Order savedOrder = new Order();
-        savedOrder.setId(1L);
-        // Set other properties for savedOrder
+        Summary savedSummary = new Summary();
+        savedSummary.setId(1L);
+        // Set other properties for savedSummary
 
-        when(orderService.createOrder(any(Order.class))).thenReturn(savedOrder);
+        when(summaryService.createSummary(any(Summary.class))).thenReturn(savedSummary);
 
-        mockMvc.perform(post("/orders")
+        mockMvc.perform(post("/summaries")
                         .with(httpBasic("user", "password"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(orderDTO)))
+                        .content(objectMapper.writeValueAsString(summaryDTO)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L));
     }

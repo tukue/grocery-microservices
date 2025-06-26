@@ -88,3 +88,12 @@ Planned enhancements with Spring Boot:
 ## License
 
 This project is available under the MIT License.
+
+## Test Credentials for Microservices
+
+All microservices are secured with HTTP Basic authentication. Use the following credentials to access protected endpoints:
+
+- **Username:**
+- **Password:**
+
+The Swagger UI and OpenAPI documentation endpoints are publicly accessible without authentication.

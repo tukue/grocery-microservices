@@ -1,15 +1,15 @@
 package com.example.cart.controller;
 
 import com.example.cart.dto.CartDTO;
-import com.example.cart.model.Cart;
 import com.example.cart.model.CartItem;
 import com.example.cart.service.CartService;
-import org.springframework.beans.BeanUtils;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/carts")
 public class CartController {
+
     private final CartService cartService;
 
     public CartController(CartService cartService) {
@@ -17,33 +17,22 @@ public class CartController {
     }
 
     @PostMapping
-    public CartDTO createCart() {
-        Cart cart = cartService.createCart();
-        return convertToDto(cart);
+    public ResponseEntity<CartDTO> createCart() {
+        return ResponseEntity.ok(cartService.createCart());
     }
 
     @GetMapping("/{id}")
-    public CartDTO getCart(@PathVariable Long id) {
-        Cart cart = cartService.getCart(id);
-        return convertToDto(cart);
+    public ResponseEntity<CartDTO> getCartById(@PathVariable Long id) {
+        return ResponseEntity.ok(cartService.getCartById(id));
     }
 
-    @PostMapping("/{id}/items")
-    public CartDTO addItem(@PathVariable Long id, @RequestBody CartItem item) {
-        Cart cart = cartService.addItem(id, item);
-        return convertToDto(cart);
+    @PostMapping("/{cartId}/items")
+    public ResponseEntity<CartDTO> addItemToCart(@PathVariable Long cartId, @RequestBody CartItem item) {
+        return ResponseEntity.ok(cartService.addItem(cartId, item));
     }
 
-    @DeleteMapping("/{id}/items/{itemId}")
-    public CartDTO removeItem(@PathVariable Long id, @PathVariable Long itemId) {
-        Cart cart = cartService.removeItem(id, itemId);
-        return convertToDto(cart);
-    }
-
-    private CartDTO convertToDto(Cart cart) {
-        CartDTO cartDto = new CartDTO();
-        BeanUtils.copyProperties(cart, cartDto);
-        // Additional mapping for items if needed
-        return cartDto;
+    @DeleteMapping("/{cartId}/items/{itemId}")
+    public ResponseEntity<CartDTO> removeItemFromCart(@PathVariable Long cartId, @PathVariable Long itemId) {
+        return ResponseEntity.ok(cartService.removeItem(cartId, itemId));
     }
 } 

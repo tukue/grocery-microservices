@@ -5,6 +5,7 @@ import com.example.product.model.Product;
 import com.example.product.service.ProductService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,15 +34,15 @@ public class ProductController {
     }
 
     @PostMapping
-    public ProductDTO createProduct(@RequestBody ProductDTO productDto) {
-        Product product = convertToEntity(productDto);
+    public ProductDTO createProduct(@Valid @RequestBody ProductDTO productDTO) {
+        Product product = convertToEntity(productDTO);
         Product savedProduct = productService.saveProduct(product);
         return convertToDto(savedProduct);
     }
 
     @PutMapping("/{id}")
-    public ProductDTO updateProduct(@PathVariable Long id, @RequestBody ProductDTO productDto) {
-        Product product = convertToEntity(productDto);
+    public ProductDTO updateProduct(@PathVariable Long id, @Valid @RequestBody ProductDTO productDTO) {
+        Product product = convertToEntity(productDTO);
         product.setId(id);
         Product updatedProduct = productService.saveProduct(product);
         return convertToDto(updatedProduct);

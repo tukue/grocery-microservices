@@ -10,6 +10,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 
 import java.util.Collections;
 
@@ -17,8 +18,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import com.example.product.config.SecurityConfig;
+import org.springframework.context.annotation.Import;
 
 @WebMvcTest(ProductController.class)
+@Import(SecurityConfig.class)
 public class ProductControllerTest {
 
     @Autowired
@@ -39,7 +43,8 @@ public class ProductControllerTest {
 
         when(productService.getAllProducts()).thenReturn(Collections.singletonList(product));
 
-        mockMvc.perform(get("/products"))
+        mockMvc.perform(get("/products")
+                .with(httpBasic("user", "password")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("Test Product"));
     }
@@ -58,6 +63,7 @@ public class ProductControllerTest {
         when(productService.saveProduct(any(Product.class))).thenReturn(savedProduct);
 
         mockMvc.perform(post("/products")
+                .with(httpBasic("user", "password"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(productDTO)))
                 .andExpect(status().isOk())

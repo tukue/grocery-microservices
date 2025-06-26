@@ -5,6 +5,7 @@ import com.example.order.model.Order;
 import com.example.order.service.OrderService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/orders")
@@ -17,7 +18,7 @@ public class OrderController {
     }
 
     @PostMapping
-    public OrderDTO createOrder(@RequestBody OrderDTO orderDto) {
+    public OrderDTO createOrder(@Valid @RequestBody OrderDTO orderDto) {
         Order order = convertToEntity(orderDto);
         Order createdOrder = orderService.createOrder(order);
         return convertToDto(createdOrder);
