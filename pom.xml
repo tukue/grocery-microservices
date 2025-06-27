@@ -7,6 +7,9 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <modules>
+        <module>microservices/cart-service</module>
+        <module>microservices/order-service</module>
+        <module>microservices/product-service</module>
         <module>microservices/summary-service</module>
     </modules>
     <properties>
