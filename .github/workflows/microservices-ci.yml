@@ -45,15 +45,12 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Build all services
-      run: mvn -B package --file pom.xml -DskipTests
-
     - name: Start services
       run: |
-        nohup java -jar microservices/cart-service/target/*.jar --server.port=8081 > cart-service.log 2>&1 &
-        nohup java -jar microservices/order-service/target/*.jar --server.port=8082 > order-service.log 2>&1 &
-        nohup java -jar microservices/product-service/target/*.jar --server.port=8083 > product-service.log 2>&1 &
-        nohup java -jar microservices/summary-service/target/*.jar --server.port=8084 > summary-service.log 2>&1 &
+        nohup mvn -B spring-boot:run -pl microservices/cart-service -Dspring-boot.run.arguments="--server.port=8081" > cart-service.log 2>&1 &
+        nohup mvn -B spring-boot:run -pl microservices/order-service -Dspring-boot.run.arguments="--server.port=8082" > order-service.log 2>&1 &
+        nohup mvn -B spring-boot:run -pl microservices/product-service -Dspring-boot.run.arguments="--server.port=8083" > product-service.log 2>&1 &
+        nohup mvn -B spring-boot:run -pl microservices/summary-service -Dspring-boot.run.arguments="--server.port=8084" > summary-service.log 2>&1 &
         echo "Waiting for services to start..."
         sleep 60
 
@@ -67,3 +64,15 @@ jobs:
         curl -f http://localhost:8083/actuator/health
         echo "Checking summary-service (port 8084)..."
         curl -f http://localhost:8084/actuator/health
+
+    - name: Display service logs on failure
+      if: failure()
+      run: |
+        echo "--- Cart Service Logs ---"
+        cat cart-service.log || echo "cart-service.log not found."
+        echo "--- Order Service Logs ---"
+        cat order-service.log || echo "order-service.log not found."
+        echo "--- Product Service Logs ---"
+        cat product-service.log || echo "product-service.log not found."
+        echo "--- Summary Service Logs ---"
+        cat summary-service.log || echo "summary-service.log not found."
