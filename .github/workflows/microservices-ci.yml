@@ -1,3 +1,4 @@
+# A comment to test writability
 name: Microservices CI
 
 on:
@@ -29,4 +30,40 @@ jobs:
         java-version: '17'
         
     - name: Test microservice
-      run: mvn -B test --file microservices/${{ matrix.service }}/pom.xml 
+      run: mvn -B test --file microservices/${{ matrix.service }}/pom.xml
+
+  health-check:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Build all services
+      run: mvn -B package --file pom.xml -DskipTests
+
+    - name: Start services
+      run: |
+        nohup java -jar microservices/cart-service/target/*.jar --server.port=8081 > cart-service.log 2>&1 &
+        nohup java -jar microservices/order-service/target/*.jar --server.port=8082 > order-service.log 2>&1 &
+        nohup java -jar microservices/product-service/target/*.jar --server.port=8083 > product-service.log 2>&1 &
+        nohup java -jar microservices/summary-service/target/*.jar --server.port=8084 > summary-service.log 2>&1 &
+        echo "Waiting for services to start..."
+        sleep 60
+
+    - name: Check health endpoints
+      run: |
+        echo "Checking cart-service (port 8081)..."
+        curl -f http://localhost:8081/actuator/health
+        echo "Checking order-service (port 8082)..."
+        curl -f http://localhost:8082/actuator/health
+        echo "Checking product-service (port 8083)..."
+        curl -f http://localhost:8083/actuator/health
+        echo "Checking summary-service (port 8084)..."
+        curl -f http://localhost:8084/actuator/health
