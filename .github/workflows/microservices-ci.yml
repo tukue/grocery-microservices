@@ -31,6 +31,7 @@ jobs:
         
     - name: Test microservice
       run: mvn -B test --file microservices/${{ matrix.service }}/pom.xml
+      working-directory: ${{ github.workspace }}
 
   health-check:
     runs-on: ubuntu-latest
@@ -53,6 +54,7 @@ jobs:
         nohup mvn -B spring-boot:run -pl microservices/summary-service -Dspring-boot.run.arguments="--server.port=8084" > summary-service.log 2>&1 &
         echo "Waiting for services to start..."
         sleep 60
+      working-directory: ${{ github.workspace }}
 
     - name: Check health endpoints
       run: |
