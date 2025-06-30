@@ -1,49 +1,62 @@
 version: '3.8'
+
+x-postgres-common: &postgres-common
+  image: postgres:13
+  restart: unless-stopped
+  environment:
+    POSTGRES_USER: ${POSTGRES_USER}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+
 services:
   cart-db:
-    image: postgres:13
+    <<: *postgres-common
     container_name: cart-db
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: cart-db
     volumes:
       - cart-db-data:/var/lib/postgresql/data
 
   order-db:
-    image: postgres:13
+    <<: *postgres-common
     container_name: order-db
     ports:
       - "5433:5432"
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: order-db
     volumes:
       - order-db-data:/var/lib/postgresql/data
 
   product-db:
-    image: postgres:13
+    <<: *postgres-common
     container_name: product-db
     ports:
       - "5434:5432"
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: product-db
     volumes:
       - product-db-data:/var/lib/postgresql/data
 
   summary-db:
-    image: postgres:13
+    <<: *postgres-common
     container_name: summary-db
     ports:
       - "5435:5432"
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: summary-db
     volumes:
       - summary-db-data:/var/lib/postgresql/data

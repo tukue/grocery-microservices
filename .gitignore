@@ -24,4 +24,7 @@ target/
 hs_err_pid*
 
 # Application properties files
-**/application.properties 
+**/application.properties
+
+# Environment variables
+.env 
