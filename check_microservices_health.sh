@@ -24,8 +24,3 @@ for i in ${!SERVICES[@]}; do
   echo -n "$SERVICE (port $PORT): "
   curl -s http://localhost:$PORT/actuator/health || echo "No response"
 done
-
-# Optionally, kill all started services after check
-# for pid in ${PIDS[@]}; do
-#   kill $pid
-# done 
