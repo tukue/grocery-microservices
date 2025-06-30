@@ -21,4 +21,7 @@ target/
 .vscode/
 
 # VM crash logs
-hs_err_pid* 
+hs_err_pid*
+
+# Application properties files
+**/application.properties 

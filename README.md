@@ -1,6 +1,62 @@
-# Grocery Store Application
+# Clean Code Grocellery App
 
-A clean code Java application that simulates a grocery store shopping experience with modular components for products, shopping carts, discounts, and receipt generation.
+This project is a grocery store application built with a microservices architecture.
+
+## Prerequisites
+
+- Java 21
+- Maven
+- Docker
+- Docker Compose
+
+## Getting Started
+
+### 1. Start the Databases
+
+The project uses PostgreSQL databases for each microservice, which are managed with Docker Compose. To start the databases, run the following command from the root of the project:
+
+```bash
+docker-compose up -d
+```
+
+### 2. Configure the Application
+
+For each microservice, you will need to create an `application.properties` file in the `src/main/resources` directory. You can do this by copying the `application.properties.example` file:
+
+```bash
+cp microservices/<service-name>/src/main/resources/application.properties.example microservices/<service-name>/src/main/resources/application.properties
+```
+
+**Note:** The example files are pre-configured with the correct database credentials for the Docker Compose setup, so you won't need to make any changes to them.
+
+### 3. Run the Microservices
+
+You can run each microservice using the following Maven command:
+
+```bash
+mvn spring-boot:run -pl microservices/<service-name>
+```
+
+For example, to run the `cart-service`:
+
+```bash
+mvn spring-boot:run -pl microservices/cart-service
+```
+
+The services will be available at the following ports:
+
+- **cart-service:** 8081
+- **order-service:** 8082
+- **product-service:** 8083
+- **summary-service:** 8084
+
+## Running Tests
+
+To run the tests for all modules, use the following command from the root of the project:
+
+```bash
+mvn test
+```
 
 ## Features
 
@@ -15,24 +71,6 @@ A clean code Java application that simulates a grocery store shopping experience
 - JUnit 5 for testing
 - Maven for build automation
 - GitHub Actions for CI/CD
-
-## Getting Started
-
-### Prerequisites
-- Java 17 +
-- Maven 3.6+
-
-### Build and Run
-```bash
-# Build the project
-mvn clean install
-
-# Run the application
-mvn exec:java -Dexec.mainClass="grocery.Main"
-
-# Run tests
-mvn test
-```
 
 ## Project Structure
 
