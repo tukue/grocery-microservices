@@ -81,23 +81,6 @@ The application follows clean code principles with:
 - Strategy pattern: [`Discount`](src/main/java/grocery/Discount.java) interface with implementations
 - Output formatting: [`ReceiptPrinter`](src/main/java/grocery/ReceiptPrinter.java)
 
-## Example Usage
-
-```java
-// Create products
-Product apple = new Product("Apple", 0.50);
-Product milk = new Product("Milk", 1.50);
-
-// Use shopping cart
-ShoppingCart cart = new ShoppingCart();
-cart.addItem(apple, 4);
-cart.addItem(milk, 2);
-cart.setDiscount(new PercentageDiscount(0.10));
-
-// Print receipt with tax
-double tax = new TaxCalculator(0.07).calculateTax(cart.getTotalWithDiscount());
-new ReceiptPrinter(System.out).printReceipt(cart, tax);
-```
 
 ## Future Work: Spring Boot Integration
 
