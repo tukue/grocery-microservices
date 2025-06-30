@@ -134,21 +134,9 @@ Each microservice exposes interactive API documentation via Swagger UI:
 - **product-service:** http://localhost:8083/swagger-ui.html
 - **summary-service:** http://localhost:8084/swagger-ui.html
 
-## Test Credentials for Microservices
-
-All microservices are secured with HTTP Basic authentication. Use the following credentials to access protected endpoints:
-
-- **Username:** user
-- **Password:** password
 
 The Swagger UI and OpenAPI documentation endpoints are publicly accessible without authentication.
 
 ## Sample Data
 
-The product-service is preloaded with the following demo products for showcase purposes:
-
-- Apple ($0.99)
-- Banana ($0.59)
-- Carrot ($0.39)
-- Dairy Milk ($1.49)
-- Eggs ($2.99)
+The product-service is preloaded with the sample products for showcase purpose
