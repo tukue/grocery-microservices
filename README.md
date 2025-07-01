@@ -1,4 +1,4 @@
-# Clean Code Grocellery App
+t# Clean Code Grocellery App
 
 This project is a grocery store application built with a microservices architecture.
 
@@ -10,7 +10,7 @@ This application is designed using the microservices architectural style, where 
 - **Independent Deployment:** Services can be updated or redeployed without affecting the entire system.
 - **Scalability:** Individual services can be scaled based on demand.
 - **Technology Diversity:** Each service can use the most appropriate technology stack or database for its needs.
-- **Resilience:** Failures in one service do not directly impact others, improving overall system reliability.
+- **Resilience:**  improving overall system reliability.
 
 ### Microservices in This Project
 - **Product Service:** Manages the product catalog and exposes product-related APIs.
@@ -76,6 +76,19 @@ To run the tests for all modules, use the following command from the root of the
 mvn test
 ```
 
+### Authentication in Tests (Best Practice)
+
+For all microservices, authentication is **disabled in controller tests** using a test-specific security configuration. This means:
+- You do **not** need to provide credentials (e.g., `.with(httpBasic("user", "password"))`) in your test code.
+- Tests focus on business logic, not authentication.
+- Production security is unchanged; only the test profile disables authentication.
+
+**How it works:**
+- Each controller test includes a `@TestConfiguration` bean that overrides the security filter chain to permit all requests when the `test` profile is active.
+- This follows Spring Boot best practices for clean, maintainable, and focused tests.
+
+If you want to test authentication itself, create dedicated security tests or integration tests as needed.
+
 ## Features
 
 - Product management with validation
@@ -134,9 +147,21 @@ Each microservice exposes interactive API documentation via Swagger UI:
 - **product-service:** http://localhost:8083/swagger-ui.html
 - **summary-service:** http://localhost:8084/swagger-ui.html
 
+## Test Credentials for Microservices
+
+All microservices are secured with HTTP Basic authentication. Use the following credentials to access protected endpoints:
+
+- **Username:** user
+- **Password:** password
 
 The Swagger UI and OpenAPI documentation endpoints are publicly accessible without authentication.
 
 ## Sample Data
 
-The product-service is preloaded with the sample products for showcase purpose
+The product-service is preloaded with the following demo products for showcase purposes:
+
+- Apple ($0.99)
+- Banana ($0.59)
+- Carrot ($0.39)
+- Dairy Milk ($1.49)
+- Eggs ($2.99)

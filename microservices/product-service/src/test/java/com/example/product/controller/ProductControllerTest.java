@@ -18,11 +18,17 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import com.example.product.config.SecurityConfig;
 import org.springframework.context.annotation.Import;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Profile;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.test.context.ActiveProfiles;
 
+@ActiveProfiles("test")
 @WebMvcTest(ProductController.class)
-@Import(SecurityConfig.class)
+@Import(ProductControllerTest.TestSecurityConfig.class)
 public class ProductControllerTest {
 
     @Autowired
@@ -43,8 +49,7 @@ public class ProductControllerTest {
 
         when(productService.getAllProducts()).thenReturn(Collections.singletonList(product));
 
-        mockMvc.perform(get("/products")
-                .with(httpBasic("user", "password")))
+        mockMvc.perform(get("/products"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("Test Product"));
     }
@@ -63,11 +68,20 @@ public class ProductControllerTest {
         when(productService.saveProduct(any(Product.class))).thenReturn(savedProduct);
 
         mockMvc.perform(post("/products")
-                .with(httpBasic("user", "password"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(productDTO)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.name").value("New Product"));
+    }
+
+    @TestConfiguration
+    @Profile("test")
+    static class TestSecurityConfig {
+        @Bean
+        public SecurityFilterChain testFilterChain(HttpSecurity http) throws Exception {
+            http.csrf().disable().authorizeHttpRequests().anyRequest().permitAll();
+            return http.build();
+        }
     }
 } 

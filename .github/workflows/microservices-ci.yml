@@ -30,7 +30,7 @@ jobs:
         java-version: '21'
         
     - name: Test microservice
-      run: mvn -B test --file microservices/${{ matrix.service }}/pom.xml
+      run: mvn -B test -Dspring.profiles.active=test --file microservices/${{ matrix.service }}/pom.xml
       working-directory: ${{ github.workspace }}
 
   health-check:
