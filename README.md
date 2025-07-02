@@ -140,12 +140,36 @@ This project is available under the MIT License.
 
 ## API Documentation
 
-Each microservice exposes interactive API documentation via Swagger UI:
+Each microservice exposes interactive API documentation via Swagger UI. You can access these endpoints whether running the services locally or inside Docker containers (as long as the ports are mapped):
 
-- **cart-service:** http://localhost:8081/swagger-ui.html
-- **order-service:** http://localhost:8082/swagger-ui.html
-- **product-service:** http://localhost:8083/swagger-ui.html
-- **summary-service:** http://localhost:8084/swagger-ui.html
+- **cart-service:** http://localhost:8081/swagger-ui.html or http://localhost:8081/swagger-ui/index.html
+- **order-service:** http://localhost:8082/swagger-ui.html or http://localhost:8082/swagger-ui/index.html
+- **product-service:** http://localhost:8083/swagger-ui.html or http://localhost:8083/swagger-ui/index.html
+- **summary-service:** http://localhost:8084/swagger-ui.html or http://localhost:8084/swagger-ui/index.html
+
+If the `/swagger-ui.html` path does not work, try `/swagger-ui/index.html`.
+
+You can also view the raw OpenAPI spec at:
+- `http://localhost:<service-port>/v3/api-docs`
+
+## Health Checks (Actuator)
+
+Each service exposes a health endpoint via Spring Boot Actuator:
+
+- **cart-service:** http://localhost:8081/actuator/health
+- **order-service:** http://localhost:8082/actuator/health
+- **product-service:** http://localhost:8083/actuator/health
+- **summary-service:** http://localhost:8084/actuator/health
+
+If you get an empty reply or 401 error, make sure the service is running and that your security configuration allows unauthenticated access to `/actuator/health`.
+
+## Troubleshooting
+
+- Ensure the service is running and mapped to the correct port (see `docker-compose ps`).
+- If running inside Docker, make sure you are accessing the correct host port.
+- If you see a 404 or blank page for Swagger UI, try `/swagger-ui/index.html`.
+- If you get an empty reply from `/actuator/health`, check your security configuration to allow public access to actuator endpoints.
+- Check service logs with `docker logs <container-name>` for errors.
 
 ## Test Credentials for Microservices
 

@@ -1,4 +1,4 @@
-package com.example.cart;
+package com.example.order;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
@@ -11,8 +11,8 @@ public class SwaggerConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
             .info(new Info()
-                .title("Cart Service API")
+                .title("Order Service API")
                 .version("1.0")
-                .description("API documentation for the Cart Service"));
+                .description("API documentation for the Order Service"));
     }
 } 
