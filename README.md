@@ -1,4 +1,4 @@
-t# Clean Code Grocellery App
+# Clean Code Grocellery App
 
 This project is a grocery store application built with a microservices architecture.
 
@@ -98,7 +98,7 @@ If you want to test authentication itself, create dedicated security tests or in
 
 ## Technical Stack
 
-- Java 17
+- Java 21
 - JUnit 5 for testing
 - Maven for build automation
 - GitHub Actions for CI/CD
@@ -167,7 +167,7 @@ If you get an empty reply or 401 error, make sure the service is running and tha
 
 - Ensure the service is running and mapped to the correct port (see `docker-compose ps`).
 - If running inside Docker, make sure you are accessing the correct host port.
-- If you see a 404 or blank page for Swagger UI, try `/swagger-ui/index.html`.
+  
 - If you get an empty reply from `/actuator/health`, check your security configuration to allow public access to actuator endpoints.
 - Check service logs with `docker logs <container-name>` for errors.
 
