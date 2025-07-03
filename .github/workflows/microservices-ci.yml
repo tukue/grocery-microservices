@@ -55,10 +55,10 @@ jobs:
 
     - name: Start services
       run: |
-        nohup mvn -B spring-boot:run -pl microservices/cart-service -Dspring-boot.run.arguments="--server.port=8081" > cart-service.log 2>&1 &
-        nohup mvn -B spring-boot:run -pl microservices/order-service -Dspring-boot.run.arguments="--server.port=8082" > order-service.log 2>&1 &
-        nohup mvn -B spring-boot:run -pl microservices/product-service -Dspring-boot.run.arguments="--server.port=8083" > product-service.log 2>&1 &
-        nohup mvn -B spring-boot:run -pl microservices/summary-service -Dspring-boot.run.arguments="--server.port=8084" > summary-service.log 2>&1 &
+        nohup mvn -B spring-boot:run -pl microservices/cart-service -Dspring-boot.run.profiles=test -Dspring-boot.run.arguments="--server.port=8081" > cart-service.log 2>&1 &
+        nohup mvn -B spring-boot:run -pl microservices/order-service -Dspring-boot.run.profiles=test -Dspring-boot.run.arguments="--server.port=8082" > order-service.log 2>&1 &
+        nohup mvn -B spring-boot:run -pl microservices/product-service -Dspring-boot.run.profiles=test -Dspring-boot.run.arguments="--server.port=8083" > product-service.log 2>&1 &
+        nohup mvn -B spring-boot:run -pl microservices/summary-service -Dspring-boot.run.profiles=test -Dspring-boot.run.arguments="--server.port=8084" > summary-service.log 2>&1 &
         echo "Waiting for services to start..."
         sleep 60
       working-directory: ${{ github.workspace }}
