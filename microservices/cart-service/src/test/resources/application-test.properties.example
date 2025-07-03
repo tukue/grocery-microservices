@@ -1,1 +1,1 @@
-test-cart-service-secret=dummy-cart-secret 
+jwt.secret=dummy-cart-secret 

@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 @Component
 public class JwtUtil {
-    @Value("${test-cart-service-secret}")
+    @Value("${jwt.secret}")
     private String secret;
 
     public String generateToken(String username) {
