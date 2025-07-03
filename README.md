@@ -180,3 +180,41 @@ The Swagger UI and OpenAPI documentation endpoints are publicly accessible witho
 ## Sample Data
 
 The product-service is preloaded with the following demo products for showcase purpose.
+
+## JWT Authentication Integration
+
+All microservices use JWT (JSON Web Token) authentication for securing APIs. Each service requires a unique JWT secret, which should be set via environment variables or configuration files. **Never commit real secrets to version control.**
+
+### Setting JWT Secrets for Local Development and Testing
+
+For local development and tests, set the JWT secret in each service's `application-test.properties` (already gitignored):
+
+Example (`microservices/order-service/src/test/resources/application-test.properties`):
+```properties
+spring.datasource.url=jdbc:h2:mem:order-test-db
+spring.datasource.driver-class-name=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.h2.console.enabled=true
+JWT_SECRET=<your-unique-secret-here>
+```
+- Each service should have a unique value for `JWT_SECRET`.
+- These files are ignored by git (see `.gitignore`).
+
+### Production Secrets
+- Set `JWT_SECRET` as an environment variable or in a secure config file (never commit secrets).
+- Example for Docker Compose:
+  ```yaml
+  environment:
+    - JWT_SECRET=${JWT_SECRET}
+  ```
+
+### Swagger/OpenAPI and Test Security
+- All Swagger UI and OpenAPI endpoints are accessible without authentication.
+- In tests, a test-specific security config disables authentication for controller tests, so you do not need to provide tokens in test code.
+- To test authentication logic, create dedicated integration/security tests.
+
+### Rotating Secrets
+- To rotate a secret, update the value in your environment or test properties and restart the service.

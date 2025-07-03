@@ -22,5 +22,9 @@ public class SummaryControllerTest {
             http.csrf().disable().authorizeHttpRequests().anyRequest().permitAll();
             return http.build();
         }
+        @Bean
+        public com.example.summary.config.JwtUtil jwtUtil() {
+            return new com.example.summary.config.JwtUtil();
+        }
     }
 } 

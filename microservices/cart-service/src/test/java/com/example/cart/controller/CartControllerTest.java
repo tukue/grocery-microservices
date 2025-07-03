@@ -49,6 +49,10 @@ public class CartControllerTest {
             http.csrf().disable().authorizeHttpRequests().anyRequest().permitAll();
             return http.build();
         }
+        @Bean
+        public com.example.cart.config.JwtUtil jwtUtil() {
+            return new com.example.cart.config.JwtUtil();
+        }
     }
 
     @Test

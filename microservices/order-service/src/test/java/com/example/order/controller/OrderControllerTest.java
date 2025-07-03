@@ -65,5 +65,9 @@ public class OrderControllerTest {
             http.csrf().disable().authorizeHttpRequests().anyRequest().permitAll();
             return http.build();
         }
+        @Bean
+        public com.example.order.config.JwtUtil jwtUtil() {
+            return new com.example.order.config.JwtUtil();
+        }
     }
 } 

@@ -27,4 +27,10 @@ hs_err_pid*
 **/application.properties
 
 # Environment variables
-.env 
+.env
+
+# Ignore cart-service test properties with secrets
+microservices/cart-service/src/test/resources/application-test.properties
+
+# Ignore test properties with secrets
+microservices/*/src/test/resources/application-test.properties 

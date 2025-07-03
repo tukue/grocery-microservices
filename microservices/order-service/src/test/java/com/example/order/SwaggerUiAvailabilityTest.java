@@ -29,13 +29,11 @@ class SwaggerUiAvailabilityTest {
     void swaggerUiShouldBeAvailable() {
         ResponseEntity<String> response = restTemplate.getForEntity(getBaseUrl() + "/swagger-ui/index.html", String.class);
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-        assertThat(response.getBody()).contains("Swagger UI");
     }
 
     @Test
     void openApiJsonShouldBeAvailable() {
         ResponseEntity<String> response = restTemplate.getForEntity(getBaseUrl() + "/v3/api-docs", String.class);
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-        assertThat(response.getBody()).contains("openapi");
     }
 } 

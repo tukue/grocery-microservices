@@ -83,5 +83,9 @@ public class ProductControllerTest {
             http.csrf().disable().authorizeHttpRequests().anyRequest().permitAll();
             return http.build();
         }
+        @Bean
+        public com.example.product.config.JwtUtil jwtUtil() {
+            return new com.example.product.config.JwtUtil();
+        }
     }
 } 
