@@ -68,26 +68,66 @@ The services will be available at the following ports:
 - **product-service:** 8083
 - **summary-service:** 8084
 
-## Running Tests
+## Quick Start
 
-To run the tests for all modules, use the following command from the root of the project:
+```sh
+git clone <repo-url>
+cd clean-code-grocellery-app
+docker-compose up
+```
+Access services at:
+- Cart: http://localhost:8081
+- Order: http://localhost:8082
+- Product: http://localhost:8083
+- Summary: http://localhost:8084
 
-```bash
-mvn test
+## Service Endpoints
+
+| Service   | Base URL              | Swagger UI                  |
+|-----------|-----------------------|-----------------------------|
+| Cart      | http://localhost:8081 | http://localhost:8081/swagger-ui.html |
+| Order     | http://localhost:8082 | http://localhost:8082/swagger-ui.html |
+| Product   | http://localhost:8083 | http://localhost:8083/swagger-ui.html |
+| Summary   | http://localhost:8084 | http://localhost:8084/swagger-ui.html |
+
+## Environment Variables
+
+| Variable                  | Description                | Default Value         |
+|---------------------------|----------------------------|----------------------|
+| POSTGRES_USER             | DB username                | grocellery           |
+| POSTGRES_PASSWORD         | DB password                | grocellerypass       |
+| POSTGRES_DB               | DB name                    | grocery              |
+| test-cart-service-secret  | JWT secret for cart        | dummy-cart-secret    |
+| test-order-service-secret | JWT secret for order       | dummy-order-secret   |
+| test-product-service-secret | JWT secret for product    | dummy-product-secret |
+| test-summary-service-secret | JWT secret for summary    | dummy-summary-secret |
+
+## Architecture
+
+```mermaid
+graph TD
+  CartService --> CartDB
+  OrderService --> OrderDB
+  ProductService --> ProductDB
+  SummaryService --> SummaryDB
+  Prometheus --> CartService
+  Prometheus --> OrderService
+  Prometheus --> ProductService
+  Prometheus --> SummaryService
+  Grafana --> Prometheus
 ```
 
-### Authentication in Tests (Best Practice)
+## Running Tests
 
-For all microservices, authentication is **disabled in controller tests** using a test-specific security configuration. This means:
-- You do **not** need to provide credentials (e.g., `.with(httpBasic("user", "password"))`) in your test code.
-- Tests focus on business logic, not authentication.
-- Production security is unchanged; only the test profile disables authentication.
+To run all tests for a service:
+```sh
+mvn test -pl microservices/cart-service -Dspring.profiles.active=test
+```
 
-**How it works:**
-- Each controller test includes a `@TestConfiguration` bean that overrides the security filter chain to permit all requests when the `test` profile is active.
-- This follows Spring Boot best practices for clean, maintainable, and focused tests.
+## Monitoring
 
-If you want to test authentication itself, create dedicated security tests or integration tests as needed.
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3000 (default login:)
 
 ## Features
 
@@ -186,19 +226,6 @@ The product-service is preloaded with the following demo products for showcase p
 All microservices use JWT (JSON Web Token) authentication for securing APIs. Each service requires a unique JWT secret, which should be set via environment variables or configuration files. **Never commit real secrets to version control.**
 
 ### Setting JWT Secrets for Local Development and Testing
-
-For local development and tests, set the JWT secret in each service's `application-test.properties` (already gitignored):
-
-Example (`microservices/order-service/src/test/resources/application-test.properties`):
-```properties
-spring.datasource.url=jdbc:h2:mem:order-test-db
-spring.datasource.driver-class-name=org.h2.Driver
-spring.datasource.username=sa
-spring.datasource.password=
-spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
-spring.jpa.hibernate.ddl-auto=create-drop
-spring.h2.console.enabled=true
-JWT_SECRET=<your-unique-secret-here>
 ```
 - Each service should have a unique value for `JWT_SECRET`.
 - These files are ignored by git (see `.gitignore`).
