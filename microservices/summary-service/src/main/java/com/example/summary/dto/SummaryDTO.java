@@ -1,11 +1,17 @@
 package com.example.summary.dto;
 
 import java.util.List;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Positive;
 
 public class SummaryDTO {
     private Long id;
+    @NotNull(message = "Order ID must not be null")
     private Long orderId;
+    @NotEmpty(message = "Items must not be empty")
     private List<String> items;
+    @Positive(message = "Total must be positive")
     private double total;
 
     // Getters and setters

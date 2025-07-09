@@ -1,8 +1,15 @@
 package com.example.product.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
+
 public class ProductDTO {
     private Long id;
+
+    @NotBlank(message = "Product name must not be blank")
     private String name;
+
+    @Positive(message = "Product price must be positive")
     private double price;
 
     // Getters and setters

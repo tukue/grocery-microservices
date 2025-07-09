@@ -1,8 +1,10 @@
 package com.example.cart.controller;
 
 import com.example.cart.dto.CartDTO;
+import com.example.cart.dto.CartItemDTO;
 import com.example.cart.model.CartItem;
 import com.example.cart.service.CartService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,7 +29,11 @@ public class CartController {
     }
 
     @PostMapping("/{cartId}/items")
-    public ResponseEntity<CartDTO> addItemToCart(@PathVariable Long cartId, @RequestBody CartItem item) {
+    public ResponseEntity<CartDTO> addItemToCart(@PathVariable Long cartId, @Valid @RequestBody CartItemDTO itemDto) {
+        CartItem item = new CartItem();
+        item.setProductName(itemDto.getProductName());
+        item.setPrice(itemDto.getPrice());
+        item.setQuantity(itemDto.getQuantity());
         return ResponseEntity.ok(cartService.addItem(cartId, item));
     }
 

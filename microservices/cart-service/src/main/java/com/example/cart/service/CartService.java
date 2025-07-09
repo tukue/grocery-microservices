@@ -2,6 +2,7 @@ package com.example.cart.service;
 
 import com.example.cart.dto.CartDTO;
 import com.example.cart.dto.CartItemDTO;
+import com.example.cart.exception.CartNotFoundException;
 import com.example.cart.model.Cart;
 import com.example.cart.model.CartItem;
 import com.example.cart.repository.CartRepository;
@@ -20,19 +21,19 @@ public class CartService {
     }
 
     public CartDTO getCartById(Long id) {
-        Cart cart = repo.findById(id).orElseThrow();
+        Cart cart = repo.findById(id).orElseThrow(() -> new CartNotFoundException(id));
         return toDTO(cart);
     }
 
     public CartDTO addItem(Long cartId, CartItem item) {
-        Cart cart = repo.findById(cartId).orElseThrow();
+        Cart cart = repo.findById(cartId).orElseThrow(() -> new CartNotFoundException(cartId));
         cart.getItems().add(item);
         Cart updatedCart = repo.save(cart);
         return toDTO(updatedCart);
     }
 
     public CartDTO removeItem(Long cartId, Long itemId) {
-        Cart cart = repo.findById(cartId).orElseThrow();
+        Cart cart = repo.findById(cartId).orElseThrow(() -> new CartNotFoundException(cartId));
         cart.getItems().removeIf(i -> i.getId().equals(itemId));
         Cart updatedCart = repo.save(cart);
         return toDTO(updatedCart);
