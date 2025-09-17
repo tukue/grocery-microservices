@@ -1,0 +1,36 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto21
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+  build:
+    commands:
+      - echo Build started on `date`
+      - mvn clean install
+      - echo Building Docker images...
+      - docker build -t $IMAGE_REPO_NAME-cart-service:$IMAGE_TAG -f microservices/cart-service/Dockerfile .
+      - docker build -t $IMAGE_REPO_NAME-order-service:$IMAGE_TAG -f microservices/order-service/Dockerfile .
+      - docker build -t $IMAGE_REPO_NAME-product-service:$IMAGE_TAG -f microservices/product-service/Dockerfile .
+      - docker build -t $IMAGE_REPO_NAME-summary-service:$IMAGE_TAG -f microservices/summary-service/Dockerfile .
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker images...
+      - docker push $IMAGE_REPO_NAME-cart-service:$IMAGE_TAG
+      - docker push $IMAGE_REPO_NAME-order-service:$IMAGE_TAG
+      - docker push $IMAGE_REPO_NAME-product-service:$IMAGE_TAG
+      - docker push $IMAGE_REPO_NAME-summary-service:$IMAGE_TAG
+      - echo Writing image definitions file...
+      - printf '[{"name":"cart-service","imageUri":"%s"},{"name":"order-service","imageUri":"%s"},{"name":"product-service","imageUri":"%s"},{"name":"summary-service","imageUri":"%s"}]' \
+        $IMAGE_REPO_NAME-cart-service:$IMAGE_TAG \
+        $IMAGE_REPO_NAME-order-service:$IMAGE_TAG \
+        $IMAGE_REPO_NAME-product-service:$IMAGE_TAG \
+        $IMAGE_REPO_NAME-summary-service:$IMAGE_TAG > imagedefinitions.json
+artifacts:
+  files:
+    - imagedefinitions.json
