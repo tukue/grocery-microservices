@@ -5,7 +5,7 @@ COPY pom.xml .
 COPY src ./src
 RUN mvn clean install -DskipTests
 
-# Stage 2: Create the final image
+# Stage 2: Create the image
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 COPY --from=build /app/target/*.jar /app/app.jar
