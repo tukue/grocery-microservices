@@ -1,0 +1,20 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      terraform: 1.0
+  pre_build:
+    commands:
+      - cd terraform
+      - terraform init
+  build:
+    commands:
+      - terraform plan -out=tfplan
+  post_build:
+    commands:
+      - echo "Terraform Plan complete. Waiting for approval to apply."
+
+artifacts:
+  files:
+    - terraform/tfplan

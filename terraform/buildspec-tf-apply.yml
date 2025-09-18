@@ -1,0 +1,15 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      terraform: 1.0
+  pre_build:
+    commands:
+      - cd terraform
+      - terraform init
+  build:
+    commands:
+      - echo "Applying Terraform plan..."
+      - terraform apply -input=false tfplan
+
