@@ -1,99 +1,67 @@
-variable "name_prefix" {
-  description = "Name prefix for resources"
+variable "service_name" {
+  description = "The name of the microservice."
   type        = string
 }
 
-variable "vpc_id" {
-  description = "VPC ID"
+variable "image_uri" {
+  description = "The ECR image URI for the service."
   type        = string
 }
 
-variable "private_subnet_ids" {
-  description = "Private subnet IDs"
-  type        = list(string)
-}
-
-variable "alb_security_group_id" {
-  description = "ALB security group ID"
-  type        = string
-}
-
-variable "alb_listener_arn" {
-  description = "ALB listener ARN"
-  type        = string
-}
-
-variable "target_groups" {
-  description = "Target group ARNs for each service"
-  type        = map(string)
-}
-
-variable "services" {
-  description = "List of microservices"
-  type        = list(string)
-}
-
-variable "ecr_repository_url" {
-  description = "ECR repository URL"
-  type        = string
-}
-
-variable "db_instances" {
-  description = "Database instances information"
-  type = map(object({
-    endpoint = string
-    port     = number
-    name     = string
-  }))
-}
-
-variable "db_username" {
-  description = "Database username"
-  type        = string
-}
-
-variable "db_password" {
-  description = "Database password"
-  type        = string
-  sensitive   = true
-}
-
-variable "environment" {
-  description = "Environment name"
-  type        = string
-}
-
-variable "aws_region" {
-  description = "AWS region"
-  type        = string
+variable "container_port" {
+  description = "The port the container listens on."
+  type        = number
 }
 
 variable "task_cpu" {
-  description = "CPU units for ECS task"
+  description = "The CPU units to allocate for the task."
   type        = string
   default     = "256"
 }
 
 variable "task_memory" {
-  description = "Memory for ECS task"
+  description = "The memory to allocate for the task."
   type        = string
   default     = "512"
 }
 
 variable "desired_count" {
-  description = "Desired number of tasks"
+  description = "The desired number of tasks to run."
   type        = number
   default     = 1
 }
 
-variable "log_retention_days" {
-  description = "CloudWatch log retention in days"
-  type        = number
-  default     = 7
+variable "aws_region" {
+  description = "The AWS region to deploy to."
+  type        = string
 }
 
-variable "tags" {
-  description = "Tags to apply to resources"
-  type        = map(string)
-  default     = {}
+variable "ecs_cluster_id" {
+  description = "The ID of the ECS cluster."
+  type        = string
+}
+
+variable "vpc_id" {
+  description = "The ID of the VPC."
+  type        = string
+}
+
+variable "private_subnet_ids" {
+  description = "A list of private subnet IDs for the ECS service."
+  type        = list(string)
+}
+
+variable "alb_security_group_id" {
+  description = "The security group ID of the Application Load Balancer."
+  type        = string
+}
+
+variable "alb_listener_arn" {
+  description = "The ARN of the ALB listener."
+  type        = string
+}
+
+variable "alb_listener_rule_priority" {
+  description = "The priority for the ALB listener rule."
+  type        = number
 }

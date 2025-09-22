@@ -1,9 +1,11 @@
 version: 0.2
 
+env:
+  variables:
+    # These are the names of your service directories in the 'microservices' folder
+    SERVICES: "cart-service order-service product-service summary-service"
+
 phases:
-  install:
-    runtime-versions:
-      java: corretto21
   pre_build:
     commands:
       - echo Logging in to Amazon ECR...
@@ -11,26 +13,20 @@ phases:
   build:
     commands:
       - echo Build started on `date`
+      - echo Running Maven build...
       - mvn clean install
-      - echo Building Docker images...
-      - docker build -t $IMAGE_REPO_NAME-cart-service:$IMAGE_TAG -f microservices/cart-service/Dockerfile .
-      - docker build -t $IMAGE_REPO_NAME-order-service:$IMAGE_TAG -f microservices/order-service/Dockerfile .
-      - docker build -t $IMAGE_REPO_NAME-product-service:$IMAGE_TAG -f microservices/product-service/Dockerfile .
-      - docker build -t $IMAGE_REPO_NAME-summary-service:$IMAGE_TAG -f microservices/summary-service/Dockerfile .
+      - echo Building and pushing Docker images...
+      - |
+        for service in $SERVICES; do
+          REPO_NAME="$PROJECT_NAME-$service"
+          IMAGE_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$REPO_NAME:$IMAGE_TAG"
+          echo "Building Docker image for $service..."
+          docker build -t "$IMAGE_URI" -f "microservices/$service/Dockerfile" "microservices/$service"
+          echo "Pushing Docker image for $service to $IMAGE_URI..."
+          docker push "$IMAGE_URI"
+        done
   post_build:
     commands:
       - echo Build completed on `date`
-      - echo Pushing the Docker images...
-      - docker push $IMAGE_REPO_NAME-cart-service:$IMAGE_TAG
-      - docker push $IMAGE_REPO_NAME-order-service:$IMAGE_TAG
-      - docker push $IMAGE_REPO_NAME-product-service:$IMAGE_TAG
-      - docker push $IMAGE_REPO_NAME-summary-service:$IMAGE_TAG
-      - echo Writing image definitions file...
-      - printf '[{"name":"cart-service","imageUri":"%s"},{"name":"order-service","imageUri":"%s"},{"name":"product-service","imageUri":"%s"},{"name":"summary-service","imageUri":"%s"}]' \
-        $IMAGE_REPO_NAME-cart-service:$IMAGE_TAG \
-        $IMAGE_REPO_NAME-order-service:$IMAGE_TAG \
-        $IMAGE_REPO_NAME-product-service:$IMAGE_TAG \
-        $IMAGE_REPO_NAME-summary-service:$IMAGE_TAG > imagedefinitions.json
-artifacts:
-  files:
-    - imagedefinitions.json
+
+# No artifacts are needed for this pipeline design

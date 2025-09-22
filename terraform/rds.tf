@@ -8,11 +8,9 @@ resource "aws_db_subnet_group" "main" {
   }
 }
 
-# RDS Instances for each microservice
-resource "aws_db_instance" "microservice_db" {
-  count = length(var.services)
-
-  identifier = "${var.project_name}-${var.services[count.index]}-db"
+# Single RDS Instance for all microservices
+resource "aws_db_instance" "main" {
+  identifier = "${var.project_name}-db"
 
   engine         = "postgres"
   engine_version = "15.4"
@@ -23,7 +21,7 @@ resource "aws_db_instance" "microservice_db" {
   storage_type          = "gp2"
   storage_encrypted     = true
 
-  db_name  = "${var.services[count.index]}db"
+  db_name  = "${var.project_name}db" # A single initial database
   username = var.db_username
   password = var.db_password
 
@@ -38,6 +36,6 @@ resource "aws_db_instance" "microservice_db" {
   deletion_protection = false
 
   tags = {
-    Name = "${var.project_name}-${var.services[count.index]}-db"
+    Name = "${var.project_name}-db"
   }
 }
