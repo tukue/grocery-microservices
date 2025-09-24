@@ -1,16 +1,41 @@
 # Clean Code Grocellery App
 
-This project is a grocery store application built with a microservices architecture.
+This project is a grocery store application built with a microservices architecture. It is designed for both local development and fully automated cloud deployment to AWS.
 
-## Microservice-Based Development
+---
 
-This application is designed using the microservices architectural style, where the system is decomposed into small, independent services. Each microservice is responsible for a specific business capability and can be developed, deployed, and scaled independently. This approach offers several benefits:
+## AWS Cloud Deployment Documentation
 
-- **Separation of Concerns:** Each service encapsulates a specific domain or functionality (e.g., product management, cart, order processing, summary/receipt).
-- **Independent Deployment:** Services can be updated or redeployed without affecting the entire system.
-- **Scalability:** Individual services can be scaled based on demand.
-- **Technology Diversity:** Each service can use the most appropriate technology stack or database for its needs.
-- **Resilience:**  improving overall system reliability.
+This project is architected for a fully automated, production-ready deployment to the AWS cloud. The deployment strategy is built on the principles of Infrastructure as Code (IaC) and a complete CI/CD pipeline, ensuring that deployments are reliable, repeatable, and secure.
+
+### Infrastructure as Code (IaC) with Terraform
+
+The entire cloud infrastructure is managed declaratively using **Terraform**, with all configuration files located in the `/terraform` directory. This IaC approach means that the complete architecture—from networking to databases to the application services themselves—is treated as code, versioned in Git, and can be created or destroyed reliably.
+
+Key components of the AWS architecture provisioned by Terraform include:
+
+- **Networking:** A custom, secure **Amazon VPC** is created with public and private subnets. Public-facing resources like the load balancer reside in the public subnets, while the core application and database are protected in the private subnets, inaccessible from the public internet.
+- **Container Orchestration:** The microservices are deployed as Docker containers managed by **Amazon ECS (Elastic Container Service)** on **AWS Fargate**. Fargate is a serverless compute engine for containers, which removes the need to manage underlying EC2 instances, simplifying operations and scaling.
+- **Database:** For cost-effectiveness in an MVP environment, all services connect to a single, shared **Amazon RDS for PostgreSQL** database instance. This provides a managed, reliable, and scalable database solution.
+- **Load Balancing:** An **Application Load Balancer (ALB)** serves as the single entry point for all user traffic. It inspects the URL path of incoming requests and routes them to the appropriate microservice (e.g., requests to `/cart-service/*` are routed to the Cart Service).
+
+### Automated CI/CD Pipeline
+
+A continuous integration and continuous delivery (CI/CD) pipeline, built with **AWS CodePipeline**, automates the entire process of moving code from a developer's commit to a live deployment in the cloud.
+
+The pipeline consists of the following stages:
+
+1.  **Source:** The pipeline is automatically triggered by a `git push` to the `main` branch of the AWS CodeCommit repository.
+2.  **Build:** An **AWS CodeBuild** project takes over, performing the core CI tasks. It compiles the Java code, runs unit tests with Maven (`mvn clean install`), and then builds a new Docker image for each microservice. These images are tagged and pushed to their respective **Amazon ECR (Elastic Container Registry)** repositories.
+3.  **Deploy (Plan & Apply):** The deployment is handled safely in two steps:
+    *   **Terraform Plan:** A second CodeBuild project runs `terraform plan`, which generates a preview of the infrastructure changes. The pipeline then **pauses for manual approval**, providing a critical safety gate to prevent accidental changes.
+    *   **Terraform Apply:** Once the plan is approved in the AWS Console, the pipeline proceeds. It runs `terraform apply`, which instructs Terraform to update the infrastructure. Terraform detects the new Docker image in ECR and updates the corresponding ECS Task Definition. This action automatically triggers a **zero-downtime rolling deployment** of the new application version in ECS.
+
+---
+
+## Microservice-Based Development (Local)
+
+This application is designed using the microservices architectural style, where the system is decomposed into small, independent services. Each microservice is responsible for a specific business capability and can be developed, deployed, and scaled independently.
 
 ### Microservices in This Project
 - **Product Service:** Manages the product catalog and exposes product-related APIs.
@@ -18,7 +43,7 @@ This application is designed using the microservices architectural style, where 
 - **Order Service:** Manages order creation and processing.
 - **Summary Service:** Generates purchase summaries and receipts.
 
-All services communicate via REST APIs and are containerized for easy orchestration with Docker Compose. Each service has its own database, codebase, and can be tested and deployed independently.
+All services communicate via REST APIs and are containerized for easy orchestration with Docker Compose. For local development, each service has its own database, codebase, and can be tested and deployed independently.
 
 ## Prerequisites
 
@@ -27,7 +52,7 @@ All services communicate via REST APIs and are containerized for easy orchestrat
 - Docker
 - Docker Compose
 
-## Getting Started
+## Getting Started (Local)
 
 ### 1. Start the Databases
 
@@ -94,9 +119,9 @@ Access services at:
 
 | Variable                  | Description                | Default Value         |
 |---------------------------|----------------------------|----------------------|
-| POSTGRES_USER             | DB username                | grocellery           |
-| POSTGRES_PASSWORD         | DB password                | grocellerypass       |
-| POSTGRES_DB               | DB name                    | grocery              |
+| POSTGRES_USER             | DB username                |         |
+| POSTGRES_PASSWORD         | DB password                |        |
+| POSTGRES_DB               | DB name                    | grocery          |
 | test-cart-service-secret  | JWT secret for cart        | dummy-cart-secret    |
 | test-order-service-secret | JWT secret for order       | dummy-order-secret   |
 | test-product-service-secret | JWT secret for product    | dummy-product-secret |
@@ -186,6 +211,7 @@ Each microservice exposes interactive API documentation via Swagger UI. You can 
 - **order-service:** http://localhost:8082/swagger-ui.html or http://localhost:8082/swagger-ui/index.html
 - **product-service:** http://localhost:8083/swagger-ui.html or http://localhost:8083/swagger-ui/index.html
 - **summary-service:** http://localhost:8084/swagger-ui.html or http://localhost:8084/swagger-ui/index.html
+
 
 If the `/swagger-ui.html` path does not work, try `/swagger-ui/index.html`.
 
