@@ -158,6 +158,12 @@ resource "aws_codebuild_project" "grocellery_terraform" {
     compute_type = "BUILD_GENERAL1_SMALL"
     image        = "aws/codebuild/standard:7.0"
     type         = "LINUX_CONTAINER"
+
+    environment_variable {
+      name  = "TF_VAR_db_password"
+      value = "PLEASE_SET_IN_AWS_CONSOLE"
+      type  = "PLAINTEXT"
+    }
   }
 
   source {
