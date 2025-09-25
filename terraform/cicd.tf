@@ -160,9 +160,9 @@ resource "aws_codebuild_project" "grocellery_terraform" {
     type         = "LINUX_CONTAINER"
 
     environment_variable {
-      name  = "TF_VAR_db_password"
-      value = "PLEASE_SET_IN_AWS_CONSOLE"
-      type  = "PLAINTEXT"
+      name  = "TF_VAR_initial_db_password"
+      value = aws_secretsmanager_secret.db_password.name
+      type  = "SECRETS_MANAGER"
     }
   }
 
@@ -293,6 +293,22 @@ resource "aws_iam_policy" "codebuild_app_build_policy" {
   })
 }
 
+resource "aws_iam_policy" "codebuild_secrets_manager_policy" {
+  name        = "grocellery-codebuild-secrets-manager-policy"
+  description = "Policy to allow CodeBuild to read the DB password from Secrets Manager"
+
+  policy = jsonencode({
+    Version   = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = "secretsmanager:GetSecretValue",
+        Resource = aws_secretsmanager_secret.db_password.arn
+      }
+    ]
+  })
+}
+
 # --- POLICY ATTACHMENTS ---
 
 resource "aws_iam_role_policy_attachment" "codepipeline_attachment" {
@@ -303,6 +319,11 @@ resource "aws_iam_role_policy_attachment" "codepipeline_attachment" {
 resource "aws_iam_role_policy_attachment" "codebuild_app_build_attachment" {
   role       = aws_iam_role.codebuild_app_build_role.name
   policy_arn = aws_iam_policy.codebuild_app_build_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "terraform_secrets_manager_attachment" {
+  role       = aws_iam_role.codebuild_terraform_role.name
+  policy_arn = aws_iam_policy.codebuild_secrets_manager_policy.arn
 }
 
 # Attach AWS managed policies for Terraform access

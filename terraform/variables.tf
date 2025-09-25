@@ -46,8 +46,8 @@ variable "db_username" {
   default     = "grocellery"
 }
 
-variable "db_password" {
-  description = "Database password"
+variable "initial_db_password" {
+  description = "The initial database password. This will be used to create the secret in AWS Secrets Manager on the first run."
   type        = string
   sensitive   = true
 }
