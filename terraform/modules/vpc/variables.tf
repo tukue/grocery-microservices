@@ -18,8 +18,13 @@ variable "private_subnet_cidrs" {
   type        = list(string)
 }
 
-variable "tags" {
-  description = "Tags to apply to resources"
+variable "availability_zones" {
+  description = "Availability zones"
+  type        = list(string)
+}
+
+variable "common_tags" {
+  description = "Common tags to apply to resources"
   type        = map(string)
   default     = {}
 }

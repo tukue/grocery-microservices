@@ -366,5 +366,3 @@ resource "aws_iam_role_policy_attachment" "terraform_logs" {
   role       = aws_iam_role.codebuild_terraform_role.name
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
 }
-
-data "aws_caller_identity" "current" {}

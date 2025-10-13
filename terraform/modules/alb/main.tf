@@ -1,33 +1,4 @@
-resource "aws_security_group" "alb" {
-  name_prefix = "${var.name_prefix}-alb-"
-  vpc_id      = var.vpc_id
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = merge(var.tags, {
-    Name = "${var.name_prefix}-alb-sg"
-  })
-}
-
+# Application Load Balancer
 resource "aws_lb" "main" {
   name               = "${var.name_prefix}-alb"
   internal           = false
@@ -35,40 +6,17 @@ resource "aws_lb" "main" {
   security_groups    = [aws_security_group.alb.id]
   subnets            = var.public_subnet_ids
 
-  enable_deletion_protection = var.enable_deletion_protection
+  enable_deletion_protection = var.environment == "prod"
+  enable_http2              = true
 
-  tags = merge(var.tags, {
+  tags = merge(var.common_tags, {
     Name = "${var.name_prefix}-alb"
+    Type = "load-balancer"
   })
 }
 
-resource "aws_lb_target_group" "services" {
-  for_each = toset(var.services)
-
-  name     = "${var.name_prefix}-${each.key}-tg"
-  port     = 8080
-  protocol = "HTTP"
-  vpc_id   = var.vpc_id
-
-  health_check {
-    enabled             = true
-    healthy_threshold   = 2
-    interval            = 30
-    matcher             = "200"
-    path                = "/actuator/health"
-    port                = "traffic-port"
-    protocol            = "HTTP"
-    timeout             = 5
-    unhealthy_threshold = 2
-  }
-
-  tags = merge(var.tags, {
-    Name    = "${var.name_prefix}-${each.key}-tg"
-    Service = each.key
-  })
-}
-
-resource "aws_lb_listener" "main" {
+# ALB Listener
+resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
   port              = "80"
   protocol          = "HTTP"
@@ -77,27 +25,58 @@ resource "aws_lb_listener" "main" {
     type = "fixed-response"
 
     fixed_response {
-      content_type = "text/plain"
-      message_body = "Service not found"
-      status_code  = "404"
+      content_type = "application/json"
+      message_body = jsonencode({
+        error   = "Not Found"
+        message = "The requested resource was not found"
+        status  = 404
+      })
+      status_code = "404"
     }
   }
+
+  tags = merge(var.common_tags, {
+    Name = "${var.name_prefix}-alb-listener"
+    Type = "load-balancer-listener"
+  })
 }
 
-resource "aws_lb_listener_rule" "services" {
-  for_each = toset(var.services)
+# ALB Security Group
+resource "aws_security_group" "alb" {
+  name_prefix = "${var.name_prefix}-alb-"
+  description = "Security group for the Application Load Balancer"
+  vpc_id      = var.vpc_id
 
-  listener_arn = aws_lb_listener.main.arn
-  priority     = 100 + index(var.services, each.key)
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.services[each.key].arn
+  ingress {
+    description = "HTTP from internet"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  condition {
-    path_pattern {
-      values = ["/${each.key}/*"]
-    }
+  ingress {
+    description = "HTTPS from internet"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "All outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "${var.name_prefix}-alb-sg"
+    Type = "security-group"
+  })
+
+  lifecycle {
+    create_before_destroy = true
   }
 }

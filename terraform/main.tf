@@ -1,15 +1,23 @@
-terraform {
-  required_version = ">= 1.0"
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
+provider "aws" {
+  region = var.aws_region
+  
+  default_tags {
+    tags = merge(var.common_tags, {
+      Environment = var.environment
+      Region      = var.aws_region
+    })
   }
 }
 
-provider "aws" {
-  region = var.aws_region
+# Local values for consistent naming and tagging
+locals {
+  name_prefix = "${var.project_name}-${var.environment}"
+  
+  common_tags = merge(var.common_tags, {
+    Environment = var.environment
+    Region      = var.aws_region
+    Terraform   = "true"
+  })
 }
 
 # Data sources
@@ -17,111 +25,68 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
-# VPC
-resource "aws_vpc" "main" {
-  cidr_block           = var.vpc_cidr
-  enable_dns_hostnames = true
-  enable_dns_support   = true
+data "aws_caller_identity" "current" {}
 
-  tags = {
-    Name = "${var.project_name}-vpc"
-  }
+# VPC Module
+module "vpc" {
+  source = "./modules/vpc"
+
+  name_prefix            = local.name_prefix
+  vpc_cidr              = var.vpc_cidr
+  public_subnet_cidrs   = var.public_subnet_cidrs
+  private_subnet_cidrs  = var.private_subnet_cidrs
+  availability_zones    = data.aws_availability_zones.available.names
+  common_tags           = local.common_tags
 }
 
-# Internet Gateway
-resource "aws_internet_gateway" "main" {
-  vpc_id = aws_vpc.main.id
+# ALB Module
+module "alb" {
+  source = "./modules/alb"
 
-  tags = {
-    Name = "${var.project_name}-igw"
-  }
+  name_prefix       = local.name_prefix
+  environment       = var.environment
+  vpc_id           = module.vpc.vpc_id
+  public_subnet_ids = module.vpc.public_subnet_ids
+  common_tags      = local.common_tags
 }
 
-# Public Subnets
-resource "aws_subnet" "public" {
-  count = 2
+# RDS Module
+module "rds" {
+  source = "./modules/rds"
 
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.public_subnet_cidrs[count.index]
-  availability_zone       = data.aws_availability_zones.available.names[count.index]
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "${var.project_name}-public-subnet-${count.index + 1}"
-  }
+  name_prefix              = local.name_prefix
+  project_name            = var.project_name
+  environment             = var.environment
+  vpc_id                  = module.vpc.vpc_id
+  private_subnet_ids      = module.vpc.private_subnet_ids
+  allowed_security_groups = [aws_security_group.ecs.id]
+  db_instance_class       = var.db_instance_class
+  db_username             = var.db_username
+  backup_retention_period = var.backup_retention_period
+  common_tags             = local.common_tags
 }
 
-# Private Subnets
-resource "aws_subnet" "private" {
-  count = 2
+# ECS Security Group
+resource "aws_security_group" "ecs" {
+  name_prefix = "${local.name_prefix}-ecs-"
+  vpc_id      = module.vpc.vpc_id
 
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = var.private_subnet_cidrs[count.index]
-  availability_zone = data.aws_availability_zones.available.names[count.index]
-
-  tags = {
-    Name = "${var.project_name}-private-subnet-${count.index + 1}"
-  }
-}
-
-# NAT Gateway
-resource "aws_eip" "nat" {
-  domain = "vpc"
-
-  tags = {
-    Name = "${var.project_name}-nat-eip"
-  }
-}
-
-resource "aws_nat_gateway" "main" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public[0].id
-
-  tags = {
-    Name = "${var.project_name}-nat-gateway"
+  ingress {
+    from_port       = 8080
+    to_port         = 8090
+    protocol        = "tcp"
+    security_groups = [module.alb.security_group_id]
   }
 
-  depends_on = [aws_internet_gateway.main]
-}
-
-# Route Tables
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.main.id
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = {
-    Name = "${var.project_name}-public-rt"
-  }
-}
-
-resource "aws_route_table" "private" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.main.id
-  }
-
-  tags = {
-    Name = "${var.project_name}-private-rt"
-  }
-}
-
-# Route Table Associations
-resource "aws_route_table_association" "public" {
-  count = 2
-
-  subnet_id      = aws_subnet.public[count.index].id
-  route_table_id = aws_route_table.public.id
-}
-
-resource "aws_route_table_association" "private" {
-  count = 2
-
-  subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private.id
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-ecs-sg"
+    Type = "security-group"
+  })
 }
