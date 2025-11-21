@@ -34,3 +34,7 @@ microservices/cart-service/src/test/resources/application-test.properties
 
 # Ignore test properties with secrets
 microservices/*/src/test/resources/application-test.properties 
+
+# Terraform secrets file
+/terraform/terraform.tfvars
+terraform.tfvars

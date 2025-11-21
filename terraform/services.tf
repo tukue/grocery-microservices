@@ -65,7 +65,7 @@ module "ecs_service" {
 
   # Service configuration
   service_name   = each.key
-  image_uri      = "${aws_ecr_repository.services[each.key].repository_url}:latest"
+  image_uri      = "${aws_ecr_repository.services[each.key].repository_url}:${var.image_tag}"
   container_port = each.value.port
   
   # Resource allocation

@@ -1,1 +1,3 @@
-test-summary-service-secret=dummy-summary-secret 
+jwt.secret=dummy-summary-secret
+jwt.issuer=summary-service
+jwt.audience=summary-client

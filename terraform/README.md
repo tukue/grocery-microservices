@@ -1,199 +1,225 @@
-# Terraform Infrastructure for Grocellery Microservices
+# Grocellery App - Terraform Infrastructure
 
-This directory contains Terraform configurations to deploy the Grocellery microservices application to AWS using a modular approach.
+This directory contains the Terraform configuration for deploying the Grocellery microservices application to AWS.
 
-## Architecture
+## Architecture Overview
 
-The infrastructure includes:
-- **VPC** with public/private subnets across 2 AZs
-- **RDS PostgreSQL** instances (one per microservice)
-- **ECS Fargate** cluster for containerized services
-- **Application Load Balancer** for traffic routing
+The infrastructure provisions:
+
+- **VPC** with public and private subnets across multiple AZs
+- **Application Load Balancer** for traffic distribution
+- **ECS Fargate** cluster for container orchestration
+- **RDS PostgreSQL** database with encryption and backups
 - **ECR** repositories for container images
-- **CloudWatch** for logging and monitoring
-
-## Directory Structure
-
-```
-terraform/
-├── modules/                    # Reusable Terraform modules
-│   ├── vpc/                   # VPC and networking
-│   ├── rds/                   # PostgreSQL databases
-│   ├── alb/                   # Application Load Balancer
-│   └── ecs/                   # ECS cluster and services
-├── environments/              # Environment-specific configurations
-│   └── dev/                   # Development environment
-└── README.md
-```
+- **CloudWatch** monitoring and logging
+- **Secrets Manager** for secure credential storage
+- **CI/CD Pipeline** with CodePipeline and CodeBuild
 
 ## Prerequisites
 
-1. **AWS CLI** configured with appropriate credentials
-2. **Terraform** >= 1.0 installed
-3. **Docker** for building container images
+- AWS CLI configured with appropriate credentials
+- Terraform >= 1.5
+- Docker (for local testing)
 
 ## Quick Start
 
-### 1. Configure Variables
+### Option 1: Using Environment-Specific Configurations (Recommended)
 
-```bash
-cd environments/dev
-cp terraform.tfvars.example terraform.tfvars
+1. **Navigate to terraform directory**:
+   ```bash
+   cd terraform
+   ```
+
+2. **Set database password**:
+   ```bash
+   export TF_VAR_initial_db_password="your-secure-password"
+   ```
+
+3. **Deploy to specific environment**:
+   ```bash
+   # For development
+   ./deploy.sh dev plan
+   ./deploy.sh dev apply
+   
+   # For staging
+   ./deploy.sh staging plan
+   ./deploy.sh staging apply
+   
+   # For production
+   ./deploy.sh prod plan
+   ./deploy.sh prod apply
+   ```
+
+   On Windows:
+   ```cmd
+   deploy.bat dev plan
+   deploy.bat dev apply
+   ```
+
+### Option 2: Manual Configuration
+
+1. **Copy and configure variables**:
+   ```bash
+   cp terraform.tfvars.example terraform.tfvars
+   ```
+
+2. **Initialize and deploy**:
+   ```bash
+   terraform init
+   terraform plan -var-file="terraform.tfvars"
+   terraform apply -var-file="terraform.tfvars"
+   ```
+
+## Configuration
+
+### Required Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `aws_region` | AWS region for deployment | `us-east-1` |
+| `initial_db_password` | Database password (set via env var) | `SecurePass123!` |
+
+### Optional Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `project_name` | Project name for resource naming | `grocellery-app` |
+| `environment` | Environment (dev/staging/prod) | `dev` |
+| `enable_monitoring` | Enable CloudWatch monitoring | `true` |
+| `enable_backup` | Enable RDS backups | `true` |
+| `backup_retention_period` | Backup retention in days | `7` |
+
+### Service Configuration
+
+Each microservice can be configured individually:
+
+```hcl
+services = {
+  cart = {
+    port              = 8081
+    cpu               = 256
+    memory            = 512
+    desired_count     = 1
+    health_check_path = "/actuator/health"
+  }
+  # ... other services
+}
 ```
 
-Edit `terraform.tfvars` with your specific values:
-- Set a secure `db_password`
-- Adjust `aws_region` if needed
-- Modify resource sizes based on requirements
+## Security Features
 
-### 2. Initialize Terraform
-
-```bash
-terraform init
-```
-
-### 3. Plan Deployment
-
-```bash
-terraform plan
-```
-
-### 4. Deploy Infrastructure
-
-```bash
-terraform apply
-```
-
-## Module Details
-
-### VPC Module (`modules/vpc/`)
-- Creates VPC with DNS support
-- Public subnets for ALB
-- Private subnets for ECS and RDS
-- Internet Gateway and NAT Gateway
-- Route tables and associations
-
-### RDS Module (`modules/rds/`)
-- PostgreSQL 15.4 instances
-- One database per microservice
-- Multi-AZ for production
-- Automated backups
-- Security groups for database access
-
-### ALB Module (`modules/alb/`)
-- Application Load Balancer
-- Target groups for each service
-- Path-based routing (`/cart/*`, `/order/*`, etc.)
-- Health checks on `/actuator/health`
-
-### ECS Module (`modules/ecs/`)
-- Fargate cluster with Container Insights
-- Task definitions for each service
-- Auto-scaling capabilities
-- CloudWatch logging
-- Service discovery
-
-## Environment Configuration
-
-### Development (`environments/dev/`)
-- Small instance sizes (db.t3.micro, 256 CPU, 512 MB)
-- Single task per service
-- Cost-optimized settings
-
-### Adding New Environments
-
-1. Create new directory: `environments/staging/`
-2. Copy files from `dev/` environment
-3. Adjust variables for staging requirements
-4. Deploy with environment-specific state
-
-## Deployment Process
-
-### 1. Build and Push Images
-
-```bash
-# Build images for each service
-docker build -t cart-service ./microservices/cart-service
-docker build -t order-service ./microservices/order-service
-docker build -t product-service ./microservices/product-service
-docker build -t summary-service ./microservices/summary-service
-
-# Tag and push to ECR (after terraform apply)
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com
-
-docker tag cart-service:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/grocellery-app-dev-cart:latest
-docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/grocellery-app-dev-cart:latest
-```
-
-### 2. Update ECS Services
-
-After pushing new images, ECS services will automatically deploy new tasks.
-
-## Accessing Services
-
-After deployment, services are accessible through the ALB:
-
-- Cart Service: `http://<alb-dns-name>/cart/`
-- Order Service: `http://<alb-dns-name>/order/`
-- Product Service: `http://<alb-dns-name>/product/`
-- Summary Service: `http://<alb-dns-name>/summary/`
+- **Encryption at rest** for RDS and Secrets Manager using KMS
+- **Network isolation** with private subnets for application and database
+- **Security groups** with least privilege access
+- **IAM roles** with minimal required permissions
+- **Secrets management** via AWS Secrets Manager
+- **Container security** with read-only root filesystem where possible
 
 ## Monitoring
 
-- **CloudWatch Logs**: `/ecs/grocellery-app-dev/<service>`
-- **ECS Console**: Monitor service health and scaling
-- **RDS Console**: Database performance metrics
+When `enable_monitoring = true`, the following are created:
 
-## Security
+- CloudWatch Dashboard with key metrics
+- CloudWatch Alarms for CPU, memory, and error rates
+- Log aggregation and retention policies
+- SNS topic for alert notifications
+- CloudWatch Log Insights queries for troubleshooting
 
-- Services run in private subnets
-- Database access restricted to ECS security group
-- ALB handles SSL termination (add certificate for HTTPS)
-- IAM roles follow least privilege principle
+## Backup and Recovery
+
+- **RDS automated backups** with configurable retention
+- **Point-in-time recovery** enabled
+- **Final snapshots** for production environments
+- **Cross-region backup replication** (can be enabled)
 
 ## Cost Optimization
 
-### Development Environment (~$140/month)
-- db.t3.micro RDS instances
-- Fargate with minimal CPU/memory
-- Single AZ deployment
+- **Fargate Spot** capacity providers for non-critical workloads
+- **GP3 storage** for RDS with optimized IOPS
+- **Log retention policies** to manage CloudWatch costs
+- **ECR lifecycle policies** to clean up old images
 
-### Production Considerations
-- Multi-AZ RDS deployment
-- Larger instance sizes
-- Auto-scaling policies
-- Reserved instances for cost savings
+## Environments
+
+The configuration supports multiple environments with different AWS regions and resource configurations:
+
+### Development (`environments/dev/`)
+- **Region**: us-east-1
+- **Resources**: Minimal (t3.micro RDS, 256 CPU, 512 MB memory)
+- **Instances**: 1 per service
+- **Backup retention**: 3 days
+
+### Staging (`environments/staging/`)
+- **Region**: us-west-2
+- **Resources**: Medium (t3.small RDS, 512 CPU, 1024 MB memory)
+- **Instances**: 2 per service
+- **Backup retention**: 7 days
+
+### Production (`environments/prod/`)
+- **Region**: us-east-1
+- **Resources**: Large (r5.large RDS, 1024 CPU, 2048 MB memory)
+- **Instances**: 3 per service across 3 AZs
+- **Backup retention**: 30 days
+- **Enhanced monitoring and deletion protection enabled**
+
+### Switching Regions
+
+To deploy to a different region, modify the `aws_region` in the respective environment's `terraform.tfvars` file:
+
+```hcl
+# In environments/dev/terraform.tfvars
+aws_region = "eu-west-1"  # Change to desired region
+```
+
+## CI/CD Integration
+
+The Terraform configuration includes:
+
+- **CodePipeline** for automated deployments
+- **CodeBuild** projects for building and testing
+- **ECR integration** for container image management
+- **Terraform state management** in the pipeline
+
+## Outputs
+
+After deployment, Terraform outputs important information:
+
+```bash
+terraform output
+```
+
+Key outputs include:
+- ALB DNS name for accessing services
+- RDS endpoint for database connections
+- ECR repository URLs for pushing images
+- Service URLs for each microservice
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **ECS Tasks Failing to Start**
-   - Check CloudWatch logs
-   - Verify ECR image exists
-   - Confirm database connectivity
-
-2. **ALB Health Checks Failing**
-   - Ensure `/actuator/health` endpoint is accessible
-   - Check security group rules
-   - Verify container port mapping
-
-3. **Database Connection Issues**
-   - Confirm RDS security group allows ECS access
-   - Check database credentials
-   - Verify subnet routing
+1. **Permission Errors**: Ensure your AWS credentials have sufficient permissions
+2. **Resource Limits**: Check AWS service limits in your region
+3. **Network Issues**: Verify VPC and subnet configurations
+4. **Database Connection**: Check security groups and network ACLs
 
 ### Useful Commands
 
 ```bash
-# Check ECS service status
-aws ecs describe-services --cluster grocellery-app-dev-cluster --services grocellery-app-dev-cart-service
+# View current state
+terraform show
 
-# View CloudWatch logs
-aws logs tail /ecs/grocellery-app-dev/cart --follow
+# Import existing resources
+terraform import aws_instance.example i-1234567890abcdef0
 
-# Check ALB target health
-aws elbv2 describe-target-health --target-group-arn <target-group-arn>
+# Refresh state
+terraform refresh
+
+# Validate configuration
+terraform validate
+
+# Format code
+terraform fmt -recursive
 ```
 
 ## Cleanup
@@ -204,12 +230,54 @@ To destroy all resources:
 terraform destroy
 ```
 
-**Warning**: This will delete all data including databases. Ensure you have backups if needed.
+**Warning**: This will delete all resources including databases. Ensure you have backups if needed.
 
-## Next Steps
+## Module Structure
 
-1. **CI/CD Pipeline**: Integrate with GitHub Actions for automated deployments
-2. **SSL Certificate**: Add ACM certificate for HTTPS
-3. **Domain Name**: Configure Route 53 for custom domain
-4. **Monitoring**: Add CloudWatch dashboards and alarms
-5. **Secrets Management**: Use AWS Secrets Manager for sensitive data
+```
+terraform/
+├── main.tf                 # Main configuration and VPC
+├── variables.tf            # Variable definitions
+├── outputs.tf             # Output definitions
+├── services.tf            # ECS services and ECR
+├── ecs-cluster.tf         # ECS cluster configuration
+├── alb.tf                 # Application Load Balancer
+├── rds.tf                 # Database configuration
+├── secrets.tf             # Secrets Manager
+├── security-groups.tf     # Security group rules
+├── monitoring.tf          # CloudWatch monitoring
+├── cicd.tf               # CI/CD pipeline
+├── modules/
+│   └── ecs/              # ECS service module
+│       ├── main.tf
+│       ├── variables.tf
+│       └── outputs.tf
+└── environments/         # Environment-specific configs
+    └── dev/
+        └── terraform.tfvars
+```
+
+## Best Practices
+
+1. **State Management**: Use remote state with S3 and DynamoDB locking
+2. **Variable Validation**: All variables include validation rules
+3. **Resource Tagging**: Consistent tagging strategy for cost allocation
+4. **Security**: Least privilege IAM policies and encrypted storage
+5. **Monitoring**: Comprehensive observability with alerts
+6. **Documentation**: All resources include descriptions and tags
+
+## Contributing
+
+1. Follow Terraform best practices
+2. Update documentation for any changes
+3. Test in development environment first
+4. Use consistent naming conventions
+5. Add appropriate tags to all resources
+
+## Support
+
+For issues or questions:
+1. Check the troubleshooting section
+2. Review AWS CloudWatch logs
+3. Consult Terraform documentation
+4. Contact the DevOps team

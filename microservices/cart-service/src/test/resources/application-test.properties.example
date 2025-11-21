@@ -1,1 +1,3 @@
-jwt.secret=dummy-cart-secret 
+jwt.secret=dummy-cart-secret
+jwt.issuer=cart-service
+jwt.audience=cart-client

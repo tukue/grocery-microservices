@@ -141,6 +141,12 @@ variable "enable_backup" {
   default     = true
 }
 
+variable "image_tag" {
+  description = "Docker image tag to deploy for all services (e.g., commit SHA or release tag)"
+  type        = string
+  default     = "latest"
+}
+
 variable "backup_retention_period" {
   description = "Number of days to retain automated backups"
   type        = number

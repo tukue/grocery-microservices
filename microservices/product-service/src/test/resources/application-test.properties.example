@@ -1,1 +1,3 @@
-test-product-service-secret=dummy-product-secret 
+jwt.secret=dummy-product-secret
+jwt.issuer=product-service
+jwt.audience=product-client
