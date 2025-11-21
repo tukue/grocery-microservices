@@ -1,1 +1,3 @@
-test-order-service-secret=dummy-order-secret 
+jwt.secret=dummy-order-secret
+jwt.issuer=order-service
+jwt.audience=order-client
