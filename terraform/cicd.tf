@@ -31,6 +31,24 @@ resource "aws_codepipeline" "grocellery_pipeline" {
   }
 
   stage {
+    name = "Test"
+
+    action {
+      name             = "Test"
+      category         = "Build"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      version          = "1"
+      input_artifacts  = ["source_output"]
+      output_artifacts = ["test_output"]
+
+      configuration = {
+        ProjectName = aws_codebuild_project.grocellery_tests.name
+      }
+    }
+  }
+
+  stage {
     name = "Build"
 
     action {
@@ -190,6 +208,34 @@ resource "aws_codebuild_project" "grocellery_build" {
   source {
     type      = "CODEPIPELINE"
     buildspec = "buildspec.yml"
+  }
+}
+
+resource "aws_codebuild_project" "grocellery_tests" {
+  name          = "grocellery-tests"
+  description   = "Run Maven tests before building images"
+  build_timeout = "20"
+  service_role  = aws_iam_role.codebuild_app_build_role.arn
+
+  artifacts {
+    type = "CODEPIPELINE"
+  }
+
+  environment {
+    compute_type = "BUILD_GENERAL1_SMALL"
+    image        = "aws/codebuild/standard:7.0"
+    type         = "LINUX_CONTAINER"
+    image_pull_credentials_type = "SERVICE_ROLE"
+
+    environment_variable {
+      name  = "SERVICES"
+      value = "cart-service order-service product-service summary-service"
+    }
+  }
+
+  source {
+    type      = "CODEPIPELINE"
+    buildspec = "buildspec-tests.yml"
   }
 }
 

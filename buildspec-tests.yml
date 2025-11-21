@@ -1,0 +1,23 @@
+version: 0.2
+
+env:
+  variables:
+    SERVICES: "cart-service order-service product-service summary-service"
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto21
+  pre_build:
+    commands:
+      - echo "Running Maven tests across monolith and microservices"
+  build:
+    commands:
+      - mvn -B test --file monolith/pom.xml
+      - |
+        for service in $SERVICES; do
+          echo "Testing $service..."
+          mvn -B test --file microservices/$service/pom.xml
+        done
+artifacts:
+  files: []

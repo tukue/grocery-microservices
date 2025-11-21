@@ -6,6 +6,8 @@ phases:
       terraform: 1.0
   pre_build:
     commands:
+      - export TF_VAR_image_tag=${IMAGE_TAG:-${CODEBUILD_RESOLVED_SOURCE_VERSION:0:7}}
+      - echo "Using image tag for Terraform: ${TF_VAR_image_tag}"
       - cd terraform
       - |
         terraform init \
