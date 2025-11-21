@@ -1,0 +1,74 @@
+# AWS Configuration
+aws_region = "us-east-1"
+
+# Project Configuration
+project_name = "grocellery-app"
+environment  = "dev"
+
+# Network Configuration
+vpc_cidr = "10.0.0.0/16"
+public_subnet_cidrs = [
+  "10.0.1.0/24",
+  "10.0.2.0/24"
+]
+private_subnet_cidrs = [
+  "10.0.10.0/24",
+  "10.0.20.0/24"
+]
+
+# Database Configuration
+db_instance_class = "db.t3.micro"
+db_username       = "grocellery"
+# Set this via environment variable: export TF_VAR_initial_db_password="your-secure-password"
+# initial_db_password = "your-secure-password-here"
+
+# Microservices Configuration
+services = {
+  cart = {
+    port              = 8081
+    cpu               = 256
+    memory            = 512
+    desired_count     = 1
+    health_check_path = "/actuator/health"
+  }
+  order = {
+    port              = 8082
+    cpu               = 256
+    memory            = 512
+    desired_count     = 1
+    health_check_path = "/actuator/health"
+  }
+  product = {
+    port              = 8083
+    cpu               = 256
+    memory            = 512
+    desired_count     = 1
+    health_check_path = "/actuator/health"
+  }
+  summary = {
+    port              = 8084
+    cpu               = 256
+    memory            = 512
+    desired_count     = 1
+    health_check_path = "/actuator/health"
+  }
+}
+
+# Feature Flags
+enable_monitoring = true
+enable_backup     = true
+
+# Container image tag to deploy (set to commit SHA or release tag in CI)
+image_tag = "latest"
+
+# Backup Configuration
+backup_retention_period = 7
+
+# Common Tags
+common_tags = {
+  Project     = "grocellery-app"
+  ManagedBy   = "terraform"
+  Owner       = "devops-team"
+  CostCenter  = "engineering"
+  Application = "microservices"
+}
