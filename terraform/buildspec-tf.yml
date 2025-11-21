@@ -7,7 +7,13 @@ phases:
   pre_build:
     commands:
       - cd terraform
-      - terraform init
+      - |
+        terraform init \
+          -backend-config="bucket=${TF_BACKEND_BUCKET}" \
+          -backend-config="key=${TF_BACKEND_KEY}" \
+          -backend-config="region=${TF_BACKEND_REGION}" \
+          -backend-config="dynamodb_table=${TF_BACKEND_DYNAMODB_TABLE}" \
+          -backend-config="encrypt=true"
   build:
     commands:
       - terraform plan -out=tfplan

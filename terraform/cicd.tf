@@ -5,6 +5,11 @@ resource "aws_codepipeline" "grocellery_pipeline" {
   artifact_store {
     location = aws_s3_bucket.codepipeline_artifacts.bucket
     type     = "S3"
+
+    encryption_key {
+      id   = aws_kms_key.codepipeline_artifacts.arn
+      type = "KMS"
+    }
   }
 
   stage {
@@ -107,6 +112,50 @@ resource "aws_s3_bucket" "codepipeline_artifacts" {
   bucket = "grocellery-codepipeline-artifacts"
 }
 
+resource "aws_s3_bucket_versioning" "codepipeline_artifacts" {
+  bucket = aws_s3_bucket.codepipeline_artifacts.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "codepipeline_artifacts" {
+  bucket = aws_s3_bucket.codepipeline_artifacts.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.codepipeline_artifacts.arn
+      sse_algorithm     = "aws:kms"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "codepipeline_artifacts" {
+  bucket = aws_s3_bucket.codepipeline_artifacts.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_kms_key" "codepipeline_artifacts" {
+  description             = "KMS key for CodePipeline artifact encryption"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-codepipeline-kms"
+    Type = "encryption"
+  })
+}
+
+resource "aws_kms_alias" "codepipeline_artifacts" {
+  name          = "alias/${local.name_prefix}-codepipeline"
+  target_key_id = aws_kms_key.codepipeline_artifacts.key_id
+}
+
 resource "aws_codebuild_project" "grocellery_build" {
   name          = "grocellery-build"
   description   = "Build project for the Grocellery microservices"
@@ -159,6 +208,22 @@ resource "aws_codebuild_project" "grocellery_terraform" {
     image        = "aws/codebuild/standard:7.0"
     type         = "LINUX_CONTAINER"
 
+    environment_variable {
+      name  = "TF_BACKEND_BUCKET"
+      value = local.name_prefix != "" ? "${local.name_prefix}-tfstate" : "grocellery-tfstate"
+    }
+    environment_variable {
+      name  = "TF_BACKEND_KEY"
+      value = "${var.project_name}/${var.environment}/terraform.tfstate"
+    }
+    environment_variable {
+      name  = "TF_BACKEND_REGION"
+      value = var.aws_region
+    }
+    environment_variable {
+      name  = "TF_BACKEND_DYNAMODB_TABLE"
+      value = local.name_prefix != "" ? "${local.name_prefix}-tfstate-locks" : "grocellery-tfstate-locks"
+    }
     environment_variable {
       name  = "TF_VAR_initial_db_password"
       value = aws_secretsmanager_secret.db_password.name
@@ -357,9 +422,46 @@ resource "aws_iam_role_policy_attachment" "terraform_s3" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
 }
 
-resource "aws_iam_role_policy_attachment" "terraform_iam" {
+resource "aws_iam_policy" "terraform_iam_limited" {
+  name        = "grocellery-terraform-iam-limited"
+  description = "Scoped IAM permissions for Terraform to manage Grocellery roles/policies"
+
+  policy = jsonencode({
+    Version   = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = [
+          "iam:CreateRole",
+          "iam:DeleteRole",
+          "iam:GetRole",
+          "iam:PassRole",
+          "iam:AttachRolePolicy",
+          "iam:DetachRolePolicy",
+          "iam:PutRolePolicy",
+          "iam:DeleteRolePolicy",
+          "iam:CreatePolicy",
+          "iam:DeletePolicy",
+          "iam:CreatePolicyVersion",
+          "iam:DeletePolicyVersion",
+          "iam:GetPolicy",
+          "iam:GetPolicyVersion",
+          "iam:ListPolicyVersions"
+        ],
+        Resource = [
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.project_name}*",
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${var.project_name}*",
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/grocellery*",
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/grocellery*"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "terraform_iam_limited" {
   role       = aws_iam_role.codebuild_terraform_role.name
-  policy_arn = "arn:aws:iam::aws:policy/IAMFullAccess" # WARNING: Still very permissive.
+  policy_arn = aws_iam_policy.terraform_iam_limited.arn
 }
 
 resource "aws_iam_role_policy_attachment" "terraform_logs" {
