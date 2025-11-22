@@ -2,12 +2,12 @@ name: Monolith CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
     paths:
       - 'monolith/**'
       - '.github/workflows/monolith-ci.yml'
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
     paths:
       - 'monolith/**'
       - '.github/workflows/monolith-ci.yml'
@@ -24,6 +24,14 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '21'
+
+    - name: Cache Maven repository
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
 
     - name: Test monolith
       run: mvn -B test --file monolith/pom.xml 

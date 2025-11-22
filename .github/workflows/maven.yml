@@ -2,9 +2,9 @@ name: Java CI with Maven
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
 
 jobs:
   test-monolith:
@@ -18,6 +18,14 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '21'
+
+    - name: Cache Maven repository
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
 
     - name: Test monolith
       run: mvn -B test --file monolith/pom.xml
@@ -36,6 +44,22 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '21'
+
+    - name: Cache Maven repository
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+
+    - name: Prepare test properties
+      run: |
+        for svc in cart-service order-service product-service summary-service; do
+          if [ -f microservices/$svc/src/test/resources/application-test.properties.example ]; then
+            cp microservices/$svc/src/test/resources/application-test.properties.example microservices/$svc/src/test/resources/application-test.properties
+          fi
+        done
         
     - name: Test microservice
       run: mvn -B test --file microservices/${{ matrix.service }}/pom.xml 
