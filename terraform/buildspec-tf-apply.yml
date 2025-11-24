@@ -7,7 +7,10 @@ phases:
   pre_build:
     commands:
       - cd terraform
-      - terraform init
+      - |
+        WORKSPACE=${TF_WORKSPACE:-dev}
+        terraform init
+        terraform workspace select "${WORKSPACE}" || terraform workspace new "${WORKSPACE}"
   build:
     commands:
       - echo "Applying Terraform plan..."

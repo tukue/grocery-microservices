@@ -52,6 +52,8 @@ Edit `terraform.tfvars` with your specific values:
 terraform init
 ```
 
+> State is stored locally by default to keep `terraform plan` runnable without remote backends. Configure a backend in `versions.tf` if you need shared state in CI/CD.
+
 ### 3. Plan Deployment
 
 ```bash
@@ -108,6 +110,12 @@ terraform apply
 4. Deploy with environment-specific state
 
 ## Deployment Process
+
+### CI/CD promotion flow
+
+- **CodePipeline stages per environment**: dev → staging → prod with Terraform plan, manual approval, and apply gates for each hop.
+- **Drift-aware plans**: `terraform plan -detailed-exitcode` runs in workspace-scoped state so drift or pending changes surface before approvals.
+- **Workspace-isolated state**: CodeBuild selects/creates the `TF_WORKSPACE` passed by the pipeline, keeping state keys per environment for clean rollbacks.
 
 ### 1. Build and Push Images
 

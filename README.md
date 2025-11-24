@@ -1,6 +1,15 @@
 # Clean Code Grocellery App
 
-This project is a grocery store application built with a microservices architecture.
+This project is a grocery store application built with a microservices architecture and a full CI/CD showcase. It is intended both as a hands-on learning vehicle for modern DevOps practices and as a consulting portfolio example that demonstrates how to build, test, and ship production-ready microservices.
+
+### What this repository showcases
+- End-to-end CI/CD pipeline: build, test, containerize, scan, and publish services to cloud registries.
+- Infrastructure-as-code for AWS ECS Fargate, ALB, RDS, VPC, and supporting observability stack.
+- Local developer experience with Docker Compose, per-service Postgres databases, and API documentation via Swagger.
+- Patterns for secure configuration (per-service secrets, environment-specific properties) and operational readiness (health checks, monitoring, dashboards).
+
+### DevOps improvements to consider next
+For a deeper roadmap of recommended improvements (pipeline hardening, secrets management, promotion flow, observability, and runtime resilience), see [DEVOPS_IMPROVEMENTS.md](DEVOPS_IMPROVEMENTS.md).
 
 ## Microservice-Based Development
 

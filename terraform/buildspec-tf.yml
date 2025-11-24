@@ -7,10 +7,29 @@ phases:
   pre_build:
     commands:
       - cd terraform
-      - terraform init
+      - |
+        WORKSPACE=${TF_WORKSPACE:-dev}
+        export WORKSPACE
+        terraform init
+        terraform workspace select "${WORKSPACE}" || terraform workspace new "${WORKSPACE}"
   build:
     commands:
-      - terraform plan -out=tfplan
+      - |
+        WORKSPACE=${WORKSPACE:-${TF_WORKSPACE:-dev}}
+        set +e
+        terraform plan -input=false -detailed-exitcode -out=tfplan
+        PLAN_EXIT=$?
+        set -e
+        if [ ${PLAN_EXIT} -eq 1 ]; then
+          echo "Terraform plan failed"
+          exit 1
+        fi
+        if [ ${PLAN_EXIT} -eq 0 ]; then
+          echo "No drift detected for workspace ${WORKSPACE}."
+        fi
+        if [ ${PLAN_EXIT} -eq 2 ]; then
+          echo "Changes or drift detected for workspace ${WORKSPACE} (exit code 2)."
+        fi
   post_build:
     commands:
       - echo "Terraform Plan complete. Waiting for approval to apply."
