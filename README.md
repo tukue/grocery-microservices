@@ -8,6 +8,13 @@ This project is a grocery store application built with a microservices architect
 - Local developer experience with Docker Compose, per-service Postgres databases, and API documentation via Swagger.
 - Patterns for secure configuration (per-service secrets, environment-specific properties) and operational readiness (health checks, monitoring, dashboards).
 
+### DevOps improvements to consider next
+- **Harden pipelines:** Add per-service unit/integration test stages with profile-specific configs, publish JUnit reports, and enable SBOM generation plus image vulnerability scans before pushing to registries.
+- **Shift secrets management left:** Replace example passwords/JWT secrets with references to AWS Secrets Manager or SSM Parameter Store, injecting them via ECS task definitions and Terraform variables per environment.
+- **Strengthen promotion flow:** Split CodeBuild/CodePipeline stages by environment (dev → staging → prod) with manual approvals, drift detection, and automated smoke checks or canaries after deploys.
+- **Observability defaults:** Standardize JSON logging, propagate trace headers between services, and ship logs/metrics/traces to a central sink (e.g., CloudWatch + OpenTelemetry collector feeding Prometheus/Grafana).
+- **Runtime resilience:** Configure ALB health checks and container readiness probes, apply sensible timeouts/retries/circuit breakers for inter-service calls, and enable ECS autoscaling based on CPU/memory plus custom latency/error-rate metrics.
+
 ## Microservice-Based Development
 
 This application is designed using the microservices architectural style, where the system is decomposed into small, independent services. Each microservice is responsible for a specific business capability and can be developed, deployed, and scaled independently. This approach offers several benefits:
