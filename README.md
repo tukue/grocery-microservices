@@ -9,11 +9,7 @@ This project is a grocery store application built with a microservices architect
 - Patterns for secure configuration (per-service secrets, environment-specific properties) and operational readiness (health checks, monitoring, dashboards).
 
 ### DevOps improvements to consider next
-- **Harden pipelines:** Add per-service unit/integration test stages with profile-specific configs, publish JUnit reports, and enable SBOM generation plus image vulnerability scans before pushing to registries.
-- **Shift secrets management left:** Replace example passwords/JWT secrets with references to AWS Secrets Manager or SSM Parameter Store, injecting them via ECS task definitions and Terraform variables per environment.
-- **Strengthen promotion flow:** Split CodeBuild/CodePipeline stages by environment (dev → staging → prod) with manual approvals, drift detection, and automated smoke checks or canaries after deploys.
-- **Observability defaults:** Standardize JSON logging, propagate trace headers between services, and ship logs/metrics/traces to a central sink (e.g., CloudWatch + OpenTelemetry collector feeding Prometheus/Grafana).
-- **Runtime resilience:** Configure ALB health checks and container readiness probes, apply sensible timeouts/retries/circuit breakers for inter-service calls, and enable ECS autoscaling based on CPU/memory plus custom latency/error-rate metrics.
+For a deeper roadmap of recommended improvements (pipeline hardening, secrets management, promotion flow, observability, and runtime resilience), see [DEVOPS_IMPROVEMENTS.md](DEVOPS_IMPROVEMENTS.md).
 
 ## Microservice-Based Development
 
