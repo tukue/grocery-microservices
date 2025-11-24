@@ -13,7 +13,7 @@ This repository is a showcase for production-ready microservice CI/CD. The list 
 
 ## Promotion flow and environments
 - Split CodeBuild/CodePipeline stages by environment (dev → staging → prod) with manual approvals and drift detection.
-- Add automated smoke tests or canary checks after deploys and fail forward if target group health does not recover.
+- Add optional smoke tests or canary checks after deploys and fail forward if target group health does not recover.
 - Maintain separate Terraform workspaces/state files per environment for clean isolation and reproducible rollbacks.
 
 ## Observability

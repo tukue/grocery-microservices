@@ -9,13 +9,15 @@ phases:
       - cd terraform
       - |
         WORKSPACE=${TF_WORKSPACE:-dev}
+        export WORKSPACE
         terraform init
         terraform workspace select "${WORKSPACE}" || terraform workspace new "${WORKSPACE}"
   build:
     commands:
       - |
+        WORKSPACE=${WORKSPACE:-${TF_WORKSPACE:-dev}}
         set +e
-        terraform plan -detailed-exitcode -out=tfplan
+        terraform plan -input=false -detailed-exitcode -out=tfplan
         PLAN_EXIT=$?
         set -e
         if [ ${PLAN_EXIT} -eq 1 ]; then

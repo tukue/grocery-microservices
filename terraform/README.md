@@ -113,9 +113,8 @@ terraform apply
 
 ### CI/CD promotion flow
 
-- **CodePipeline stages per environment**: dev → staging → prod with Terraform plan, manual approval, apply, and smoke test stages for each hop.
+- **CodePipeline stages per environment**: dev → staging → prod with Terraform plan, manual approval, and apply gates for each hop.
 - **Drift-aware plans**: `terraform plan -detailed-exitcode` runs in workspace-scoped state so drift or pending changes surface before approvals.
-- **Post-deploy smoke checks**: ALB target-group health and HTTP curls are executed from CodeBuild to fail forward if services do not become healthy.
 - **Workspace-isolated state**: CodeBuild selects/creates the `TF_WORKSPACE` passed by the pipeline, keeping state keys per environment for clean rollbacks.
 
 ### 1. Build and Push Images
