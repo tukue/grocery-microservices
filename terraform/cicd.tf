@@ -43,35 +43,39 @@ resource "aws_codepipeline" "grocellery_pipeline" {
     }
   }
 
+  # --- DEV ENVIRONMENT ---
   stage {
-    name = "Terraform-Plan"
+    name = "Plan-Dev"
 
     action {
-      name             = "Terraform-Plan"
+      name             = "Terraform-Plan-Dev"
       category         = "Build"
       owner            = "AWS"
       provider         = "CodeBuild"
       version          = "1"
       input_artifacts  = ["source_output"]
-      output_artifacts = ["plan_output"]
+      output_artifacts = ["dev_plan_output"]
 
       configuration = {
         ProjectName = aws_codebuild_project.grocellery_terraform.name
-        # Override the buildspec for this stage
-        EnvironmentVariables = jsonencode([{
-          name  = "BUILDSPEC_OVERRIDE"
-          value = "terraform/buildspec-tf.yml"
-          type  = "PLAINTEXT"
-        }])
+        BuildSpec   = "terraform/buildspec-tf.yml"
+        EnvironmentVariables = jsonencode([
+          { name = "BUILDSPEC_OVERRIDE", value = "terraform/buildspec-tf.yml", type = "PLAINTEXT" },
+          { name = "TF_WORKSPACE", value = "dev", type = "PLAINTEXT" },
+          { name = "TF_VAR_environment", value = "dev", type = "PLAINTEXT" },
+          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.codepipeline_artifacts.bucket, type = "PLAINTEXT" },
+          { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
+          { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
+        ])
       }
     }
   }
 
   stage {
-    name = "Approve-Plan"
+    name = "Approve-Dev"
 
     action {
-      name     = "Manual-Approval"
+      name     = "Manual-Approval-Dev"
       category = "Approval"
       owner    = "AWS"
       provider = "Manual"
@@ -80,24 +84,261 @@ resource "aws_codepipeline" "grocellery_pipeline" {
   }
 
   stage {
-    name = "Terraform-Apply"
+    name = "Apply-Dev"
 
     action {
-      name            = "Terraform-Apply"
+      name            = "Terraform-Apply-Dev"
       category        = "Build"
       owner           = "AWS"
       provider        = "CodeBuild"
       version         = "1"
-      input_artifacts = ["plan_output"]
+      input_artifacts = ["dev_plan_output"]
 
       configuration = {
         ProjectName = aws_codebuild_project.grocellery_terraform.name
-        # Override the buildspec for this stage
-        EnvironmentVariables = jsonencode([{
-          name  = "BUILDSPEC_OVERRIDE"
-          value = "terraform/buildspec-tf-apply.yml"
-          type  = "PLAINTEXT"
-        }])
+        BuildSpec   = "terraform/buildspec-tf-apply.yml"
+        EnvironmentVariables = jsonencode([
+          { name = "BUILDSPEC_OVERRIDE", value = "terraform/buildspec-tf-apply.yml", type = "PLAINTEXT" },
+          { name = "TF_WORKSPACE", value = "dev", type = "PLAINTEXT" },
+          { name = "TF_VAR_environment", value = "dev", type = "PLAINTEXT" },
+          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.codepipeline_artifacts.bucket, type = "PLAINTEXT" },
+          { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
+          { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
+        ])
+      }
+    }
+  }
+
+  stage {
+    name = "Smoke-Dev"
+
+    action {
+      name            = "Smoke-Tests-Dev"
+      category        = "Build"
+      owner           = "AWS"
+      provider        = "CodeBuild"
+      version         = "1"
+      input_artifacts = ["source_output"]
+
+      configuration = {
+        ProjectName = aws_codebuild_project.grocellery_terraform.name
+        BuildSpec   = "terraform/buildspec-smoke.yml"
+        EnvironmentVariables = jsonencode([
+          { name = "BUILDSPEC_OVERRIDE", value = "terraform/buildspec-smoke.yml", type = "PLAINTEXT" },
+          { name = "TF_WORKSPACE", value = "dev", type = "PLAINTEXT" },
+          { name = "TF_VAR_environment", value = "dev", type = "PLAINTEXT" },
+          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.codepipeline_artifacts.bucket, type = "PLAINTEXT" },
+          { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
+          { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
+        ])
+      }
+    }
+  }
+
+  stage {
+    name = "Promote-Staging"
+
+    action {
+      name     = "Manual-Approval-Staging-Gate"
+      category = "Approval"
+      owner    = "AWS"
+      provider = "Manual"
+      version  = "1"
+    }
+  }
+
+  # --- STAGING ENVIRONMENT ---
+  stage {
+    name = "Plan-Staging"
+
+    action {
+      name             = "Terraform-Plan-Staging"
+      category         = "Build"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      version          = "1"
+      input_artifacts  = ["source_output"]
+      output_artifacts = ["staging_plan_output"]
+
+      configuration = {
+        ProjectName = aws_codebuild_project.grocellery_terraform.name
+        BuildSpec   = "terraform/buildspec-tf.yml"
+        EnvironmentVariables = jsonencode([
+          { name = "BUILDSPEC_OVERRIDE", value = "terraform/buildspec-tf.yml", type = "PLAINTEXT" },
+          { name = "TF_WORKSPACE", value = "staging", type = "PLAINTEXT" },
+          { name = "TF_VAR_environment", value = "staging", type = "PLAINTEXT" },
+          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.codepipeline_artifacts.bucket, type = "PLAINTEXT" },
+          { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
+          { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
+        ])
+      }
+    }
+  }
+
+  stage {
+    name = "Approve-Staging"
+
+    action {
+      name     = "Manual-Approval-Staging"
+      category = "Approval"
+      owner    = "AWS"
+      provider = "Manual"
+      version  = "1"
+    }
+  }
+
+  stage {
+    name = "Apply-Staging"
+
+    action {
+      name            = "Terraform-Apply-Staging"
+      category        = "Build"
+      owner           = "AWS"
+      provider        = "CodeBuild"
+      version         = "1"
+      input_artifacts = ["staging_plan_output"]
+
+      configuration = {
+        ProjectName = aws_codebuild_project.grocellery_terraform.name
+        BuildSpec   = "terraform/buildspec-tf-apply.yml"
+        EnvironmentVariables = jsonencode([
+          { name = "BUILDSPEC_OVERRIDE", value = "terraform/buildspec-tf-apply.yml", type = "PLAINTEXT" },
+          { name = "TF_WORKSPACE", value = "staging", type = "PLAINTEXT" },
+          { name = "TF_VAR_environment", value = "staging", type = "PLAINTEXT" },
+          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.codepipeline_artifacts.bucket, type = "PLAINTEXT" },
+          { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
+          { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
+        ])
+      }
+    }
+  }
+
+  stage {
+    name = "Smoke-Staging"
+
+    action {
+      name            = "Smoke-Tests-Staging"
+      category        = "Build"
+      owner           = "AWS"
+      provider        = "CodeBuild"
+      version         = "1"
+      input_artifacts = ["source_output"]
+
+      configuration = {
+        ProjectName = aws_codebuild_project.grocellery_terraform.name
+        BuildSpec   = "terraform/buildspec-smoke.yml"
+        EnvironmentVariables = jsonencode([
+          { name = "BUILDSPEC_OVERRIDE", value = "terraform/buildspec-smoke.yml", type = "PLAINTEXT" },
+          { name = "TF_WORKSPACE", value = "staging", type = "PLAINTEXT" },
+          { name = "TF_VAR_environment", value = "staging", type = "PLAINTEXT" },
+          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.codepipeline_artifacts.bucket, type = "PLAINTEXT" },
+          { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
+          { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
+        ])
+      }
+    }
+  }
+
+  stage {
+    name = "Promote-Prod"
+
+    action {
+      name     = "Manual-Approval-Prod-Gate"
+      category = "Approval"
+      owner    = "AWS"
+      provider = "Manual"
+      version  = "1"
+    }
+  }
+
+  # --- PRODUCTION ENVIRONMENT ---
+  stage {
+    name = "Plan-Prod"
+
+    action {
+      name             = "Terraform-Plan-Prod"
+      category         = "Build"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      version          = "1"
+      input_artifacts  = ["source_output"]
+      output_artifacts = ["prod_plan_output"]
+
+      configuration = {
+        ProjectName = aws_codebuild_project.grocellery_terraform.name
+        BuildSpec   = "terraform/buildspec-tf.yml"
+        EnvironmentVariables = jsonencode([
+          { name = "BUILDSPEC_OVERRIDE", value = "terraform/buildspec-tf.yml", type = "PLAINTEXT" },
+          { name = "TF_WORKSPACE", value = "prod", type = "PLAINTEXT" },
+          { name = "TF_VAR_environment", value = "prod", type = "PLAINTEXT" },
+          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.codepipeline_artifacts.bucket, type = "PLAINTEXT" },
+          { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
+          { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
+        ])
+      }
+    }
+  }
+
+  stage {
+    name = "Approve-Prod"
+
+    action {
+      name     = "Manual-Approval-Prod"
+      category = "Approval"
+      owner    = "AWS"
+      provider = "Manual"
+      version  = "1"
+    }
+  }
+
+  stage {
+    name = "Apply-Prod"
+
+    action {
+      name            = "Terraform-Apply-Prod"
+      category        = "Build"
+      owner           = "AWS"
+      provider        = "CodeBuild"
+      version         = "1"
+      input_artifacts = ["prod_plan_output"]
+
+      configuration = {
+        ProjectName = aws_codebuild_project.grocellery_terraform.name
+        BuildSpec   = "terraform/buildspec-tf-apply.yml"
+        EnvironmentVariables = jsonencode([
+          { name = "BUILDSPEC_OVERRIDE", value = "terraform/buildspec-tf-apply.yml", type = "PLAINTEXT" },
+          { name = "TF_WORKSPACE", value = "prod", type = "PLAINTEXT" },
+          { name = "TF_VAR_environment", value = "prod", type = "PLAINTEXT" },
+          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.codepipeline_artifacts.bucket, type = "PLAINTEXT" },
+          { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
+          { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
+        ])
+      }
+    }
+  }
+
+  stage {
+    name = "Smoke-Prod"
+
+    action {
+      name            = "Smoke-Tests-Prod"
+      category        = "Build"
+      owner           = "AWS"
+      provider        = "CodeBuild"
+      version         = "1"
+      input_artifacts = ["source_output"]
+
+      configuration = {
+        ProjectName = aws_codebuild_project.grocellery_terraform.name
+        BuildSpec   = "terraform/buildspec-smoke.yml"
+        EnvironmentVariables = jsonencode([
+          { name = "BUILDSPEC_OVERRIDE", value = "terraform/buildspec-smoke.yml", type = "PLAINTEXT" },
+          { name = "TF_WORKSPACE", value = "prod", type = "PLAINTEXT" },
+          { name = "TF_VAR_environment", value = "prod", type = "PLAINTEXT" },
+          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.codepipeline_artifacts.bucket, type = "PLAINTEXT" },
+          { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
+          { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
+        ])
       }
     }
   }

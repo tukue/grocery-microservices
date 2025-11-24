@@ -1,0 +1,64 @@
+version: 0.2
+
+env:
+  shell: bash
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+  pre_build:
+    commands:
+      - cd terraform
+      - |
+        WORKSPACE=${TF_WORKSPACE:-dev}
+        STATE_KEY_ROOT=${TF_STATE_KEY_ROOT:-${PROJECT_NAME:-grocellery-app}/terraform.tfstate}
+        BACKEND_CONFIG=()
+        if [ -n "${TF_STATE_BUCKET}" ]; then
+          BACKEND_CONFIG+=("-backend-config=bucket=${TF_STATE_BUCKET}")
+          BACKEND_CONFIG+=("-backend-config=key=${STATE_KEY_ROOT}")
+          BACKEND_CONFIG+=("-backend-config=region=${AWS_REGION:-us-east-1}")
+          if [ -n "${TF_STATE_LOCK_TABLE}" ]; then
+            BACKEND_CONFIG+=("-backend-config=dynamodb_table=${TF_STATE_LOCK_TABLE}")
+          fi
+        fi
+        terraform init "${BACKEND_CONFIG[@]}"
+        terraform workspace select "${WORKSPACE}" || terraform workspace new "${WORKSPACE}"
+  build:
+    commands:
+      - echo "Fetching outputs for smoke tests..."
+      - terraform output -json target_group_arns > /tmp/target-groups.json
+      - terraform output -json service_urls > /tmp/service-urls.json
+      - |
+        echo "Checking target group health..."
+        FAILURE=0
+        while IFS=$'\t' read -r service arn; do
+          if [ -z "$service" ] || [ -z "$arn" ]; then
+            continue
+          fi
+          echo "Validating target group for ${service}: ${arn}"
+          HEALTH=$(aws elbv2 describe-target-health --target-group-arn "$arn" --query 'TargetHealthDescriptions[*].TargetHealth.State' --output text || true)
+          if echo "$HEALTH" | grep -q "unhealthy"; then
+            echo "Target group ${service} has unhealthy targets: ${HEALTH}"
+            FAILURE=1
+          else
+            echo "Target group ${service} is healthy (${HEALTH:-no targets registered})."
+          fi
+        done < <(jq -r 'to_entries[] | "\(.key)\t\(.value)"' /tmp/target-groups.json)
+        if [ $FAILURE -eq 1 ]; then
+          echo "Unhealthy target groups detected. Failing smoke test stage."
+          exit 1
+        fi
+      - |
+        echo "Running HTTP smoke checks against service URLs..."
+        while IFS=$'\t' read -r service url; do
+          if [ -z "$service" ] || [ -z "$url" ]; then
+            continue
+          fi
+          echo "Curling ${service} at ${url}"
+          if ! curl -sf -m 10 "${url}"; then
+            echo "Smoke test failed for ${service} at ${url}"
+            exit 1
+          fi
+        done < <(jq -r 'to_entries[] | "\(.key)\t\(.value)"' /tmp/service-urls.json)
+      - echo "Smoke tests completed successfully."

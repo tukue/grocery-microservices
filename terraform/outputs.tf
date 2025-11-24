@@ -75,6 +75,13 @@ output "service_urls" {
   }
 }
 
+output "target_group_arns" {
+  description = "Target group ARNs for each microservice"
+  value = {
+    for service, module_output in module.ecs_service : service => module_output.target_group_arn
+  }
+}
+
 # Security Group IDs
 output "security_group_ids" {
   description = "Security group IDs"
