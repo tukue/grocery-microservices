@@ -361,6 +361,14 @@ resource "aws_codebuild_project" "grocellery_build" {
       value = data.aws_caller_identity.current.account_id
     }
     environment_variable {
+      name  = "AWS_REGION"
+      value = var.aws_region
+    }
+    environment_variable {
+      name  = "AWS_DEFAULT_REGION"
+      value = var.aws_region
+    }
+    environment_variable {
       name  = "IMAGE_TAG"
       value = "latest"
     }
