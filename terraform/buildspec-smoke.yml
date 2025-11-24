@@ -12,17 +12,7 @@ phases:
       - cd terraform
       - |
         WORKSPACE=${TF_WORKSPACE:-dev}
-        STATE_KEY_ROOT=${TF_STATE_KEY_ROOT:-${PROJECT_NAME:-grocellery-app}/terraform.tfstate}
-        BACKEND_CONFIG=()
-        if [ -n "${TF_STATE_BUCKET}" ]; then
-          BACKEND_CONFIG+=("-backend-config=bucket=${TF_STATE_BUCKET}")
-          BACKEND_CONFIG+=("-backend-config=key=${STATE_KEY_ROOT}")
-          BACKEND_CONFIG+=("-backend-config=region=${AWS_REGION:-us-east-1}")
-          if [ -n "${TF_STATE_LOCK_TABLE}" ]; then
-            BACKEND_CONFIG+=("-backend-config=dynamodb_table=${TF_STATE_LOCK_TABLE}")
-          fi
-        fi
-        terraform init "${BACKEND_CONFIG[@]}"
+        terraform init
         terraform workspace select "${WORKSPACE}" || terraform workspace new "${WORKSPACE}"
   build:
     commands:

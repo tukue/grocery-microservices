@@ -52,6 +52,8 @@ Edit `terraform.tfvars` with your specific values:
 terraform init
 ```
 
+> State is stored locally by default to keep `terraform plan` runnable without remote backends. Configure a backend in `versions.tf` if you need shared state in CI/CD.
+
 ### 3. Plan Deployment
 
 ```bash

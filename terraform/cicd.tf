@@ -63,7 +63,6 @@ resource "aws_codepipeline" "grocellery_pipeline" {
           { name = "BUILDSPEC_OVERRIDE", value = "terraform/buildspec-tf.yml", type = "PLAINTEXT" },
           { name = "TF_WORKSPACE", value = "dev", type = "PLAINTEXT" },
           { name = "TF_VAR_environment", value = "dev", type = "PLAINTEXT" },
-          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.codepipeline_artifacts.bucket, type = "PLAINTEXT" },
           { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
           { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
         ])
@@ -101,7 +100,6 @@ resource "aws_codepipeline" "grocellery_pipeline" {
           { name = "BUILDSPEC_OVERRIDE", value = "terraform/buildspec-tf-apply.yml", type = "PLAINTEXT" },
           { name = "TF_WORKSPACE", value = "dev", type = "PLAINTEXT" },
           { name = "TF_VAR_environment", value = "dev", type = "PLAINTEXT" },
-          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.codepipeline_artifacts.bucket, type = "PLAINTEXT" },
           { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
           { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
         ])
@@ -127,7 +125,6 @@ resource "aws_codepipeline" "grocellery_pipeline" {
           { name = "BUILDSPEC_OVERRIDE", value = "terraform/buildspec-smoke.yml", type = "PLAINTEXT" },
           { name = "TF_WORKSPACE", value = "dev", type = "PLAINTEXT" },
           { name = "TF_VAR_environment", value = "dev", type = "PLAINTEXT" },
-          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.codepipeline_artifacts.bucket, type = "PLAINTEXT" },
           { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
           { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
         ])
@@ -167,7 +164,6 @@ resource "aws_codepipeline" "grocellery_pipeline" {
           { name = "BUILDSPEC_OVERRIDE", value = "terraform/buildspec-tf.yml", type = "PLAINTEXT" },
           { name = "TF_WORKSPACE", value = "staging", type = "PLAINTEXT" },
           { name = "TF_VAR_environment", value = "staging", type = "PLAINTEXT" },
-          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.codepipeline_artifacts.bucket, type = "PLAINTEXT" },
           { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
           { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
         ])
@@ -205,7 +201,6 @@ resource "aws_codepipeline" "grocellery_pipeline" {
           { name = "BUILDSPEC_OVERRIDE", value = "terraform/buildspec-tf-apply.yml", type = "PLAINTEXT" },
           { name = "TF_WORKSPACE", value = "staging", type = "PLAINTEXT" },
           { name = "TF_VAR_environment", value = "staging", type = "PLAINTEXT" },
-          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.codepipeline_artifacts.bucket, type = "PLAINTEXT" },
           { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
           { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
         ])
@@ -231,7 +226,6 @@ resource "aws_codepipeline" "grocellery_pipeline" {
           { name = "BUILDSPEC_OVERRIDE", value = "terraform/buildspec-smoke.yml", type = "PLAINTEXT" },
           { name = "TF_WORKSPACE", value = "staging", type = "PLAINTEXT" },
           { name = "TF_VAR_environment", value = "staging", type = "PLAINTEXT" },
-          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.codepipeline_artifacts.bucket, type = "PLAINTEXT" },
           { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
           { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
         ])
@@ -271,7 +265,6 @@ resource "aws_codepipeline" "grocellery_pipeline" {
           { name = "BUILDSPEC_OVERRIDE", value = "terraform/buildspec-tf.yml", type = "PLAINTEXT" },
           { name = "TF_WORKSPACE", value = "prod", type = "PLAINTEXT" },
           { name = "TF_VAR_environment", value = "prod", type = "PLAINTEXT" },
-          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.codepipeline_artifacts.bucket, type = "PLAINTEXT" },
           { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
           { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
         ])
@@ -309,7 +302,6 @@ resource "aws_codepipeline" "grocellery_pipeline" {
           { name = "BUILDSPEC_OVERRIDE", value = "terraform/buildspec-tf-apply.yml", type = "PLAINTEXT" },
           { name = "TF_WORKSPACE", value = "prod", type = "PLAINTEXT" },
           { name = "TF_VAR_environment", value = "prod", type = "PLAINTEXT" },
-          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.codepipeline_artifacts.bucket, type = "PLAINTEXT" },
           { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
           { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
         ])
@@ -335,7 +327,6 @@ resource "aws_codepipeline" "grocellery_pipeline" {
           { name = "BUILDSPEC_OVERRIDE", value = "terraform/buildspec-smoke.yml", type = "PLAINTEXT" },
           { name = "TF_WORKSPACE", value = "prod", type = "PLAINTEXT" },
           { name = "TF_VAR_environment", value = "prod", type = "PLAINTEXT" },
-          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.codepipeline_artifacts.bucket, type = "PLAINTEXT" },
           { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
           { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
         ])
