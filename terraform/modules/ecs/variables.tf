@@ -102,6 +102,16 @@ variable "db_secret_arn" {
   type        = string
 }
 
+variable "jwt_secret_arn" {
+  description = "ARN of the JWT secret in Secrets Manager"
+  type        = string
+}
+
+variable "service_config_parameter_arn" {
+  description = "ARN of the per-service SSM parameter containing environment config"
+  type        = string
+}
+
 variable "enable_monitoring" {
   description = "Enable CloudWatch monitoring"
   type        = bool
