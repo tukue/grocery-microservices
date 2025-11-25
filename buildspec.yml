@@ -4,29 +4,71 @@ env:
   variables:
     # These are the names of your service directories in the 'microservices' folder
     SERVICES: "cart-service order-service product-service summary-service"
+    PROJECT_NAME: "grocery"
+    IMAGE_TAG: "latest"
 
 phases:
   pre_build:
     commands:
       - echo Logging in to Amazon ECR...
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - echo Pre-pulling scanner images for syft and trivy...
+      - docker pull anchore/syft:latest
+      - docker pull aquasec/trivy:latest
   build:
     commands:
-      - echo Build started on `date`
-      - echo Running Maven build...
-      - mvn clean install
-      - echo Building and pushing Docker images...
       - |
+          set -euo pipefail
+          PROJECT_NAME=${PROJECT_NAME:-grocery}
+          IMAGE_TAG=${IMAGE_TAG:-latest}
+          echo Build started on "$(date)"
+        echo Running Maven verify for each service...
+        for service in $SERVICES; do
+          echo "Running tests for $service..."
+          (cd "microservices/$service" && mvn -B clean verify)
+        done
+        echo Building Docker images and running scans...
+        SCAN_FAILED=0
         for service in $SERVICES; do
           REPO_NAME="$PROJECT_NAME-$service"
           IMAGE_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$REPO_NAME:$IMAGE_TAG"
+          echo "Generating SBOM for $service..."
+          docker run --rm -v "$(pwd)/microservices/$service":/src anchore/syft:latest /src -o json > "sbom-$service.json"
           echo "Building Docker image for $service..."
           docker build -t "$IMAGE_URI" -f "microservices/$service/Dockerfile" "microservices/$service"
+          echo "Running Trivy scan for $IMAGE_URI..."
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --format json --output "trivy-$service.json" --exit-code 1 "$IMAGE_URI" || SCAN_FAILED=1
           echo "Pushing Docker image for $service to $IMAGE_URI..."
           docker push "$IMAGE_URI"
         done
+        echo "SCAN_FAILED=$SCAN_FAILED" > scan_status.env
   post_build:
     commands:
-      - echo Build completed on `date`
+      - echo Build completed on "$(date)"
+      - |
+        if [ -f scan_status.env ]; then
+          # shellcheck disable=SC1091
+          source scan_status.env
+          if [ "${SCAN_FAILED:-0}" -ne 0 ]; then
+            echo "One or more Trivy scans reported issues. See trivy-*.json artifacts for details."
+            exit 1
+          fi
+        fi
 
-# No artifacts are needed for this pipeline design
+artifacts:
+  files:
+    - "**/target/surefire-reports/**/*"
+    - "sbom-*.json"
+    - "trivy-*.json"
+  discard-paths: no
+
+reports:
+  surefire-reports:
+    files:
+      - "**/target/surefire-reports/*.xml"
+    base-directory: .
+  security-scans:
+    files:
+      - "trivy-*.json"
+      - "sbom-*.json"
+    base-directory: .
