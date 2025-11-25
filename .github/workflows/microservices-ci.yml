@@ -78,7 +78,7 @@ jobs:
           service="${target%%:*}"
           port="${target##*:}"
           echo "Waiting for ${service} on port ${port}..."
-          timeout 120s bash -c "until curl -fsS http://localhost:${port}/actuator/health; do sleep 5; done"
+          timeout 120s bash -c "until curl -fsS  >/dev/null 2>&1; do sleep 5; done"
         done
 
     - name: Capture service logs
