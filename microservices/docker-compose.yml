@@ -44,6 +44,58 @@ services:
     volumes:
       - summary-db-data:/var/lib/postgresql/data
 
+  cart-service:
+    build:
+      context: ..
+      dockerfile: microservices/cart-service/Dockerfile
+    container_name: cart-service
+    environment:
+      SPRING_PROFILES_ACTIVE: test
+    ports:
+      - "8081:8080"
+    depends_on:
+      cart-db:
+        condition: service_healthy
+
+  order-service:
+    build:
+      context: ..
+      dockerfile: microservices/order-service/Dockerfile
+    container_name: order-service
+    environment:
+      SPRING_PROFILES_ACTIVE: test
+    ports:
+      - "8082:8080"
+    depends_on:
+      order-db:
+        condition: service_healthy
+
+  product-service:
+    build:
+      context: ..
+      dockerfile: microservices/product-service/Dockerfile
+    container_name: product-service
+    environment:
+      SPRING_PROFILES_ACTIVE: test
+    ports:
+      - "8083:8080"
+    depends_on:
+      product-db:
+        condition: service_healthy
+
+  summary-service:
+    build:
+      context: ..
+      dockerfile: microservices/summary-service/Dockerfile
+    container_name: summary-service
+    environment:
+      SPRING_PROFILES_ACTIVE: test
+    ports:
+      - "8084:8080"
+    depends_on:
+      summary-db:
+        condition: service_healthy
+
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
