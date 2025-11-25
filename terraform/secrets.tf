@@ -64,12 +64,11 @@ resource "aws_ssm_parameter" "service_config" {
   for_each = var.services
 
   name  = "/${var.project_name}/${var.environment}/${each.key}/config"
-  type  = "SecureString"
-  key_id = aws_kms_key.secrets.arn
   value = jsonencode({
     environment      = var.environment
     service          = each.key
     config_version   = "v1"
+    # Remove secret ARNs - applications should use direct secret references
   })
 
   tags = merge(local.common_tags, {
