@@ -36,6 +36,17 @@ All services communicate via REST APIs and are containerized for easy orchestrat
 - Docker
 - Docker Compose
 
+## Run the CI test suite locally
+
+Use the helper script to reproduce the same steps executed in GitHub Actions (monolith tests, per-service tests with the `test` profile, and optional Docker Compose smoke tests):
+
+```bash
+./scripts/run_ci_tests.sh        # Run monolith + microservice Maven tests
+./scripts/run_ci_tests.sh --smoke  # Also start the compose stack and verify health endpoints
+```
+
+The script copies each microservice's `application-test.properties.example` into place before running Maven, mirroring the CI setup.
+
 ## Getting Started
 
 ### 1. Start the Databases
