@@ -12,11 +12,16 @@ phases:
     commands:
       - echo Logging in to Amazon ECR...
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - echo Pre-pulling scanner images for syft and trivy...
+      - docker pull anchore/syft:latest
+      - docker pull aquasec/trivy:latest
   build:
     commands:
       - |
-        set -euo pipefail
-        echo Build started on "$(date)"
+          set -euo pipefail
+          PROJECT_NAME=${PROJECT_NAME:-grocery}
+          IMAGE_TAG=${IMAGE_TAG:-latest}
+          echo Build started on "$(date)"
         echo Running Maven verify for each service...
         for service in $SERVICES; do
           echo "Running tests for $service..."
