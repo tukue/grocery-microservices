@@ -13,15 +13,23 @@ phases:
   build:
     commands:
       - echo Build started on `date`
-      - echo Running Maven build...
-      - mvn clean install
-      - echo Building and pushing Docker images...
+      - echo Running Maven verify for each service...
+      - |
+        for service in $SERVICES; do
+          echo "Running tests for $service..."
+          (cd "microservices/$service" && mvn -B clean verify)
+        done
+      - echo Building Docker images and running scans...
       - |
         for service in $SERVICES; do
           REPO_NAME="$PROJECT_NAME-$service"
           IMAGE_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$REPO_NAME:$IMAGE_TAG"
+          echo "Generating SBOM for $service..."
+          syft "microservices/$service" -o json > "sbom-$service.json"
           echo "Building Docker image for $service..."
           docker build -t "$IMAGE_URI" -f "microservices/$service/Dockerfile" "microservices/$service"
+          echo "Running Trivy scan for $IMAGE_URI..."
+          trivy image --format json --output "trivy-$service.json" --exit-code 1 "$IMAGE_URI"
           echo "Pushing Docker image for $service to $IMAGE_URI..."
           docker push "$IMAGE_URI"
         done
@@ -29,4 +37,20 @@ phases:
     commands:
       - echo Build completed on `date`
 
-# No artifacts are needed for this pipeline design
+artifacts:
+  files:
+    - "microservices/*/target/surefire-reports/**/*"
+    - "sbom-*.json"
+    - "trivy-*.json"
+  discard-paths: no
+
+reports:
+  surefire-reports:
+    files:
+      - "microservices/*/target/surefire-reports/*.xml"
+    base-directory: .
+  security-scans:
+    files:
+      - "trivy-*.json"
+      - "sbom-*.json"
+    base-directory: .
