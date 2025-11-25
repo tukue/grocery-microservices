@@ -69,8 +69,6 @@ resource "aws_ssm_parameter" "service_config" {
   value = jsonencode({
     environment      = var.environment
     service          = each.key
-    db_secret_arn    = aws_secretsmanager_secret.db_password.arn
-    jwt_secret_arn   = aws_secretsmanager_secret.jwt_secrets[each.key].arn
     config_version   = "v1"
   })
 
