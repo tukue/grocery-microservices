@@ -65,7 +65,7 @@ rollback_service() {
   previous_td=$(aws ecs describe-services \
     --cluster "${CLUSTER_NAME}" \
     --services "${service_name}" \
-    --query 'services[0].deployments[?status!=`PRIMARY`] | sort_by(@, &createdAt) | [-1].taskDefinition' \
+    --query 'services[0].deployments[?status==`ACTIVE`] | sort_by(@, &createdAt) | [-1].taskDefinition' \
     --output text \
     --region "${AWS_REGION}" || true)
 

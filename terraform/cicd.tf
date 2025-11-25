@@ -352,8 +352,12 @@ resource "aws_s3_bucket" "codepipeline_artifacts" {
   bucket = "grocellery-codepipeline-artifacts"
 }
 
+resource "random_id" "terraform_state_suffix" {
+  byte_length = 4
+}
+
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = "${var.project_name}-tf-state"
+  bucket = "${var.project_name}-tf-state-${random_id.terraform_state_suffix.hex}"
 
   versioning {
     enabled = true

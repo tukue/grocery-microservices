@@ -112,6 +112,21 @@ resource "aws_kms_key" "secrets" {
         ]
         Resource = "*"
       }
+      {
+        Sid    = "Allow SSM to use the key"
+        Effect = "Allow"
+        Principal = {
+          Service = "ssm.amazonaws.com"
+        }
+        Action = [
+          "kms:Decrypt",
+          "kms:DescribeKey",
+          "kms:Encrypt",
+          "kms:GenerateDataKey*",
+          "kms:ReEncrypt*"
+        ]
+        Resource = "*"
+      }
     ]
   })
 
