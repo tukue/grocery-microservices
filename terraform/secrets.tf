@@ -59,6 +59,28 @@ resource "aws_secretsmanager_secret_version" "db_password_version" {
   })
 }
 
+# Environment-scoped configuration hints to be consumed by workloads or deployments
+resource "aws_ssm_parameter" "service_config" {
+  for_each = var.services
+
+  name  = "/${var.project_name}/${var.environment}/${each.key}/config"
+  type  = "SecureString"
+  key_id = aws_kms_key.secrets.arn
+  value = jsonencode({
+    environment      = var.environment
+    service          = each.key
+    db_secret_arn    = aws_secretsmanager_secret.db_password.arn
+    jwt_secret_arn   = aws_secretsmanager_secret.jwt_secrets[each.key].arn
+    config_version   = "v1"
+  })
+
+  tags = merge(local.common_tags, {
+    Name    = "${local.name_prefix}-${each.key}-config"
+    Service = each.key
+    Type    = "ssm-parameter"
+  })
+}
+
 # KMS Key for Secrets Manager
 resource "aws_kms_key" "secrets" {
   description             = "KMS key for Secrets Manager encryption"

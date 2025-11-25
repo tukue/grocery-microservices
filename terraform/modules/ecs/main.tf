@@ -49,6 +49,14 @@ resource "aws_ecs_task_definition" "service" {
         {
           name      = "SPRING_DATASOURCE_PASSWORD"
           valueFrom = "${var.db_secret_arn}:password::"
+        },
+        {
+          name      = "JWT_SECRET"
+          valueFrom = "${var.jwt_secret_arn}:jwt_secret::"
+        },
+        {
+          name      = "SERVICE_CONFIG"
+          valueFrom = var.service_config_parameter_arn
         }
       ]
       
@@ -281,10 +289,13 @@ resource "aws_iam_policy" "secrets_access" {
       {
         Effect = "Allow"
         Action = [
-          "secretsmanager:GetSecretValue"
+          "secretsmanager:GetSecretValue",
+          "ssm:GetParameter"
         ]
         Resource = [
-          var.db_secret_arn
+          var.db_secret_arn,
+          var.jwt_secret_arn,
+          var.service_config_parameter_arn
         ]
       }
     ]

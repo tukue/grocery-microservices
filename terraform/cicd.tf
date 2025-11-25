@@ -64,7 +64,10 @@ resource "aws_codepipeline" "grocellery_pipeline" {
           { name = "TF_WORKSPACE", value = "dev", type = "PLAINTEXT" },
           { name = "TF_VAR_environment", value = "dev", type = "PLAINTEXT" },
           { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
-          { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
+          { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" },
+          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.terraform_state.bucket, type = "PLAINTEXT" },
+          { name = "TF_STATE_KEY_PREFIX", value = "${var.project_name}/dev", type = "PLAINTEXT" },
+          { name = "TF_STATE_LOCK_TABLE", value = aws_dynamodb_table.terraform_lock.name, type = "PLAINTEXT" }
         ])
       }
     }
@@ -100,6 +103,32 @@ resource "aws_codepipeline" "grocellery_pipeline" {
           { name = "BUILDSPEC_OVERRIDE", value = "terraform/buildspec-tf-apply.yml", type = "PLAINTEXT" },
           { name = "TF_WORKSPACE", value = "dev", type = "PLAINTEXT" },
           { name = "TF_VAR_environment", value = "dev", type = "PLAINTEXT" },
+          { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
+          { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" },
+          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.terraform_state.bucket, type = "PLAINTEXT" },
+          { name = "TF_STATE_KEY_PREFIX", value = "${var.project_name}/dev", type = "PLAINTEXT" },
+          { name = "TF_STATE_LOCK_TABLE", value = aws_dynamodb_table.terraform_lock.name, type = "PLAINTEXT" }
+        ])
+      }
+    }
+  }
+
+  stage {
+    name = "Smoke-Dev"
+
+    action {
+      name            = "Post-Deploy-Smoke-Dev"
+      category        = "Build"
+      owner           = "AWS"
+      provider        = "CodeBuild"
+      version         = "1"
+      input_artifacts = ["source_output"]
+
+      configuration = {
+        ProjectName = aws_codebuild_project.grocellery_smoke.name
+        EnvironmentVariables = jsonencode([
+          { name = "ENVIRONMENT", value = "dev", type = "PLAINTEXT" },
+          { name = "SERVICES", value = "cart,order,product,summary", type = "PLAINTEXT" },
           { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
           { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
         ])
@@ -140,7 +169,10 @@ resource "aws_codepipeline" "grocellery_pipeline" {
           { name = "TF_WORKSPACE", value = "staging", type = "PLAINTEXT" },
           { name = "TF_VAR_environment", value = "staging", type = "PLAINTEXT" },
           { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
-          { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
+          { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" },
+          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.terraform_state.bucket, type = "PLAINTEXT" },
+          { name = "TF_STATE_KEY_PREFIX", value = "${var.project_name}/staging", type = "PLAINTEXT" },
+          { name = "TF_STATE_LOCK_TABLE", value = aws_dynamodb_table.terraform_lock.name, type = "PLAINTEXT" }
         ])
       }
     }
@@ -176,6 +208,32 @@ resource "aws_codepipeline" "grocellery_pipeline" {
           { name = "BUILDSPEC_OVERRIDE", value = "terraform/buildspec-tf-apply.yml", type = "PLAINTEXT" },
           { name = "TF_WORKSPACE", value = "staging", type = "PLAINTEXT" },
           { name = "TF_VAR_environment", value = "staging", type = "PLAINTEXT" },
+          { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
+          { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" },
+          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.terraform_state.bucket, type = "PLAINTEXT" },
+          { name = "TF_STATE_KEY_PREFIX", value = "${var.project_name}/staging", type = "PLAINTEXT" },
+          { name = "TF_STATE_LOCK_TABLE", value = aws_dynamodb_table.terraform_lock.name, type = "PLAINTEXT" }
+        ])
+      }
+    }
+  }
+
+  stage {
+    name = "Smoke-Staging"
+
+    action {
+      name            = "Post-Deploy-Smoke-Staging"
+      category        = "Build"
+      owner           = "AWS"
+      provider        = "CodeBuild"
+      version         = "1"
+      input_artifacts = ["source_output"]
+
+      configuration = {
+        ProjectName = aws_codebuild_project.grocellery_smoke.name
+        EnvironmentVariables = jsonencode([
+          { name = "ENVIRONMENT", value = "staging", type = "PLAINTEXT" },
+          { name = "SERVICES", value = "cart,order,product,summary", type = "PLAINTEXT" },
           { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
           { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
         ])
@@ -216,7 +274,10 @@ resource "aws_codepipeline" "grocellery_pipeline" {
           { name = "TF_WORKSPACE", value = "prod", type = "PLAINTEXT" },
           { name = "TF_VAR_environment", value = "prod", type = "PLAINTEXT" },
           { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
-          { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
+          { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" },
+          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.terraform_state.bucket, type = "PLAINTEXT" },
+          { name = "TF_STATE_KEY_PREFIX", value = "${var.project_name}/prod", type = "PLAINTEXT" },
+          { name = "TF_STATE_LOCK_TABLE", value = aws_dynamodb_table.terraform_lock.name, type = "PLAINTEXT" }
         ])
       }
     }
@@ -253,6 +314,32 @@ resource "aws_codepipeline" "grocellery_pipeline" {
           { name = "TF_WORKSPACE", value = "prod", type = "PLAINTEXT" },
           { name = "TF_VAR_environment", value = "prod", type = "PLAINTEXT" },
           { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
+          { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" },
+          { name = "TF_STATE_BUCKET", value = aws_s3_bucket.terraform_state.bucket, type = "PLAINTEXT" },
+          { name = "TF_STATE_KEY_PREFIX", value = "${var.project_name}/prod", type = "PLAINTEXT" },
+          { name = "TF_STATE_LOCK_TABLE", value = aws_dynamodb_table.terraform_lock.name, type = "PLAINTEXT" }
+        ])
+      }
+    }
+  }
+
+  stage {
+    name = "Smoke-Prod"
+
+    action {
+      name            = "Post-Deploy-Smoke-Prod"
+      category        = "Build"
+      owner           = "AWS"
+      provider        = "CodeBuild"
+      version         = "1"
+      input_artifacts = ["source_output"]
+
+      configuration = {
+        ProjectName = aws_codebuild_project.grocellery_smoke.name
+        EnvironmentVariables = jsonencode([
+          { name = "ENVIRONMENT", value = "prod", type = "PLAINTEXT" },
+          { name = "SERVICES", value = "cart,order,product,summary", type = "PLAINTEXT" },
+          { name = "PROJECT_NAME", value = var.project_name, type = "PLAINTEXT" },
           { name = "AWS_REGION", value = var.aws_region, type = "PLAINTEXT" }
         ])
       }
@@ -263,6 +350,33 @@ resource "aws_codepipeline" "grocellery_pipeline" {
 
 resource "aws_s3_bucket" "codepipeline_artifacts" {
   bucket = "grocellery-codepipeline-artifacts"
+}
+
+resource "aws_s3_bucket" "terraform_state" {
+  bucket = "${var.project_name}-tf-state"
+
+  versioning {
+    enabled = true
+  }
+
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+}
+
+resource "aws_dynamodb_table" "terraform_lock" {
+  name         = "${var.project_name}-tf-lock"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
+
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
 }
 
 resource "aws_codebuild_project" "grocellery_build" {
@@ -338,6 +452,38 @@ resource "aws_codebuild_project" "grocellery_terraform" {
   }
 }
 
+resource "aws_codebuild_project" "grocellery_smoke" {
+  name          = "grocellery-smoke-checks"
+  description   = "Post-deployment smoke and canary checks with rollback"
+  build_timeout = "15"
+  service_role  = aws_iam_role.codebuild_smoke_role.arn
+
+  artifacts {
+    type = "CODEPIPELINE"
+  }
+
+  environment {
+    compute_type = "BUILD_GENERAL1_SMALL"
+    image        = "aws/codebuild/standard:7.0"
+    type         = "LINUX_CONTAINER"
+
+    environment_variable {
+      name  = "PROJECT_NAME"
+      value = var.project_name
+    }
+
+    environment_variable {
+      name  = "AWS_REGION"
+      value = var.aws_region
+    }
+  }
+
+  source {
+    type      = "CODEPIPELINE"
+    buildspec = "terraform/buildspec-smoke.yml"
+  }
+}
+
 # IAM Roles and Policies
 
 resource "aws_iam_role" "codepipeline_role" {
@@ -385,6 +531,23 @@ resource "aws_iam_role" "codebuild_terraform_role" {
         Effect    = "Allow",
         Principal = {
           Service = "codebuild.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role" "codebuild_smoke_role" {
+  name = "grocellery-codebuild-smoke-role"
+
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17",
+    Statement = [
+      {
+        Action    = "sts:AssumeRole",
+        Effect    = "Allow",
+        Principal = {
+          Service = "codebuild.amazonaws.com",
         }
       }
     ]
@@ -475,6 +638,36 @@ resource "aws_iam_policy" "codebuild_secrets_manager_policy" {
   })
 }
 
+resource "aws_iam_policy" "codebuild_smoke_policy" {
+  name        = "grocellery-codebuild-smoke-policy"
+  description = "Policy for smoke/canary checks and rollback"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+        Resource = "*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "ecs:DescribeServices",
+          "ecs:UpdateService",
+          "ecs:DescribeTaskDefinition"
+        ],
+        Resource = "*"
+      },
+      {
+        Effect   = "Allow",
+        Action   = ["elasticloadbalancing:DescribeTargetGroups", "elasticloadbalancing:DescribeTargetHealth"],
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # --- POLICY ATTACHMENTS ---
 
 resource "aws_iam_role_policy_attachment" "codepipeline_attachment" {
@@ -490,6 +683,11 @@ resource "aws_iam_role_policy_attachment" "codebuild_app_build_attachment" {
 resource "aws_iam_role_policy_attachment" "terraform_secrets_manager_attachment" {
   role       = aws_iam_role.codebuild_terraform_role.name
   policy_arn = aws_iam_policy.codebuild_secrets_manager_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "codebuild_smoke_attachment" {
+  role       = aws_iam_role.codebuild_smoke_role.name
+  policy_arn = aws_iam_policy.codebuild_smoke_policy.arn
 }
 
 # Attach AWS managed policies for Terraform access
