@@ -3,11 +3,12 @@ FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /workspace
 
 # Copy parent and service sources preserving relative paths so Maven can resolve the module hierarchy
-COPY pom.xml pom.xml
-COPY microservices/summary-service/pom.xml microservices/summary-service/pom.xml
-COPY microservices/summary-service/src microservices/summary-service/src
+COPY pom.xml /workspace/pom.xml
+COPY microservices/summary-service/pom.xml /workspace/microservices/summary-service/pom.xml
+COPY microservices/summary-service/src /workspace/microservices/summary-service/src
 
-RUN mvn -f microservices/summary-service/pom.xml clean install -DskipTests
+WORKDIR /workspace/microservices/summary-service
+RUN mvn clean install -DskipTests
 
 # Stage 2: Create the image
 FROM eclipse-temurin:21-jre-jammy
