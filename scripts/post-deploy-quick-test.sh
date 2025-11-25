@@ -9,7 +9,22 @@ MAX_WAIT=${QUICK_TEST_MAX_WAIT:-300}
 SLEEP_SECONDS=${QUICK_TEST_SLEEP_SECONDS:-10}
 
 CLUSTER_NAME="${PROJECT_NAME}-${ENVIRONMENT}-cluster"
+RESULT_FILE=${RESULT_FILE:-quick-test-results.json}
 IFS=',' read -ra SERVICE_LIST <<< "${SERVICES}"
+
+results=()
+
+add_result() {
+  local service_name=$1
+  local status=$2
+  local message=$3
+
+  results+=("  {\"service\":\"${service_name}\",\"status\":\"${status}\",\"message\":\"${message}\"}")
+}
+
+write_results() {
+  printf "[\n%s\n]\n" "$(IFS=$',\n'; echo "${results[*]}")" > "${RESULT_FILE}"
+}
 
 wait_for_targets() {
   local target_group_arn=$1
@@ -45,13 +60,13 @@ rollback_service() {
   previous_td=$(aws ecs describe-services \
     --cluster "${CLUSTER_NAME}" \
     --services "${service_name}" \
-    --query 'services[0].deployments[?status!=`PRIMARY`].taskDefinition | [0]' \
+    --query 'services[0].deployments[?status!=`PRIMARY`] | sort_by(@, &createdAt) | [-1].taskDefinition' \
     --output text \
     --region "${AWS_REGION}" || true)
 
   if [ -z "${previous_td}" ] || [ "${previous_td}" = "None" ]; then
-    echo "No previous deployment found for ${service_name}; re-deploying current task definition ${current_td}"
-    previous_td=${current_td}
+    echo "No previous deployment found for ${service_name}; skipping rollback to avoid re-deploying failing task definition"
+    return 1
   else
     echo "Rolling back ${service_name} to ${previous_td}"
   fi
@@ -79,6 +94,7 @@ for service in "${SERVICE_LIST[@]}"; do
   if [ -z "${target_group_arn}" ] || [ "${target_group_arn}" = "None" ]; then
     echo "Unable to locate target group ${target_group_name}; marking as failure"
     failures=$((failures + 1))
+    add_result "${service_name}" "failed" "Target group not found"
     continue
   fi
 
@@ -91,14 +107,19 @@ for service in "${SERVICE_LIST[@]}"; do
       --region "${AWS_REGION}" || true)
 
     rollback_service "${service_name}" "${current_td:-}" || true
+    add_result "${service_name}" "failed" "Targets unhealthy after deployment"
     failures=$((failures + 1))
+  else
+    add_result "${service_name}" "passed" "Targets healthy"
   fi
 
 done
 
 if [ ${failures} -gt 0 ]; then
   echo "Quick tests failed for ${failures} service(s)."
+  write_results
   exit 1
 fi
 
+write_results
 echo "All services healthy after deployment."

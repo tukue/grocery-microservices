@@ -56,7 +56,7 @@ resource "aws_ecs_task_definition" "service" {
         },
         {
           name      = "SERVICE_CONFIG"
-          valueFrom = var.service_config_parameter_arn
+          valueFrom = "${var.service_config_parameter_arn}"
         }
       ]
       

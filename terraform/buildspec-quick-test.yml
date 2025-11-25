@@ -12,4 +12,5 @@ phases:
 reports:
   quick-test-results:
     files:
-      - '**/*.log'
+      - 'quick-test-results.json'
+    base-directory: '.'
