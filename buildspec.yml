@@ -52,7 +52,7 @@ phases:
 
 artifacts:
   files:
-    - "microservices/*/target/surefire-reports/**/*"
+    - "**/target/surefire-reports/**/*"
     - "sbom-*.json"
     - "trivy-*.json"
   discard-paths: no
@@ -60,7 +60,7 @@ artifacts:
 reports:
   surefire-reports:
     files:
-      - "microservices/*/target/surefire-reports/*.xml"
+      - "**/target/surefire-reports/*.xml"
     base-directory: .
   security-scans:
     files:
