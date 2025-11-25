@@ -1,13 +1,13 @@
 # Stage 1: Build with Maven
 FROM maven:3.9.6-eclipse-temurin-21 AS build
-WORKDIR /workspace/microservices/product-service
+WORKDIR /workspace
 
-# Copy service sources and parent POM so Maven can resolve the module hierarchy
-COPY microservices/product-service/pom.xml ./pom.xml
-COPY microservices/product-service/src ./src
-COPY pom.xml /workspace/pom.xml
+# Copy parent and service sources preserving relative paths so Maven can resolve the module hierarchy
+COPY pom.xml pom.xml
+COPY microservices/product-service/pom.xml microservices/product-service/pom.xml
+COPY microservices/product-service/src microservices/product-service/src
 
-RUN mvn -f pom.xml clean install -DskipTests
+RUN mvn -f microservices/product-service/pom.xml clean install -DskipTests
 
 # Stage 2: Create the image
 FROM eclipse-temurin:21-jre-jammy
