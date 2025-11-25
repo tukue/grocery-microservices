@@ -5,8 +5,8 @@ ENVIRONMENT=${ENVIRONMENT:-dev}
 PROJECT_NAME=${PROJECT_NAME:-grocellery-app}
 AWS_REGION=${AWS_REGION:-us-east-1}
 SERVICES=${SERVICES:-cart,order,product,summary}
-MAX_WAIT=${SMOKE_MAX_WAIT:-300}
-SLEEP_SECONDS=${SMOKE_SLEEP_SECONDS:-10}
+MAX_WAIT=${QUICK_TEST_MAX_WAIT:-300}
+SLEEP_SECONDS=${QUICK_TEST_SLEEP_SECONDS:-10}
 
 CLUSTER_NAME="${PROJECT_NAME}-${ENVIRONMENT}-cluster"
 IFS=',' read -ra SERVICE_LIST <<< "${SERVICES}"
@@ -97,7 +97,7 @@ for service in "${SERVICE_LIST[@]}"; do
 done
 
 if [ ${failures} -gt 0 ]; then
-  echo "Smoke tests failed for ${failures} service(s)."
+  echo "Quick tests failed for ${failures} service(s)."
   exit 1
 fi
 

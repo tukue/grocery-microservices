@@ -114,10 +114,10 @@ resource "aws_codepipeline" "grocellery_pipeline" {
   }
 
   stage {
-    name = "Smoke-Dev"
+    name = "Quick-Test-Dev"
 
     action {
-      name            = "Post-Deploy-Smoke-Dev"
+      name            = "Post-Deploy-Quick-Test-Dev"
       category        = "Build"
       owner           = "AWS"
       provider        = "CodeBuild"
@@ -125,7 +125,7 @@ resource "aws_codepipeline" "grocellery_pipeline" {
       input_artifacts = ["source_output"]
 
       configuration = {
-        ProjectName = aws_codebuild_project.grocellery_smoke.name
+        ProjectName = aws_codebuild_project.grocellery_quick_test.name
         EnvironmentVariables = jsonencode([
           { name = "ENVIRONMENT", value = "dev", type = "PLAINTEXT" },
           { name = "SERVICES", value = "cart,order,product,summary", type = "PLAINTEXT" },
@@ -219,10 +219,10 @@ resource "aws_codepipeline" "grocellery_pipeline" {
   }
 
   stage {
-    name = "Smoke-Staging"
+    name = "Quick-Test-Staging"
 
     action {
-      name            = "Post-Deploy-Smoke-Staging"
+      name            = "Post-Deploy-Quick-Test-Staging"
       category        = "Build"
       owner           = "AWS"
       provider        = "CodeBuild"
@@ -230,7 +230,7 @@ resource "aws_codepipeline" "grocellery_pipeline" {
       input_artifacts = ["source_output"]
 
       configuration = {
-        ProjectName = aws_codebuild_project.grocellery_smoke.name
+        ProjectName = aws_codebuild_project.grocellery_quick_test.name
         EnvironmentVariables = jsonencode([
           { name = "ENVIRONMENT", value = "staging", type = "PLAINTEXT" },
           { name = "SERVICES", value = "cart,order,product,summary", type = "PLAINTEXT" },
@@ -324,10 +324,10 @@ resource "aws_codepipeline" "grocellery_pipeline" {
   }
 
   stage {
-    name = "Smoke-Prod"
+    name = "Quick-Test-Prod"
 
     action {
-      name            = "Post-Deploy-Smoke-Prod"
+      name            = "Post-Deploy-Quick-Test-Prod"
       category        = "Build"
       owner           = "AWS"
       provider        = "CodeBuild"
@@ -335,7 +335,7 @@ resource "aws_codepipeline" "grocellery_pipeline" {
       input_artifacts = ["source_output"]
 
       configuration = {
-        ProjectName = aws_codebuild_project.grocellery_smoke.name
+        ProjectName = aws_codebuild_project.grocellery_quick_test.name
         EnvironmentVariables = jsonencode([
           { name = "ENVIRONMENT", value = "prod", type = "PLAINTEXT" },
           { name = "SERVICES", value = "cart,order,product,summary", type = "PLAINTEXT" },
@@ -452,11 +452,11 @@ resource "aws_codebuild_project" "grocellery_terraform" {
   }
 }
 
-resource "aws_codebuild_project" "grocellery_smoke" {
-  name          = "grocellery-smoke-checks"
-  description   = "Post-deployment smoke and canary checks with rollback"
+resource "aws_codebuild_project" "grocellery_quick_test" {
+  name          = "grocellery-quick-test-checks"
+  description   = "Post-deployment quick test and canary checks with rollback"
   build_timeout = "15"
-  service_role  = aws_iam_role.codebuild_smoke_role.arn
+  service_role  = aws_iam_role.codebuild_quick_test_role.arn
 
   artifacts {
     type = "CODEPIPELINE"
@@ -480,7 +480,7 @@ resource "aws_codebuild_project" "grocellery_smoke" {
 
   source {
     type      = "CODEPIPELINE"
-    buildspec = "terraform/buildspec-smoke.yml"
+    buildspec = "terraform/buildspec-quick-test.yml"
   }
 }
 
@@ -537,8 +537,8 @@ resource "aws_iam_role" "codebuild_terraform_role" {
   })
 }
 
-resource "aws_iam_role" "codebuild_smoke_role" {
-  name = "grocellery-codebuild-smoke-role"
+resource "aws_iam_role" "codebuild_quick_test_role" {
+  name = "grocellery-codebuild-quick-test-role"
 
   assume_role_policy = jsonencode({
     Version   = "2012-10-17",
@@ -638,9 +638,9 @@ resource "aws_iam_policy" "codebuild_secrets_manager_policy" {
   })
 }
 
-resource "aws_iam_policy" "codebuild_smoke_policy" {
-  name        = "grocellery-codebuild-smoke-policy"
-  description = "Policy for smoke/canary checks and rollback"
+resource "aws_iam_policy" "codebuild_quick_test_policy" {
+  name        = "grocellery-codebuild-quick-test-policy"
+  description = "Policy for quick test/canary checks and rollback"
 
   policy = jsonencode({
     Version = "2012-10-17",
@@ -685,9 +685,9 @@ resource "aws_iam_role_policy_attachment" "terraform_secrets_manager_attachment"
   policy_arn = aws_iam_policy.codebuild_secrets_manager_policy.arn
 }
 
-resource "aws_iam_role_policy_attachment" "codebuild_smoke_attachment" {
-  role       = aws_iam_role.codebuild_smoke_role.name
-  policy_arn = aws_iam_policy.codebuild_smoke_policy.arn
+resource "aws_iam_role_policy_attachment" "codebuild_quick_test_attachment" {
+  role       = aws_iam_role.codebuild_quick_test_role.name
+  policy_arn = aws_iam_policy.codebuild_quick_test_policy.arn
 }
 
 # Attach AWS managed policies for Terraform access

@@ -1,0 +1,15 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo "Preparing quick test runner"
+  build:
+    commands:
+      - chmod +x scripts/post-deploy-quick-test.sh
+      - ./scripts/post-deploy-quick-test.sh
+
+reports:
+  quick-test-results:
+    files:
+      - '**/*.log'
