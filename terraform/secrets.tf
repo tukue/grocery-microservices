@@ -119,6 +119,7 @@ resource "aws_kms_key" "secrets" {
           Service = "ssm.amazonaws.com"
         }
         Action = [
+          "kms:CreateGrant",
           "kms:Decrypt",
           "kms:DescribeKey",
           "kms:Encrypt",
@@ -126,6 +127,11 @@ resource "aws_kms_key" "secrets" {
           "kms:ReEncrypt*"
         ]
         Resource = "*"
+        Condition = {
+          StringEquals = {
+            "kms:ViaService" = "ssm.${var.aws_region}.amazonaws.com"
+          }
+        }
       }
     ]
   })
