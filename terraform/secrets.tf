@@ -111,7 +111,7 @@ resource "aws_kms_key" "secrets" {
           "kms:ReEncrypt*"
         ]
         Resource = "*"
-      }
+      },
       {
         Sid    = "Allow SSM to use the key"
         Effect = "Allow"
