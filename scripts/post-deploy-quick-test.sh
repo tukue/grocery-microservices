@@ -62,12 +62,30 @@ rollback_service() {
   local service_name=$1
   local current_td=$2
 
-  previous_td=$(aws ecs describe-services \
+  deployments=$(aws ecs describe-services \
     --cluster "${CLUSTER_NAME}" \
     --services "${service_name}" \
-    --query 'services[0].deployments[?status==`ACTIVE`] | sort_by(@, &createdAt) | [-1].taskDefinition' \
-    --output text \
+    --query 'services[0].deployments' \
+    --output json \
     --region "${AWS_REGION}" || true)
+
+  previous_td=$(python - "$deployments" "$current_td" <<'PY'
+import json
+import sys
+
+raw = sys.argv[1] if len(sys.argv) > 1 else ""
+current_td = sys.argv[2] if len(sys.argv) > 2 else ""
+
+try:
+    deployments = json.loads(raw) if raw else []
+except json.JSONDecodeError:
+    deployments = []
+
+active = [d for d in deployments if d.get("status") == "ACTIVE" and d.get("taskDefinition") != current_td]
+active.sort(key=lambda d: d.get("createdAt") or "")
+print(active[-1]["taskDefinition"] if active else "")
+PY
+  )
 
   if [ -z "${previous_td}" ] || [ "${previous_td}" = "None" ]; then
     echo "No previous deployment found for ${service_name}; skipping rollback to avoid re-deploying failing task definition"
