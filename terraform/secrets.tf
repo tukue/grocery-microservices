@@ -129,7 +129,8 @@ resource "aws_kms_key" "secrets" {
         Resource = "*"
         Condition = {
           StringEquals = {
-            "kms:ViaService" = "ssm.${var.aws_region}.amazonaws.com"
+            "kms:ViaService"            = "ssm.${var.aws_region}.amazonaws.com",
+            "kms:GrantIsForAWSResource" = "true"
           }
         }
       }
