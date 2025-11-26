@@ -72,17 +72,29 @@ rollback_service() {
   previous_td=$(python - "$deployments" "$current_td" <<'PY'
 import json
 import sys
+from datetime import datetime
 
 raw = sys.argv[1] if len(sys.argv) > 1 else ""
 current_td = sys.argv[2] if len(sys.argv) > 2 else ""
+
+def parse_created_at(value):
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")) if value else None
+    except Exception:
+        return None
 
 try:
     deployments = json.loads(raw) if raw else []
 except json.JSONDecodeError:
     deployments = []
 
-active = [d for d in deployments if d.get("status") == "ACTIVE" and d.get("taskDefinition") != current_td]
-active.sort(key=lambda d: d.get("createdAt") or "")
+active = [
+    d for d in deployments
+    if d.get("status") == "ACTIVE" and d.get("taskDefinition") != current_td
+]
+
+active.sort(key=lambda d: parse_created_at(d.get("createdAt")) or datetime.min)
+
 print(active[-1]["taskDefinition"] if active else "")
 PY
   )
