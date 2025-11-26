@@ -92,6 +92,8 @@ module "ecs_service" {
   db_port     = module.rds.db_port
   db_name     = module.rds.db_name
   db_secret_arn = aws_secretsmanager_secret.db_password.arn
+  jwt_secret_arn = aws_secretsmanager_secret.jwt_secrets[each.key].arn
+  service_config_parameter_arn = aws_ssm_parameter.service_config[each.key].arn
 
   # Monitoring
   enable_monitoring = var.enable_monitoring
