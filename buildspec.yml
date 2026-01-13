@@ -8,6 +8,20 @@ env:
 phases:
   pre_build:
     commands:
+      # Security tools installation
+      - echo "Installing security scanning tools..."
+      - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+      - pip install semgrep checkov
+      - curl -sSfL https://github.com/zricethezav/gitleaks/releases/latest/download/gitleaks_linux_x64.tar.gz | tar -xz && chmod +x gitleaks
+      
+      # Security scanning
+      - echo "Running security scans..."
+      - semgrep --config=auto --json --output=semgrep-results.json src/ || true
+      - checkov -f terraform/ --framework terraform --output json --output-file checkov-results.json || true
+      - trivy fs --format json --output trivy-fs-results.json . || true
+      - ./gitleaks detect --source . --report-format json --report-path gitleaks-results.json || true
+      
+      # AWS ECR login
       - echo Logging in to Amazon ECR...
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
       - COMMIT_TAG=${CODEBUILD_RESOLVED_SOURCE_VERSION:-latest}
@@ -25,11 +39,23 @@ phases:
           IMAGE_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$REPO_NAME:$IMAGE_TAG"
           echo "Building Docker image for $service..."
           docker build -t "$IMAGE_URI" -f "microservices/$service/Dockerfile" "microservices/$service"
+          
+          # Container security scan
+          echo "Scanning container image for $service..."
+          trivy image --format json --output "trivy-image-$service-results.json" "$IMAGE_URI" || true
+          
           echo "Pushing Docker image for $service to $IMAGE_URI..."
           docker push "$IMAGE_URI"
         done
   post_build:
     commands:
       - echo Build completed on `date`
+      # Security results summary
+      - echo "Security scan results:"
+      - ls -la *-results.json
+      - echo "Security scans completed. Check artifacts for detailed results."
 
-# No artifacts are needed for this pipeline design
+artifacts:
+  files:
+    - '*-results.json'
+  name: security-scan-results
