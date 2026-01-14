@@ -1,283 +1,235 @@
-# Grocellery App - Terraform Infrastructure
+# Multi-Environment Terraform Strategy Implementation
 
-This directory contains the Terraform configuration for deploying the Grocellery microservices application to AWS.
+This directory contains the practical implementation of the multi-environment strategy described in the DevOps Practices Improvement Plan.
 
-## Architecture Overview
+## Directory Structure
 
-The infrastructure provisions:
+```
+terraform/
+├── environments/
+│   ├── dev/
+│   │   ├── backend.tf          # Dev environment backend config
+│   │   └── terraform.tfvars    # Dev environment variables
+│   ├── staging/
+│   │   ├── backend.tf          # Staging environment backend config
+│   │   └── terraform.tfvars    # Staging environment variables
+│   └── prod/
+│       ├── backend.tf          # Production environment backend config
+│       └── terraform.tfvars    # Production environment variables
+├── variables.tf                # Variable definitions
+├── vpc.tf                     # VPC and networking resources
+├── ecs.tf                     # ECS cluster and services
+├── rds.tf                     # RDS database configuration
+├── security_groups.tf         # Security group definitions
+├── alb.tf                     # Application Load Balancer
+├── iam.tf                     # IAM roles and policies
+└── outputs.tf                 # Output definitions
 
-- **VPC** with public and private subnets across multiple AZs
-- **Application Load Balancer** for traffic distribution
-- **ECS Fargate** cluster for container orchestration
-- **RDS PostgreSQL** database with encryption and backups
-- **ECR** repositories for container images
-- **CloudWatch** monitoring and logging
-- **Secrets Manager** for secure credential storage
-- **CI/CD Pipeline** with CodePipeline and CodeBuild
+scripts/
+├── setup-environment.sh       # Environment setup script
+└── deploy.sh                  # Multi-environment deployment script
 
-## Prerequisites
+.github/workflows/
+└── multi-environment-cicd.yml # GitHub Actions CI/CD pipeline
+```
 
-- AWS CLI configured with appropriate credentials
-- Terraform >= 1.5
-- Docker (for local testing)
+## Environment Configuration
+
+### Development Environment
+- **Purpose**: Feature development and testing
+- **Resources**: Minimal (t3.micro instances, single AZ)
+- **Auto-deploy**: From feature branches and develop branch
+- **Cost**: ~$50-100/month
+
+### Staging Environment
+- **Purpose**: Pre-production testing and validation
+- **Resources**: Medium (t3.small instances, multi-AZ)
+- **Auto-deploy**: From develop branch after dev deployment
+- **Cost**: ~$150-250/month
+
+### Production Environment
+- **Purpose**: Live application serving users
+- **Resources**: Optimized (t3.medium instances, multi-AZ, backups)
+- **Auto-deploy**: From main branch with manual approval
+- **Cost**: ~$300-500/month
 
 ## Quick Start
 
-### Option 1: Using Environment-Specific Configurations (Recommended)
+### 1. Setup AWS Infrastructure
 
-1. **Navigate to terraform directory**:
-   ```bash
-   cd terraform
-   ```
+```bash
+# Setup development environment
+./scripts/setup-environment.sh dev us-west-2
 
-2. **Set database password**:
-   ```bash
-   export TF_VAR_initial_db_password="your-secure-password"
-   ```
+# Setup staging environment
+./scripts/setup-environment.sh staging us-west-2
 
-3. **Deploy to specific environment**:
-   ```bash
-   # For development
-   ./deploy.sh dev plan
-   ./deploy.sh dev apply
-   
-   # For staging
-   ./deploy.sh staging plan
-   ./deploy.sh staging apply
-   
-   # For production
-   ./deploy.sh prod plan
-   ./deploy.sh prod apply
-   ```
-
-   On Windows:
-   ```cmd
-   deploy.bat dev plan
-   deploy.bat dev apply
-   ```
-
-### Option 2: Manual Configuration
-
-1. **Copy and configure variables**:
-   ```bash
-   cp terraform.tfvars.example terraform.tfvars
-   ```
-
-2. **Initialize and deploy**:
-   ```bash
-   terraform init
-   terraform plan -var-file="terraform.tfvars"
-   terraform apply -var-file="terraform.tfvars"
-   ```
-
-## Configuration
-
-### Required Variables
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `aws_region` | AWS region for deployment | `us-east-1` |
-| `initial_db_password` | Database password (set via env var) | `SecurePass123!` |
-
-### Optional Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `project_name` | Project name for resource naming | `grocellery-app` |
-| `environment` | Environment (dev/staging/prod) | `dev` |
-| `enable_monitoring` | Enable CloudWatch monitoring | `true` |
-| `enable_backup` | Enable RDS backups | `true` |
-| `backup_retention_period` | Backup retention in days | `7` |
-
-### Service Configuration
-
-Each microservice can be configured individually:
-
-```hcl
-services = {
-  cart = {
-    port              = 8081
-    cpu               = 256
-    memory            = 512
-    desired_count     = 1
-    health_check_path = "/actuator/health"
-  }
-  # ... other services
-}
+# Setup production environment
+./scripts/setup-environment.sh prod us-west-2
 ```
 
-## Security Features
+### 2. Deploy to Development
 
-- **Encryption at rest** for RDS and Secrets Manager using KMS
-- **Network isolation** with private subnets for application and database
-- **Security groups** with least privilege access
-- **IAM roles** with minimal required permissions
-- **Secrets management** via AWS Secrets Manager
-- **Container security** with read-only root filesystem where possible
+```bash
+# Initialize and deploy to dev
+./scripts/deploy.sh dev init
+./scripts/deploy.sh dev apply
+```
 
-## Monitoring
+### 3. Deploy to Staging
 
-When `enable_monitoring = true`, the following are created:
+```bash
+# Deploy to staging
+./scripts/deploy.sh staging apply
+```
 
-- CloudWatch Dashboard with key metrics
-- CloudWatch Alarms for CPU, memory, and error rates
-- Log aggregation and retention policies
-- SNS topic for alert notifications
-- CloudWatch Log Insights queries for troubleshooting
+### 4. Deploy to Production
 
-## Backup and Recovery
+```bash
+# Plan production deployment
+./scripts/deploy.sh prod plan
 
-- **RDS automated backups** with configurable retention
-- **Point-in-time recovery** enabled
-- **Final snapshots** for production environments
-- **Cross-region backup replication** (can be enabled)
+# Apply production deployment (after review)
+./scripts/deploy.sh prod apply
+```
+
+## Environment-Specific Features
+
+### Development
+- Single AZ deployment for cost savings
+- Smaller instance sizes
+- 7-day log retention
+- No deletion protection
+- Simplified monitoring
+
+### Staging
+- Multi-AZ for testing high availability
+- Medium instance sizes
+- 14-day log retention
+- Performance testing capabilities
+- Full monitoring stack
+
+### Production
+- Multi-AZ with read replicas
+- Larger instance sizes
+- 30-day log retention
+- Deletion protection enabled
+- Comprehensive monitoring and alerting
+- Automated backups with cross-region replication
+
+## Security Configuration
+
+### Secrets Management
+All sensitive data is stored in AWS Systems Manager Parameter Store:
+
+```
+/grocellery/{environment}/database/password
+/grocellery/{environment}/{service}/jwt/secret
+```
+
+### Network Security
+- Private subnets for application and database
+- Security groups with least privilege access
+- NAT gateways for outbound internet access
+- Application Load Balancer in public subnets
+
+### IAM Roles
+- Separate execution and task roles for ECS
+- Minimal permissions for each service
+- Parameter Store access for secrets
+
+## Monitoring and Observability
+
+### CloudWatch Integration
+- Container insights enabled
+- Custom log groups per service
+- Environment-specific retention policies
+
+### Health Checks
+- Application Load Balancer health checks
+- ECS service health monitoring
+- Database connection monitoring
 
 ## Cost Optimization
 
-- **Fargate Spot** capacity providers for non-critical workloads
-- **GP3 storage** for RDS with optimized IOPS
-- **Log retention policies** to manage CloudWatch costs
-- **ECR lifecycle policies** to clean up old images
+### Development Environment
+- Single AZ deployment
+- Smaller instance classes
+- Shorter log retention
+- No Multi-AZ RDS
 
-## Environments
+### Staging Environment
+- Balanced resources for testing
+- Medium instance classes
+- Standard monitoring
 
-The configuration supports multiple environments with different AWS regions and resource configurations:
-
-### Development (`environments/dev/`)
-- **Region**: us-east-1
-- **Resources**: Minimal (t3.micro RDS, 256 CPU, 512 MB memory)
-- **Instances**: 1 per service
-- **Backup retention**: 3 days
-
-### Staging (`environments/staging/`)
-- **Region**: us-west-2
-- **Resources**: Medium (t3.small RDS, 512 CPU, 1024 MB memory)
-- **Instances**: 2 per service
-- **Backup retention**: 7 days
-
-### Production (`environments/prod/`)
-- **Region**: us-east-1
-- **Resources**: Large (r5.large RDS, 1024 CPU, 2048 MB memory)
-- **Instances**: 3 per service across 3 AZs
-- **Backup retention**: 30 days
-- **Enhanced monitoring and deletion protection enabled**
-
-### Switching Regions
-
-To deploy to a different region, modify the `aws_region` in the respective environment's `terraform.tfvars` file:
-
-```hcl
-# In environments/dev/terraform.tfvars
-aws_region = "eu-west-1"  # Change to desired region
-```
+### Production Environment
+- Optimized for performance and reliability
+- Auto-scaling enabled
+- Comprehensive backup strategy
 
 ## CI/CD Integration
 
-The Terraform configuration includes:
+The GitHub Actions workflow automatically:
 
-- **CodePipeline** for automated deployments
-- **CodeBuild** projects for building and testing
-- **ECR integration** for container image management
-- **Terraform state management** in the pipeline
+1. **Feature Branches**: Deploy to dev environment
+2. **Develop Branch**: Deploy to dev → staging
+3. **Main Branch**: Deploy through all environments with approvals
 
-## Outputs
-
-After deployment, Terraform outputs important information:
-
-```bash
-terraform output
-```
-
-Key outputs include:
-- ALB DNS name for accessing services
-- RDS endpoint for database connections
-- ECR repository URLs for pushing images
-- Service URLs for each microservice
+### Environment Protection Rules
+- **Development**: No protection (auto-deploy)
+- **Staging**: Require successful dev deployment
+- **Production**: Require manual approval + successful staging deployment
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Permission Errors**: Ensure your AWS credentials have sufficient permissions
-2. **Resource Limits**: Check AWS service limits in your region
-3. **Network Issues**: Verify VPC and subnet configurations
-4. **Database Connection**: Check security groups and network ACLs
+1. **Backend Not Found**
+   ```bash
+   # Run setup script first
+   ./scripts/setup-environment.sh <env> <region>
+   ```
+
+2. **Permission Denied**
+   ```bash
+   # Make scripts executable
+   chmod +x scripts/*.sh
+   ```
+
+3. **Resource Already Exists**
+   ```bash
+   # Import existing resources or use different names
+   terraform import aws_s3_bucket.state bucket-name
+   ```
 
 ### Useful Commands
 
 ```bash
-# View current state
-terraform show
+# Check environment status
+./scripts/deploy.sh <env> plan
 
-# Import existing resources
-terraform import aws_instance.example i-1234567890abcdef0
+# View outputs
+cd terraform/environments/<env>
+terraform output
 
-# Refresh state
-terraform refresh
-
-# Validate configuration
-terraform validate
-
-# Format code
-terraform fmt -recursive
-```
-
-## Cleanup
-
-To destroy all resources:
-
-```bash
-terraform destroy
-```
-
-**Warning**: This will delete all resources including databases. Ensure you have backups if needed.
-
-## Module Structure
-
-```
-terraform/
-├── main.tf                 # Main configuration and VPC
-├── variables.tf            # Variable definitions
-├── outputs.tf             # Output definitions
-├── services.tf            # ECS services and ECR
-├── ecs-cluster.tf         # ECS cluster configuration
-├── alb.tf                 # Application Load Balancer
-├── rds.tf                 # Database configuration
-├── secrets.tf             # Secrets Manager
-├── security-groups.tf     # Security group rules
-├── monitoring.tf          # CloudWatch monitoring
-├── cicd.tf               # CI/CD pipeline
-├── modules/
-│   └── ecs/              # ECS service module
-│       ├── main.tf
-│       ├── variables.tf
-│       └── outputs.tf
-└── environments/         # Environment-specific configs
-    └── dev/
-        └── terraform.tfvars
+# Destroy environment (careful!)
+./scripts/deploy.sh <env> destroy
 ```
 
 ## Best Practices
 
-1. **State Management**: Use remote state with S3 and DynamoDB locking
-2. **Variable Validation**: All variables include validation rules
-3. **Resource Tagging**: Consistent tagging strategy for cost allocation
-4. **Security**: Least privilege IAM policies and encrypted storage
-5. **Monitoring**: Comprehensive observability with alerts
-6. **Documentation**: All resources include descriptions and tags
+1. **Always run plan before apply**
+2. **Use separate AWS accounts for production**
+3. **Enable CloudTrail for audit logging**
+4. **Regular backup testing**
+5. **Monitor costs with AWS Cost Explorer**
+6. **Use tags consistently across all resources**
 
-## Contributing
+## Next Steps
 
-1. Follow Terraform best practices
-2. Update documentation for any changes
-3. Test in development environment first
-4. Use consistent naming conventions
-5. Add appropriate tags to all resources
-
-## Support
-
-For issues or questions:
-1. Check the troubleshooting section
-2. Review AWS CloudWatch logs
-3. Consult Terraform documentation
-4. Contact the DevOps team
+1. **Add monitoring dashboards** (Grafana/CloudWatch)
+2. **Implement blue-green deployments**
+3. **Add chaos engineering tests**
+4. **Set up cross-region disaster recovery**
+5. **Implement policy as code with OPA**
