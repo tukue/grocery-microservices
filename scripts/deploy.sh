@@ -9,7 +9,7 @@ set -e
 
 ENVIRONMENT=${1:-dev}
 ACTION=${2:-plan}
-REGION=${3:-us-west-2}
+REGION=${3:-eu-west-1}
 
 # Validate environment
 if [[ ! "$ENVIRONMENT" =~ ^(dev|staging|prod)$ ]]; then

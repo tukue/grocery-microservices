@@ -7,7 +7,7 @@ set -e
 # Usage: ./setup-environment.sh <environment> <region>
 
 ENVIRONMENT=${1:-dev}
-REGION=${2:-us-west-2}
+REGION=${2:-eu-west-1}
 
 # Validate environment
 if [[ ! "$ENVIRONMENT" =~ ^(dev|staging|prod)$ ]]; then
