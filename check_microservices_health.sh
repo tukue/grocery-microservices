@@ -14,13 +14,34 @@ for i in ${!SERVICES[@]}; do
   PIDS[$i]=$!
 done
 
-# Wait a bit for services to start
-sleep 30
+wait_for_service() {
+  local service=$1
+  local port=$2
+  local retries=40
+  local delay=3
 
-echo "\nChecking health endpoints:"
+  echo "Waiting for $service on port $port..."
+  for ((attempt=1; attempt<=retries; attempt++)); do
+    if curl -fsS "http://localhost:${port}/actuator/health" > /dev/null; then
+      echo "$service is healthy."
+      return 0
+    fi
+    sleep "$delay"
+  done
+
+  echo "Timed out waiting for $service on port $port." >&2
+  return 1
+}
+
+for i in ${!SERVICES[@]}; do
+  wait_for_service "${SERVICES[$i]}" "${PORTS[$i]}" || true
+done
+
+echo ""
+echo "Checking health endpoints:"
 for i in ${!SERVICES[@]}; do
   PORT=${PORTS[$i]}
   SERVICE=${SERVICES[$i]}
   echo -n "$SERVICE (port $PORT): "
-  curl -s http://localhost:$PORT/actuator/health || echo "No response"
+  curl -fsS http://localhost:$PORT/actuator/health || echo "No response"
 done
