@@ -13,6 +13,8 @@ RUN mvn clean install -DskipTests
 # Stage 2: Create the image
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
-COPY --from=build /workspace/microservices/product-service/target/*.jar /app/app.jar
+RUN addgroup --system app && adduser --system --ingroup app app
+COPY --from=build --chown=app:app /workspace/microservices/product-service/target/*.jar /app/app.jar
+USER app
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
