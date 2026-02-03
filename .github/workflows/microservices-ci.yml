@@ -76,7 +76,13 @@ jobs:
       env:
         SKIP_START: "true"
       working-directory: microservices
-      run: bash ../check_microservices_health.sh
+      run: |
+        docker run --rm \
+          --network microservices_backend \
+          -v "${GITHUB_WORKSPACE}:/workspace" \
+          -w /workspace \
+          alpine:3.19 \
+          sh -c "apk add --no-cache bash curl > /dev/null && HEALTHCHECK_USE_SERVICE_NAMES=true HEALTHCHECK_PORT=8080 SKIP_START=true bash check_microservices_health.sh"
 
     - name: Capture service logs
       if: always()
