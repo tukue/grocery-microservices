@@ -6,6 +6,10 @@
 SERVICES=(cart-service order-service product-service summary-service)
 PORTS=(8081 8082 8083 8084)
 
+if [[ -n "${GITHUB_ACTIONS:-}" && -z "${SKIP_START:-}" ]]; then
+  SKIP_START="true"
+fi
+
 if [[ -z "${SKIP_START:-}" ]]; then
   for i in ${!SERVICES[@]}; do
     SERVICE=${SERVICES[$i]}
@@ -30,7 +34,7 @@ fi
 wait_for_service() {
   local service=$1
   local port=$2
-  local host=127.0.0.1
+  local host=${HEALTHCHECK_HOST:-127.0.0.1}
   local retries=40
   local delay=3
 
