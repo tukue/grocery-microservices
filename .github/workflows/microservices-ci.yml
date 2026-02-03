@@ -73,13 +73,9 @@ jobs:
         docker compose up -d cart-db order-db product-db summary-db cart-service order-service product-service summary-service
 
     - name: Verify health endpoints
-      run: |
-        for target in "cart-service:8081" "order-service:8082" "product-service:8083" "summary-service:8084"; do
-          service="${target%%:*}"
-          port="${target##*:}"
-          echo "Waiting for ${service} on port ${port}..."
-          timeout 120s bash -c "until curl -fsS http://localhost:${port}/actuator/health; do sleep 5; done"
-        done
+      env:
+        SKIP_START: "true"
+      run: bash check_microservices_health.sh
 
     - name: Capture service logs
       if: always()
