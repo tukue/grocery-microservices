@@ -75,7 +75,8 @@ jobs:
     - name: Verify health endpoints
       env:
         SKIP_START: "true"
-      run: bash check_microservices_health.sh
+      working-directory: microservices
+      run: bash ../check_microservices_health.sh
 
     - name: Capture service logs
       if: always()

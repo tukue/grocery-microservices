@@ -14,6 +14,17 @@ if [[ -z "${SKIP_START:-}" ]]; then
     mvn spring-boot:run -pl microservices/$SERVICE -Dspring-boot.run.arguments="--server.port=$PORT" &
     PIDS[$i]=$!
   done
+
+  cleanup() {
+    echo "Cleaning up background processes..."
+    for pid in "${PIDS[@]}"; do
+      if kill -0 "$pid" 2>/dev/null; then
+        kill "$pid"
+      fi
+    done
+  }
+
+  trap cleanup EXIT
 fi
 
 wait_for_service() {
