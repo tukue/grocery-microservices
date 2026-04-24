@@ -24,6 +24,8 @@ import static org.mockito.Mockito.when;
 @ActiveProfiles("test")
 @SpringBootTest(classes = ProductServiceApplication.class)
 class ProductServiceCachingTest {
+    private static final String PRODUCT_LIST_CACHE = "productList";
+    private static final String PRODUCT_BY_ID_CACHE = "productById";
 
     @MockBean
     private ProductRepository productRepository;
@@ -36,10 +38,8 @@ class ProductServiceCachingTest {
 
     @AfterEach
     void clearCache() {
-        Cache cache = cacheManager.getCache("products");
-        if (cache != null) {
-            cache.clear();
-        }
+        clearCache(PRODUCT_LIST_CACHE);
+        clearCache(PRODUCT_BY_ID_CACHE);
     }
 
     @Test
@@ -105,7 +105,19 @@ class ProductServiceCachingTest {
         Product afterSave = productService.getProductById(1L);
 
         assertNotNull(afterSave);
-        verify(productRepository, times(2)).findById(1L);
+        verify(productRepository, times(1)).findById(1L);
+
+        Cache itemCache = cacheManager.getCache(PRODUCT_BY_ID_CACHE);
+        assertNotNull(itemCache);
+        assertNotNull(itemCache.get(apple.getId()));
+        assertEquals(saved, itemCache.get(apple.getId()).get());
+    }
+
+    private void clearCache(String cacheName) {
+        Cache cache = cacheManager.getCache(cacheName);
+        if (cache != null) {
+            cache.clear();
+        }
     }
 
     private Product buildProduct(Long id, String name, double price) {
