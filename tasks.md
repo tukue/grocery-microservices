@@ -16,10 +16,10 @@ To start the local development environment, run `docker-compose up` from the `mi
 
 ## 3. Improvements
 
-*   [ ] **Code Quality & Best Practices**
+*   ✅ **Code Quality & Best Practices** (Added TFLint to CI)
 *   [ ] **Performance Optimization**
-*   ✅ **Security Enhancements**
-*   [ ] **Configuration Management**
+*   ✅ **Security Enhancements** (Added TFSec to CI, updated microservice security for health checks)
+*   ✅ **Configuration Management** (Externalized application properties)
 
 ## 4. AWS Deployment with Terraform
 
@@ -67,7 +67,7 @@ These steps are to be performed by the developer to deploy and verify the infras
 *   **Task**: [ ] Implement caching.
 *   **Task**: ✅ Implement Spring Security.
 *   **Task**: ✅ Validate all incoming request data.
-*   **Task**: [ ] Externalize application configuration.
+*   **Task**: ✅ Externalize application configuration.
 
 ### 6.2 Specific AWS Deployment Tasks (Done)
 

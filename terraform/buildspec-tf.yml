@@ -3,10 +3,20 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      terraform: 1.0
+      terraform: 1.5
+    commands:
+      - echo "Installing tfsec..."
+      - curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+      - echo "Installing tflint..."
+      - curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
   pre_build:
     commands:
       - cd terraform
+      - echo "Running TFLint..."
+      - tflint --init
+      - tflint
+      - echo "Running tfsec..."
+      - tfsec .
       - |
         WORKSPACE=${TF_WORKSPACE:-dev}
         export WORKSPACE
