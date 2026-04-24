@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -35,7 +36,10 @@ class ProductServiceCachingTest {
 
     @AfterEach
     void clearCache() {
-        cacheManager.getCache("products").clear();
+        Cache cache = cacheManager.getCache("products");
+        if (cache != null) {
+            cache.clear();
+        }
     }
 
     @Test
@@ -84,16 +88,24 @@ class ProductServiceCachingTest {
     }
 
     @Test
-    void storesUpdatedProductInItemCache() {
+    void saveProductEvictsCachedProductById() {
         Product apple = buildProduct(1L, "Apple", 0.99);
+        when(productRepository.findById(1L)).thenReturn(Optional.of(apple));
         when(productRepository.save(apple)).thenReturn(apple);
 
-        Product saved = productService.saveProduct(apple);
+        Product firstCall = productService.getProductById(1L);
+        Product secondCall = productService.getProductById(1L);
 
+        assertEquals(firstCall, secondCall);
+        verify(productRepository, times(1)).findById(1L);
+
+        Product saved = productService.saveProduct(apple);
         assertEquals(apple.getId(), saved.getId());
-        assertNotNull(cacheManager.getCache("products"));
-        assertNotNull(cacheManager.getCache("products").get(apple.getId()));
-        assertEquals(saved, cacheManager.getCache("products").get(apple.getId()).get());
+
+        Product afterSave = productService.getProductById(1L);
+
+        assertNotNull(afterSave);
+        verify(productRepository, times(2)).findById(1L);
     }
 
     private Product buildProduct(Long id, String name, double price) {

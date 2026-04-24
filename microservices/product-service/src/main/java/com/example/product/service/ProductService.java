@@ -3,7 +3,6 @@ package com.example.product.service;
 import com.example.product.model.Product;
 import com.example.product.repository.ProductRepository;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
@@ -30,7 +29,6 @@ public class ProductService {
         return productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
     }
 
-    @CachePut(value = PRODUCT_CACHE, key = "#result.id")
     @CacheEvict(value = PRODUCT_CACHE, allEntries = true, beforeInvocation = true)
     public Product saveProduct(Product product) {
         return productRepository.save(product);
