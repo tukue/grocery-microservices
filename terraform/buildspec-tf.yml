@@ -3,10 +3,25 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      terraform: 1.0
+      terraform: 1.5
+      python: 3.9
+    commands:
+      - echo "Installing tfsec..."
+      - curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+      - echo "Installing tflint..."
+      - curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+      - echo "Installing checkov..."
+      - pip install checkov
   pre_build:
     commands:
       - cd terraform
+      - echo "Running TFLint..."
+      - tflint --init
+      - tflint --format compact
+      - echo "Running tfsec..."
+      - tfsec . --format junit > tfsec-report.xml || true
+      - echo "Running checkov..."
+      - checkov -d . --output junitxml > checkov-report.xml || true
       - |
         WORKSPACE=${TF_WORKSPACE:-dev}
         export WORKSPACE
@@ -51,3 +66,10 @@ phases:
 artifacts:
   files:
     - terraform/tfplan
+
+reports:
+  terraform-scans:
+    files:
+      - "terraform/tfsec-report.xml"
+      - "terraform/checkov-report.xml"
+    file-format: JUNITXML
