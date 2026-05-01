@@ -1,6 +1,8 @@
 package com.example.order.service;
 
 import com.example.order.model.Order;
+import com.example.order.model.OrderStatus;
+import com.example.order.exception.InvalidOrderStateException;
 import com.example.order.repository.OrderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.Optional;
+import java.util.NoSuchElementException;
 import org.springframework.test.context.ActiveProfiles;
 
 @ActiveProfiles("test")
@@ -25,6 +28,7 @@ class OrderServiceTest {
         testOrder = new Order();
         testOrder.setId(1L);
         testOrder.setTotal(100.0);
+        testOrder.setStatus(OrderStatus.PENDING);
     }
 
     @Test
@@ -32,25 +36,55 @@ class OrderServiceTest {
         // Arrange
         Order newOrder = new Order();
         newOrder.setTotal(50.0);
-        when(orderRepository.save(Mockito.any(Order.class))).thenReturn(newOrder);
+        when(orderRepository.save(Mockito.any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        
         // Act
         Order createdOrder = orderService.createOrder(newOrder);
+        
         // Assert
         assertNotNull(createdOrder);
-        assertEquals(50.0, createdOrder.getTotal());
+        assertEquals(OrderStatus.PENDING, createdOrder.getStatus());
+        assertNotNull(createdOrder.getOrderDate());
         verify(orderRepository, times(1)).save(Mockito.any(Order.class));
+    }
+
+    @Test
+    void testUpdateOrderStatus_Valid() {
+        // Arrange
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(orderRepository.save(Mockito.any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        Order updatedOrder = orderService.updateOrderStatus(1L, OrderStatus.COMPLETED);
+
+        // Assert
+        assertEquals(OrderStatus.COMPLETED, updatedOrder.getStatus());
+    }
+
+    @Test
+    void testUpdateOrderStatus_InvalidFromCompleted() {
+        // Arrange
+        testOrder.setStatus(OrderStatus.COMPLETED);
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+
+        // Act & Assert
+        assertThrows(InvalidOrderStateException.class, () -> 
+            orderService.updateOrderStatus(1L, OrderStatus.CANCELLED)
+        );
     }
 
     @Test
     void testGetOrderById() {
         // Arrange
         when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
-        when(orderRepository.findById(2L)).thenReturn(Optional.empty());
+        
         // Act & Assert
         Order foundOrder = orderService.getOrder(1L);
         assertNotNull(foundOrder);
         assertEquals(1L, foundOrder.getId());
+        
         // Test not found scenario
-        assertThrows(Exception.class, () -> orderService.getOrder(2L));
+        when(orderRepository.findById(2L)).thenReturn(Optional.empty());
+        assertThrows(NoSuchElementException.class, () -> orderService.getOrder(2L));
     }
 } 
