@@ -24,7 +24,7 @@ public class OrderService {
         order.setOrderDate(LocalDateTime.now());
         Order savedOrder = repo.save(order);
         log.info("EVENT=ORDER_CREATED ORDER_ID={} USER_ID={} TOTAL={}", 
-            savedOrder.getId(), savedOrder.getUserId(), savedOrder.getTotalAmount());
+            savedOrder.getId(), savedOrder.getUserId(), savedOrder.getTotal());
         return savedOrder;
     }
 
