@@ -11,6 +11,9 @@ This project is a grocery store application built with a microservices architect
 ### DevOps improvements to consider next
 For a deeper roadmap of recommended improvements (pipeline hardening, secrets management, promotion flow, observability, and runtime resilience), see [DEVOPS_IMPROVEMENTS.md](DEVOPS_IMPROVEMENTS.md).
 
+### DevSecOps AWS delivery profile
+For a consulting-profile view of the AWS deployment pipeline, security gates, evidence artifacts, and promotion model, see [DEVSECOPS_PIPELINE.md](DEVSECOPS_PIPELINE.md).
+
 ## Microservice-Based Development
 
 This application is designed using the microservices architectural style, where the system is decomposed into small, independent services. Each microservice is responsible for a specific business capability and can be developed, deployed, and scaled independently. This approach offers several benefits:

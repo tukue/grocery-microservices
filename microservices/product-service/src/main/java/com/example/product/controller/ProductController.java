@@ -27,6 +27,13 @@ public class ProductController {
                 .collect(Collectors.toList());
     }
 
+    @GetMapping("/search")
+    public List<ProductDTO> searchProducts(@RequestParam String name) {
+        return productService.searchProducts(name).stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
     @GetMapping("/{id}")
     public ProductDTO getProductById(@PathVariable Long id) {
         Product product = productService.getProductById(id);

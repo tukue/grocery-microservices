@@ -26,6 +26,11 @@ public class ProductService {
         return productRepository.findAll();
     }
 
+    @Cacheable(value = PRODUCT_LIST_CACHE, key = "#keyword")
+    public List<Product> searchProducts(String keyword) {
+        return productRepository.findByNameContainingIgnoreCase(keyword);
+    }
+
     @Cacheable(value = PRODUCT_BY_ID_CACHE, key = "#id")
     public Product getProductById(Long id) {
         return productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));

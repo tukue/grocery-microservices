@@ -129,6 +129,16 @@ variable "services" {
   }
 }
 
+variable "image_tag" {
+  description = "Immutable container image tag deployed by ECS, usually sha-<commit> from CodeBuild"
+  type        = string
+  default     = "latest"
+  validation {
+    condition     = can(regex("^[A-Za-z0-9_.-]+$", var.image_tag))
+    error_message = "Image tag can contain only letters, numbers, periods, underscores, and hyphens."
+  }
+}
+
 variable "enable_monitoring" {
   description = "Enable CloudWatch monitoring and logging"
   type        = bool

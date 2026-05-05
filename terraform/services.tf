@@ -3,7 +3,7 @@ resource "aws_ecr_repository" "services" {
   for_each = var.services
   name     = "${local.name_prefix}-${each.key}"
 
-  image_tag_mutability = "MUTABLE"
+  image_tag_mutability = "IMMUTABLE"
   
   image_scanning_configuration {
     scan_on_push = true
@@ -29,12 +29,12 @@ resource "aws_ecr_lifecycle_policy" "services" {
     rules = [
       {
         rulePriority = 1
-        description  = "Keep last 10 images"
+        description  = "Keep last 30 immutable release images"
         selection = {
           tagStatus     = "tagged"
-          tagPrefixList = ["v"]
+          tagPrefixList = ["sha-"]
           countType     = "imageCountMoreThan"
-          countNumber   = 10
+          countNumber   = 30
         }
         action = {
           type = "expire"
@@ -65,7 +65,7 @@ module "ecs_service" {
 
   # Service configuration
   service_name   = each.key
-  image_uri      = "${aws_ecr_repository.services[each.key].repository_url}:latest"
+  image_uri      = "${aws_ecr_repository.services[each.key].repository_url}:${var.image_tag}"
   container_port = each.value.port
   
   # Resource allocation

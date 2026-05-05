@@ -15,16 +15,26 @@ phases:
   pre_build:
     commands:
       - cd terraform
+      - terraform fmt -check -recursive || echo "Terraform formatting drift detected; run terraform fmt -recursive."
+      - terraform validate
       - echo "Running TFLint..."
       - tflint --init
       - tflint --format compact
-      - echo "Running tfsec..."
-      - tfsec . --format junit > tfsec-report.xml || true
-      - echo "Running checkov..."
-      - checkov -d . --output junitxml > checkov-report.xml || true
+      - |
+        IAC_SCAN_FAILED=0
+        echo "Running tfsec..."
+        tfsec . --format junit > tfsec-report.xml || IAC_SCAN_FAILED=1
+        echo "Running checkov..."
+        checkov -d . --quiet --output junitxml > checkov-report.xml || IAC_SCAN_FAILED=1
+        if [ "$IAC_SCAN_FAILED" -ne 0 ]; then
+          echo "Infrastructure security checks failed. Review tfsec-report.xml and checkov-report.xml."
+          exit 1
+        fi
       - |
         WORKSPACE=${TF_WORKSPACE:-dev}
         export WORKSPACE
+        SHORT_SHA=$(printf '%s' "${CODEBUILD_RESOLVED_SOURCE_VERSION:-manual}" | cut -c1-12)
+        export TF_VAR_image_tag="${IMAGE_TAG:-sha-${SHORT_SHA}}"
         if [ -n "${TF_STATE_BUCKET}" ]; then
           STATE_KEY_PREFIX=${TF_STATE_KEY_PREFIX:-${PROJECT_NAME:-grocellery-app}}
           LOCK_TABLE="${TF_STATE_LOCK_TABLE:-}"
@@ -61,7 +71,7 @@ phases:
         fi
   post_build:
     commands:
-      - echo "Terraform Plan complete. Waiting for approval to apply."
+      - echo "Terraform Plan complete for image tag ${TF_VAR_image_tag}. Waiting for approval to apply."
 
 artifacts:
   files:

@@ -350,6 +350,50 @@ resource "aws_codepipeline" "grocellery_pipeline" {
 
 resource "aws_s3_bucket" "codepipeline_artifacts" {
   bucket = "grocellery-codepipeline-artifacts"
+
+  versioning {
+    enabled = true
+  }
+
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "codepipeline_artifacts" {
+  bucket = aws_s3_bucket.codepipeline_artifacts.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_policy" "codepipeline_artifacts_tls" {
+  bucket = aws_s3_bucket.codepipeline_artifacts.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Sid       = "DenyInsecureTransport",
+        Effect    = "Deny",
+        Principal = "*",
+        Action    = "s3:*",
+        Resource = [
+          aws_s3_bucket.codepipeline_artifacts.arn,
+          "${aws_s3_bucket.codepipeline_artifacts.arn}/*"
+        ],
+        Condition = {
+          Bool = { "aws:SecureTransport" = "false" }
+        }
+      }
+    ]
+  })
 }
 
 resource "random_id" "terraform_state_suffix" {
@@ -451,6 +495,14 @@ resource "aws_codebuild_project" "grocellery_build" {
     environment_variable {
       name  = "PROJECT_NAME"
       value = var.project_name
+    }
+    environment_variable {
+      name  = "TARGET_ENVIRONMENTS"
+      value = "dev staging prod"
+    }
+    environment_variable {
+      name  = "SCAN_SEVERITY"
+      value = "CRITICAL,HIGH"
     }
   }
 

@@ -55,6 +55,20 @@ public class ProductControllerTest {
     }
 
     @Test
+    public void testSearchProducts() throws Exception {
+        Product product = new Product();
+        product.setId(1L);
+        product.setName("Apple");
+        product.setPrice(0.99);
+
+        when(productService.searchProducts("Apple")).thenReturn(Collections.singletonList(product));
+
+        mockMvc.perform(get("/products/search").param("name", "Apple"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Apple"));
+    }
+
+    @Test
     public void testCreateProduct() throws Exception {
         ProductDTO productDTO = new ProductDTO();
         productDTO.setName("New Product");

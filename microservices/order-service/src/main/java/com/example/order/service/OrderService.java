@@ -4,6 +4,8 @@ import com.example.order.model.Order;
 import com.example.order.model.OrderStatus;
 import com.example.order.exception.InvalidOrderStateException;
 import com.example.order.repository.OrderRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +14,7 @@ import java.util.NoSuchElementException;
 
 @Service
 public class OrderService {
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
     private final OrderRepository repo;
     public OrderService(OrderRepository repo) { this.repo = repo; }
 
@@ -19,7 +22,10 @@ public class OrderService {
     public Order createOrder(Order order) {
         order.setStatus(OrderStatus.PENDING);
         order.setOrderDate(LocalDateTime.now());
-        return repo.save(order);
+        Order savedOrder = repo.save(order);
+        log.info("EVENT=ORDER_CREATED ORDER_ID={} USER_ID={} TOTAL={}", 
+            savedOrder.getId(), savedOrder.getUserId(), savedOrder.getTotalAmount());
+        return savedOrder;
     }
 
     public Order getOrder(Long id) {
@@ -29,16 +35,20 @@ public class OrderService {
     @Transactional
     public Order updateOrderStatus(Long id, OrderStatus newStatus) {
         Order order = getOrder(id);
+        OrderStatus oldStatus = order.getStatus();
         
         // Basic state machine validation
-        if (order.getStatus() == OrderStatus.COMPLETED) {
+        if (oldStatus == OrderStatus.COMPLETED) {
             throw new InvalidOrderStateException("Cannot change status of a COMPLETED order");
         }
-        if (order.getStatus() == OrderStatus.CANCELLED) {
+        if (oldStatus == OrderStatus.CANCELLED) {
             throw new InvalidOrderStateException("Cannot change status of a CANCELLED order");
         }
         
         order.setStatus(newStatus);
-        return repo.save(order);
+        Order updatedOrder = repo.save(order);
+        log.info("EVENT=ORDER_STATUS_UPDATED ORDER_ID={} OLD_STATUS={} NEW_STATUS={}", 
+            updatedOrder.getId(), oldStatus, newStatus);
+        return updatedOrder;
     }
 } 
