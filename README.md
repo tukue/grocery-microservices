@@ -230,7 +230,7 @@ sequenceDiagram
 | Decision | Tradeoff |
 |----------|----------|
 | All inter-service interactions are synchronous HTTP REST calls (orchestrated by client). | **Pro:** Simple to reason about, easy to debug, standard tooling (curl, Swagger). |
-| | **Con:** No built-in retry/backpressure/dead-letter handling. A slow service blocks the entire checkout flow. No event sourcing or audit log. |
+| | **Con:** No built-in retry/backpressure. A slow service blocks the entire checkout flow. No event sourcing or audit log. |
 
 **Future direction:** Introduce an event bus (SNS/SQS, RabbitMQ, Kafka) for order lifecycle events, enabling summary generation and notifications to happen asynchronously.
 
