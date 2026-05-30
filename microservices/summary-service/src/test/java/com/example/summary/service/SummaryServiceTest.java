@@ -177,7 +177,7 @@ class SummaryServiceTest {
         BigDecimal averageAmount = summaryService.getAverageOrderAmount("user123");
 
         // Assert
-        assertEquals(BigDecimal.valueOf(150.00), averageAmount);
+        assertEquals(0, BigDecimal.valueOf(150.00).compareTo(averageAmount));
         verify(summaryRepository, times(1)).findByUserId("user123");
     }
 
