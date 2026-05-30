@@ -12,6 +12,8 @@ public class ProductDTO {
     @Positive(message = "Product price must be positive")
     private double price;
 
+    private String imageUrl;
+
     // Getters and setters
     public Long getId() {
         return id;
@@ -36,4 +38,12 @@ public class ProductDTO {
     public void setPrice(double price) {
         this.price = price;
     }
-} 
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+}

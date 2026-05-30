@@ -3,6 +3,7 @@ package com.example.order.controller;
 import com.example.order.config.SecurityConfig;
 import com.example.order.dto.OrderDTO;
 import com.example.order.model.Order;
+import com.example.order.model.OrderStatus;
 import com.example.order.service.OrderService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -19,8 +20,11 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.Collections;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -42,11 +46,12 @@ public class OrderControllerTest {
     @Test
     public void testCreateOrder() throws Exception {
         OrderDTO orderDTO = new OrderDTO();
-        // Set properties for orderDTO as needed
+        orderDTO.setCartId(1L);
+        orderDTO.setProductIds(Collections.singletonList(101L));
 
         Order savedOrder = new Order();
         savedOrder.setId(1L);
-        // Set other properties for savedOrder
+        savedOrder.setStatus(OrderStatus.PENDING);
 
         when(orderService.createOrder(any(Order.class))).thenReturn(savedOrder);
 
@@ -54,7 +59,23 @@ public class OrderControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(orderDTO)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1L));
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.status").value("PENDING"));
+    }
+
+    @Test
+    public void testUpdateStatus() throws Exception {
+        Order updatedOrder = new Order();
+        updatedOrder.setId(1L);
+        updatedOrder.setStatus(OrderStatus.COMPLETED);
+
+        when(orderService.updateOrderStatus(any(Long.class), any(OrderStatus.class))).thenReturn(updatedOrder);
+
+        mockMvc.perform(patch("/orders/1/status")
+                        .param("status", "COMPLETED")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
     }
 
     @TestConfiguration

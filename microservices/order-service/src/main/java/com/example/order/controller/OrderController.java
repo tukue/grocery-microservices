@@ -2,8 +2,10 @@ package com.example.order.controller;
 
 import com.example.order.dto.OrderDTO;
 import com.example.order.model.Order;
+import com.example.order.model.OrderStatus;
 import com.example.order.service.OrderService;
 import org.springframework.beans.BeanUtils;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
@@ -28,6 +30,12 @@ public class OrderController {
     public OrderDTO getOrder(@PathVariable Long id) {
         Order order = orderService.getOrder(id);
         return convertToDto(order);
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<OrderDTO> updateStatus(@PathVariable Long id, @RequestParam OrderStatus status) {
+        Order updatedOrder = orderService.updateOrderStatus(id, status);
+        return ResponseEntity.ok(convertToDto(updatedOrder));
     }
 
     private OrderDTO convertToDto(Order order) {

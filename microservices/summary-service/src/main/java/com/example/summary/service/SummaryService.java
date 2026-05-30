@@ -12,6 +12,8 @@ public class SummaryService {
     @Autowired
     private SummaryRepository summaryRepository;
 
+    private final SummaryProcessor processor = new SummaryProcessor();
+
     public Summary createSummary(Summary summary) {
         return summaryRepository.save(summary);
     }
@@ -30,9 +32,7 @@ public class SummaryService {
 
     public BigDecimal getUserTotalSpending(String userId) {
         List<Summary> summaries = summaryRepository.findByUserId(userId);
-        return summaries.stream()
-                .map(s -> s.getTotalAmount() != null ? s.getTotalAmount() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return processor.calculateTotalSpending(summaries);
     }
 
     public long getUserOrderCount(String userId) {
@@ -41,11 +41,12 @@ public class SummaryService {
 
     public BigDecimal getAverageOrderAmount(String userId) {
         List<Summary> summaries = summaryRepository.findByUserId(userId);
-        if (summaries.isEmpty()) return BigDecimal.ZERO;
-        BigDecimal total = summaries.stream()
-                .map(s -> s.getTotalAmount() != null ? s.getTotalAmount() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        return total.divide(BigDecimal.valueOf(summaries.size()), BigDecimal.ROUND_HALF_UP);
+        return processor.calculateAverageOrderAmount(summaries);
+    }
+
+    public String getFormattedReceipt(Long id) {
+        Summary summary = getSummaryById(id);
+        return processor.formatReceipt(summary);
     }
 
     public void setSummaryRepository(SummaryRepository summaryRepository) {

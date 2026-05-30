@@ -30,6 +30,11 @@ public class SummaryController {
         return convertToDto(summary);
     }
 
+    @GetMapping("/{id}/receipt")
+    public String getReceipt(@PathVariable Long id) {
+        return summaryService.getFormattedReceipt(id);
+    }
+
     private SummaryDTO convertToDto(Summary summary) {
         SummaryDTO summaryDto = new SummaryDTO();
         BeanUtils.copyProperties(summary, summaryDto);

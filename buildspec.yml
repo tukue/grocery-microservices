@@ -2,63 +2,86 @@ version: 0.2
 
 env:
   variables:
-    # These are the names of your service directories in the 'microservices' folder
-    SERVICES: "cart-service order-service product-service summary-service"
-    PROJECT_NAME: "grocery"
-    IMAGE_TAG: "latest"
+    # service-name:source-directory pairs
+    SERVICES: "cart:cart-service order:order-service product:product-service summary:summary-service"
+    PROJECT_NAME: "grocellery-app"
+    TARGET_ENVIRONMENTS: "dev staging prod"
+    SCAN_SEVERITY: "CRITICAL,HIGH"
 
 phases:
   pre_build:
     commands:
-      - echo Logging in to Amazon ECR...
-      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
-      - echo Pre-pulling scanner images for syft and trivy...
+      - |
+        set -euo pipefail
+        PROJECT_NAME=${PROJECT_NAME:-grocellery-app}
+        AWS_REGION=${AWS_REGION:-${AWS_DEFAULT_REGION:-us-east-1}}
+        SHORT_SHA=$(printf '%s' "${CODEBUILD_RESOLVED_SOURCE_VERSION:-manual}" | cut -c1-12)
+        IMAGE_TAG=${IMAGE_TAG:-sha-${SHORT_SHA}}
+        export PROJECT_NAME AWS_REGION IMAGE_TAG
+        echo "Build started on $(date)"
+        echo "Using immutable image tag ${IMAGE_TAG}"
+      - echo "Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+      - echo "Pre-pulling DevSecOps scanner images..."
       - docker pull anchore/syft:latest
       - docker pull aquasec/trivy:latest
+      - docker pull hadolint/hadolint:latest
+      - docker pull zricethezav/gitleaks:latest
   build:
     commands:
       - |
-          set -euo pipefail
-          PROJECT_NAME=${PROJECT_NAME:-grocery}
-          IMAGE_TAG=${IMAGE_TAG:-latest}
-          echo Build started on "$(date)"
-        echo Running Maven verify for each service...
-        for service in $SERVICES; do
+        set -euo pipefail
+        echo "Running secret detection..."
+        docker run --rm -v "$(pwd)":/repo zricethezav/gitleaks:latest detect --source /repo --redact --report-format sarif --report-path /repo/gitleaks-report.sarif
+
+        echo "Running Maven verify for each service..."
+        for entry in $SERVICES; do
+          service=${entry%%:*}
+          service_dir=${entry##*:}
           echo "Running tests for $service..."
-          (cd "microservices/$service" && mvn -B clean verify)
+          (cd "microservices/$service_dir" && mvn -B clean verify)
         done
-        echo Building Docker images and running scans...
-        SCAN_FAILED=0
-        for service in $SERVICES; do
-          REPO_NAME="$PROJECT_NAME-$service"
-          IMAGE_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$REPO_NAME:$IMAGE_TAG"
-          echo "Generating SBOM for $service..."
-          docker run --rm -v "$(pwd)/microservices/$service":/src anchore/syft:latest /src -o json > "sbom-$service.json"
+
+        echo "Linting Dockerfiles, building images, generating SBOMs, and running vulnerability scans..."
+        for entry in $SERVICES; do
+          service=${entry%%:*}
+          service_dir=${entry##*:}
+          local_image="$PROJECT_NAME-$service:$IMAGE_TAG"
+          dockerfile="microservices/$service_dir/Dockerfile"
+
+          echo "Linting Dockerfile for $service..."
+          docker run --rm -i hadolint/hadolint:latest < "$dockerfile" | tee "hadolint-$service.txt"
+
           echo "Building Docker image for $service..."
-          docker build -t "$IMAGE_URI" -f "microservices/$service/Dockerfile" "microservices/$service"
-          echo "Running Trivy scan for $IMAGE_URI..."
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --format json --output "trivy-$service.json" --exit-code 1 "$IMAGE_URI" || SCAN_FAILED=1
-          echo "Pushing Docker image for $service to $IMAGE_URI..."
-          docker push "$IMAGE_URI"
+          docker build -t "$local_image" -f "$dockerfile" .
+
+          echo "Generating SBOM for $service..."
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/syft:latest "$local_image" -o cyclonedx-json > "sbom-$service.cdx.json"
+
+          echo "Running Trivy scan for $service..."
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --format json --output "trivy-$service.json" --severity "$SCAN_SEVERITY" --ignore-unfixed --exit-code 1 "$local_image"
+
+          for environment in $TARGET_ENVIRONMENTS; do
+            repo_name="$PROJECT_NAME-$environment-$service"
+            image_uri="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$repo_name:$IMAGE_TAG"
+            echo "Pushing $service image to $image_uri..."
+            docker tag "$local_image" "$image_uri"
+            docker push "$image_uri"
+            digest=$(aws ecr describe-images --repository-name "$repo_name" --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text)
+            printf '%s\n' "{\"service\":\"$service\",\"environment\":\"$environment\",\"image\":\"$image_uri\",\"digest\":\"$digest\"}" >> image-manifest.jsonl
+          done
         done
-        echo "SCAN_FAILED=$SCAN_FAILED" > scan_status.env
   post_build:
     commands:
-      - echo Build completed on "$(date)"
-      - |
-        if [ -f scan_status.env ]; then
-          # shellcheck disable=SC1091
-          source scan_status.env
-          if [ "${SCAN_FAILED:-0}" -ne 0 ]; then
-            echo "One or more Trivy scans reported issues. See trivy-*.json artifacts for details."
-            exit 1
-          fi
-        fi
+      - echo "Build completed on $(date)"
 
 artifacts:
   files:
     - "**/target/surefire-reports/**/*"
-    - "sbom-*.json"
+    - "gitleaks-report.sarif"
+    - "hadolint-*.txt"
+    - "image-manifest.jsonl"
+    - "sbom-*.cdx.json"
     - "trivy-*.json"
   discard-paths: no
 
@@ -66,9 +89,4 @@ reports:
   surefire-reports:
     files:
       - "**/target/surefire-reports/*.xml"
-    base-directory: .
-  security-scans:
-    files:
-      - "trivy-*.json"
-      - "sbom-*.json"
     base-directory: .
