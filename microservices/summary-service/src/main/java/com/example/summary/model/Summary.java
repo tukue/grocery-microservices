@@ -5,14 +5,23 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(indexes = {
+        @Index(name = "idx_summary_user_id", columnList = "user_id"),
+        @Index(name = "idx_summary_order_id", columnList = "order_id")
+})
 public class Summary {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(name = "user_id")
     private String userId;
+    @Column(name = "order_id")
     private Long orderId;
+    @Column(name = "total_amount")
     private BigDecimal totalAmount;
+    @Column(name = "item_count")
     private Integer itemCount;
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
     private String details;
 
@@ -36,4 +45,4 @@ public class Summary {
 
     public String getDetails() { return details; }
     public void setDetails(String details) { this.details = details; }
-} 
+}

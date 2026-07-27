@@ -5,6 +5,7 @@ import com.example.cart.dto.CartItemDTO;
 import com.example.cart.model.CartItem;
 import com.example.cart.service.CartService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +21,7 @@ public class CartController {
 
     @PostMapping
     public ResponseEntity<CartDTO> createCart() {
-        return ResponseEntity.ok(cartService.createCart());
+        return ResponseEntity.status(HttpStatus.CREATED).body(cartService.createCart());
     }
 
     @GetMapping("/{id}")
@@ -41,4 +42,4 @@ public class CartController {
     public ResponseEntity<CartDTO> removeItemFromCart(@PathVariable Long cartId, @PathVariable Long itemId) {
         return ResponseEntity.ok(cartService.removeItem(cartId, itemId));
     }
-} 
+}

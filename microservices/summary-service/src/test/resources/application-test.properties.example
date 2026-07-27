@@ -1,1 +1,1 @@
-test-summary-service-secret=dummy-summary-secret 
+jwt.secret=${random.uuid}

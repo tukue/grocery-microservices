@@ -1,5 +1,6 @@
 package com.example.product;
 
+import com.example.product.exception.ProductNotFoundException;
 import com.example.product.model.Product;
 import com.example.product.repository.ProductRepository;
 import com.example.product.service.ProductService;
@@ -82,7 +83,7 @@ class ProductServiceTest {
         // Arrange
         when(productRepository.findById(999L)).thenReturn(Optional.empty());
         // Act & Assert
-        assertThrows(RuntimeException.class, () -> productService.getProductById(999L));
+        assertThrows(ProductNotFoundException.class, () -> productService.getProductById(999L));
         verify(productRepository, times(1)).findById(999L);
     }
 
@@ -113,4 +114,4 @@ class ProductServiceTest {
         verify(productRepository, times(1)).findById(1L);
         verify(productRepository, times(1)).deleteById(1L);
     }
-} 
+}

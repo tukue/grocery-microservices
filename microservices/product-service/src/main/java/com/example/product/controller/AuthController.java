@@ -1,7 +1,6 @@
 package com.example.product.controller;
 
 import com.example.product.config.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,8 +9,11 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
-    @Autowired
-    private JwtUtil jwtUtil;
+    private final JwtUtil jwtUtil;
+
+    public AuthController(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
 
     public static class LoginRequest {
         public String username;
@@ -32,4 +34,4 @@ public class AuthController {
         }
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
     }
-} 
+}

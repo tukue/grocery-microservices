@@ -1,1 +1,1 @@
-test-order-service-secret=dummy-order-secret 
+jwt.secret=${random.uuid}

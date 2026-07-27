@@ -10,6 +10,8 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.cache.annotation.EnableCaching;
 
+import java.util.List;
+
 @SpringBootApplication
 @EnableCaching
 public class ProductServiceApplication {
@@ -23,12 +25,21 @@ public class ProductServiceApplication {
     public CommandLineRunner loadData(ProductRepository repository) {
         return args -> {
             if (repository.count() == 0) {
-                repository.save(new Product() {{ setName("Apple"); setPrice(0.99); }});
-                repository.save(new Product() {{ setName("Banana"); setPrice(0.59); }});
-                repository.save(new Product() {{ setName("Carrot"); setPrice(0.39); }});
-                repository.save(new Product() {{ setName("Dairy Milk"); setPrice(1.49); }});
-                repository.save(new Product() {{ setName("Eggs"); setPrice(2.99); }});
+                repository.saveAll(List.of(
+                        product("Apple", 0.99),
+                        product("Banana", 0.59),
+                        product("Carrot", 0.39),
+                        product("Dairy Milk", 1.49),
+                        product("Eggs", 2.99)
+                ));
             }
         };
     }
-} 
+
+    private Product product(String name, double price) {
+        Product product = new Product();
+        product.setName(name);
+        product.setPrice(price);
+        return product;
+    }
+}

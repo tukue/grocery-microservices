@@ -35,7 +35,7 @@ wait_for_service() {
   local service=$1
   local host=$2
   local port=$3
-  local retries=40
+  local retries=${HEALTHCHECK_RETRIES:-40}
   local delay=3
 
   echo "Waiting for $service on ${host}:${port}..."
@@ -53,6 +53,9 @@ wait_for_service() {
   return 1
 }
 
+declare -a HEALTH_PIDS=()
+declare -a HEALTH_SERVICES=()
+
 for i in ${!SERVICES[@]}; do
   SERVICE=${SERVICES[$i]}
   PORT=${PORTS[$i]}
@@ -62,7 +65,17 @@ for i in ${!SERVICES[@]}; do
   else
     HOST=${HEALTHCHECK_HOST:-127.0.0.1}
   fi
-  wait_for_service "${SERVICE}" "${HOST}" "${PORT}" || true
+  wait_for_service "${SERVICE}" "${HOST}" "${PORT}" &
+  HEALTH_PIDS[$i]=$!
+  HEALTH_SERVICES[$i]=$SERVICE
+done
+
+HEALTH_FAILED=0
+for i in ${!HEALTH_PIDS[@]}; do
+  if ! wait "${HEALTH_PIDS[$i]}"; then
+    echo "${HEALTH_SERVICES[$i]} did not become healthy." >&2
+    HEALTH_FAILED=1
+  fi
 done
 
 echo ""
@@ -79,3 +92,5 @@ for i in ${!SERVICES[@]}; do
   echo -n "$SERVICE (${HOST}:${PORT}): "
   curl -fsS "http://${HOST}:${PORT}/actuator/health" || echo "No response"
 done
+
+exit "$HEALTH_FAILED"

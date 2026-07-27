@@ -5,6 +5,7 @@ import com.example.order.model.Order;
 import com.example.order.model.OrderStatus;
 import com.example.order.service.OrderService;
 import org.springframework.beans.BeanUtils;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
@@ -20,10 +21,10 @@ public class OrderController {
     }
 
     @PostMapping
-    public OrderDTO createOrder(@Valid @RequestBody OrderDTO orderDto) {
+    public ResponseEntity<OrderDTO> createOrder(@Valid @RequestBody OrderDTO orderDto) {
         Order order = convertToEntity(orderDto);
         Order createdOrder = orderService.createOrder(order);
-        return convertToDto(createdOrder);
+        return ResponseEntity.status(HttpStatus.CREATED).body(convertToDto(createdOrder));
     }
 
     @GetMapping("/{id}")
@@ -49,4 +50,4 @@ public class OrderController {
         BeanUtils.copyProperties(orderDto, order);
         return order;
     }
-} 
+}

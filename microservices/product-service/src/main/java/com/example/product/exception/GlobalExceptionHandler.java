@@ -14,23 +14,15 @@ import java.util.Map;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex, HttpServletRequest request) {
-        HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
-        String message = "An unexpected error occurred";
-
-        if (ex.getMessage() != null && ex.getMessage().contains("Product not found")) {
-            status = HttpStatus.NOT_FOUND;
-            message = ex.getMessage();
-        }
-
+    @ExceptionHandler(ProductNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleProductNotFoundException(ProductNotFoundException ex, HttpServletRequest request) {
         ErrorResponse error = new ErrorResponse(
-                status.value(),
-                status.getReasonPhrase(),
-                message,
+                HttpStatus.NOT_FOUND.value(),
+                HttpStatus.NOT_FOUND.getReasonPhrase(),
+                ex.getMessage(),
                 request.getRequestURI()
         );
-        return new ResponseEntity<>(error, status);
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

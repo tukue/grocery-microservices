@@ -5,13 +5,19 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
+
 @Entity
+@Table(indexes = @Index(name = "idx_product_name", columnList = "name"))
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String name;
     private double price;
+    @Column(name = "image_url")
     private String imageUrl;
 
     // Getters and Setters
