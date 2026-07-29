@@ -16,6 +16,9 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
@@ -48,7 +51,9 @@ public class CartControllerTest {
         }
         @Bean
         public com.example.cart.config.JwtUtil jwtUtil() {
-            return new com.example.cart.config.JwtUtil();
+            com.example.cart.config.JwtUtil jwtUtil = new com.example.cart.config.JwtUtil();
+            ReflectionTestUtils.setField(jwtUtil, "secret", UUID.randomUUID().toString());
+            return jwtUtil;
         }
     }
 

@@ -9,6 +9,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Arrays;
@@ -63,6 +66,20 @@ class ProductServiceTest {
         // Assert
         assertTrue(result.isEmpty());
         verify(productRepository, times(1)).findAll();
+    }
+
+    @Test
+    void testGetProductsPage() {
+        // Arrange
+        PageRequest pageRequest = PageRequest.of(0, 20);
+        Page<Product> products = new PageImpl<>(List.of(testProduct), pageRequest, 1);
+        when(productRepository.findAll(pageRequest)).thenReturn(products);
+        // Act
+        Page<Product> result = productService.getProducts(pageRequest);
+        // Assert
+        assertEquals(1, result.getTotalElements());
+        assertEquals("Test Product", result.getContent().get(0).getName());
+        verify(productRepository, times(1)).findAll(pageRequest);
     }
 
     @Test

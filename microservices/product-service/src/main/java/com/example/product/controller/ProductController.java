@@ -3,18 +3,28 @@ package com.example.product.controller;
 import com.example.product.dto.ProductDTO;
 import com.example.product.model.Product;
 import com.example.product.service.ProductService;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
+import java.util.Set;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/products")
+@Validated
 public class ProductController {
+    private static final int MAX_PAGE_SIZE = 100;
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("id", "name", "price");
 
     private final ProductService productService;
 
@@ -27,6 +37,16 @@ public class ProductController {
         return productService.getAllProducts().stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
+    }
+
+    @GetMapping(params = {"page", "size"})
+    public Page<ProductDTO> getProductsPage(
+            @RequestParam @Min(0) int page,
+            @RequestParam @Min(1) @Max(MAX_PAGE_SIZE) int size,
+            @RequestParam(defaultValue = "name") String sort,
+            @RequestParam(defaultValue = "asc") String direction) {
+        PageRequest pageRequest = createPageRequest(page, size, sort, direction);
+        return productService.getProducts(pageRequest).map(this::convertToDto);
     }
 
     @GetMapping("/search")
@@ -73,5 +93,11 @@ public class ProductController {
         Product product = new Product();
         BeanUtils.copyProperties(productDto, product);
         return product;
+    }
+
+    private PageRequest createPageRequest(int page, int size, String sort, String direction) {
+        String sortField = ALLOWED_SORT_FIELDS.contains(sort) ? sort : "name";
+        Sort.Direction sortDirection = "desc".equalsIgnoreCase(direction) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        return PageRequest.of(page, size, Sort.by(sortDirection, sortField));
     }
 }

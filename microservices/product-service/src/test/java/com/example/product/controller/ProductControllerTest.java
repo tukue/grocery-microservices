@@ -8,12 +8,18 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -24,6 +30,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ActiveProfiles("test")
 @WebMvcTest(ProductController.class)
@@ -51,6 +58,56 @@ public class ProductControllerTest {
         mockMvc.perform(get("/products"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("Test Product"));
+    }
+
+    @Test
+    public void testGetProductsPage() throws Exception {
+        Product product = new Product();
+        product.setId(1L);
+        product.setName("Test Product");
+        product.setPrice(10.0);
+
+        PageRequest expectedPageRequest = PageRequest.of(0, 20, Sort.by(Sort.Direction.ASC, "name"));
+        when(productService.getProducts(expectedPageRequest)).thenReturn(new PageImpl<>(List.of(product), expectedPageRequest, 1));
+
+        mockMvc.perform(get("/products")
+                        .param("page", "0")
+                        .param("size", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].name").value("Test Product"))
+                .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    public void testGetProductsPageFallsBackForUnsupportedSortField() throws Exception {
+        Product product = new Product();
+        product.setId(1L);
+        product.setName("Test Product");
+        product.setPrice(10.0);
+
+        when(productService.getProducts(argThat(pageable ->
+                pageable != null
+                        && pageable.getPageNumber() == 0
+                        && pageable.getPageSize() == 20
+                        && pageable.getSort().getOrderFor("name") != null
+                        && pageable.getSort().getOrderFor("unsupported") == null)))
+                .thenReturn(new PageImpl<>(List.of(product), PageRequest.of(0, 20, Sort.by("name")), 1));
+
+        mockMvc.perform(get("/products")
+                        .param("page", "0")
+                        .param("size", "20")
+                        .param("sort", "unsupported"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].name").value("Test Product"));
+    }
+
+    @Test
+    public void testGetProductsPageRejectsOversizedRequest() throws Exception {
+        mockMvc.perform(get("/products")
+                        .param("page", "0")
+                        .param("size", "101"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation Failed"));
     }
 
     @Test
@@ -98,7 +155,9 @@ public class ProductControllerTest {
         }
         @Bean
         public com.example.product.config.JwtUtil jwtUtil() {
-            return new com.example.product.config.JwtUtil();
+            com.example.product.config.JwtUtil jwtUtil = new com.example.product.config.JwtUtil();
+            ReflectionTestUtils.setField(jwtUtil, "secret", UUID.randomUUID().toString());
+            return jwtUtil;
         }
     }
 }

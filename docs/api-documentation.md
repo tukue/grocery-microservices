@@ -4,7 +4,8 @@ Each service exposes OpenAPI at `/v3/api-docs` and Swagger UI at `/swagger-ui/in
 
 ## Product Service
 
-- `GET /products`: returns products.
+- `GET /products`: returns products as the legacy list response.
+- `GET /products?page={page}&size={size}&sort={id|name|price}&direction={asc|desc}`: returns a paginated product response. `page` is zero-based and `size` is limited to 100.
 - `GET /products/search?name={name}`: searches products by name.
 - `GET /products/{id}`: returns one product, `404` if absent.
 - `POST /products`: creates a product, returns `201`.

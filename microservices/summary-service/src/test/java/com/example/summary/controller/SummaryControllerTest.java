@@ -17,9 +17,11 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -77,7 +79,9 @@ public class SummaryControllerTest {
         }
         @Bean
         public com.example.summary.config.JwtUtil jwtUtil() {
-            return new com.example.summary.config.JwtUtil();
+            com.example.summary.config.JwtUtil jwtUtil = new com.example.summary.config.JwtUtil();
+            ReflectionTestUtils.setField(jwtUtil, "secret", UUID.randomUUID().toString());
+            return jwtUtil;
         }
     }
 }
