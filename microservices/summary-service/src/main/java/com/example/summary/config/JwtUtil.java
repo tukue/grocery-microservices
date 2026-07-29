@@ -1,14 +1,23 @@
 package com.example.summary.config;
 
 import io.jsonwebtoken.*;
+import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import java.util.Date;
 import org.springframework.beans.factory.annotation.Value;
 
 @Component
 public class JwtUtil {
-    @Value("${test-summary-service-secret}")
+    @Value("${jwt.secret}")
     private String secret;
+
+    @PostConstruct
+    void validateSecret() {
+        if (!StringUtils.hasText(secret)) {
+            throw new IllegalStateException("Required configuration property 'jwt.secret' must be set");
+        }
+    }
 
     public String generateToken(String username) {
         return Jwts.builder()
@@ -31,4 +40,4 @@ public class JwtUtil {
             return false;
         }
     }
-} 
+}

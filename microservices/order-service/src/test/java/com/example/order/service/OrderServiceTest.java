@@ -3,6 +3,7 @@ package com.example.order.service;
 import com.example.order.model.Order;
 import com.example.order.model.OrderStatus;
 import com.example.order.exception.InvalidOrderStateException;
+import com.example.order.exception.OrderNotFoundException;
 import com.example.order.repository.OrderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,7 +13,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.Optional;
-import java.util.NoSuchElementException;
 import org.springframework.test.context.ActiveProfiles;
 
 @ActiveProfiles("test")
@@ -37,10 +37,10 @@ class OrderServiceTest {
         Order newOrder = new Order();
         newOrder.setTotal(50.0);
         when(orderRepository.save(Mockito.any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        
+
         // Act
         Order createdOrder = orderService.createOrder(newOrder);
-        
+
         // Assert
         assertNotNull(createdOrder);
         assertEquals(OrderStatus.PENDING, createdOrder.getStatus());
@@ -68,7 +68,7 @@ class OrderServiceTest {
         when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
 
         // Act & Assert
-        assertThrows(InvalidOrderStateException.class, () -> 
+        assertThrows(InvalidOrderStateException.class, () ->
             orderService.updateOrderStatus(1L, OrderStatus.CANCELLED)
         );
     }
@@ -77,14 +77,14 @@ class OrderServiceTest {
     void testGetOrderById() {
         // Arrange
         when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
-        
+
         // Act & Assert
         Order foundOrder = orderService.getOrder(1L);
         assertNotNull(foundOrder);
         assertEquals(1L, foundOrder.getId());
-        
+
         // Test not found scenario
         when(orderRepository.findById(2L)).thenReturn(Optional.empty());
-        assertThrows(NoSuchElementException.class, () -> orderService.getOrder(2L));
+        assertThrows(OrderNotFoundException.class, () -> orderService.getOrder(2L));
     }
-} 
+}

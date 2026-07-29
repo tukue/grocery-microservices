@@ -3,13 +3,14 @@ x-postgres-common: &postgres-common
   restart: unless-stopped
   environment:
     POSTGRES_USER: ${POSTGRES_USER:-grocellery}
-    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-grocellerypass}
     POSTGRES_DB: ${POSTGRES_DB:-grocery}
+    POSTGRES_HOST_AUTH_METHOD: trust
   healthcheck:
-    test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-grocellery} -d ${POSTGRES_DB:-grocery}"]
-    interval: 10s
+    test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-grocellery} -d ${POSTGRES_DB:-grocery}"]
+    start_period: 30s
+    interval: 5s
     timeout: 5s
-    retries: 5
+    retries: 20
 
 services:
   cart-db:
@@ -50,7 +51,8 @@ services:
       dockerfile: microservices/cart-service/Dockerfile
     container_name: cart-service
     environment:
-      SPRING_PROFILES_ACTIVE: test
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_JSON: ${SPRING_APPLICATION_JSON:-}
     ports:
       - "8081:8080"
     security_opt:
@@ -73,7 +75,8 @@ services:
       dockerfile: microservices/order-service/Dockerfile
     container_name: order-service
     environment:
-      SPRING_PROFILES_ACTIVE: test
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_JSON: ${SPRING_APPLICATION_JSON:-}
     ports:
       - "8082:8080"
     security_opt:
@@ -96,7 +99,8 @@ services:
       dockerfile: microservices/product-service/Dockerfile
     container_name: product-service
     environment:
-      SPRING_PROFILES_ACTIVE: test
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_JSON: ${SPRING_APPLICATION_JSON:-}
     ports:
       - "8083:8080"
     security_opt:
@@ -119,7 +123,8 @@ services:
       dockerfile: microservices/summary-service/Dockerfile
     container_name: summary-service
     environment:
-      SPRING_PROFILES_ACTIVE: test
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_APPLICATION_JSON: ${SPRING_APPLICATION_JSON:-}
     ports:
       - "8084:8080"
     security_opt:

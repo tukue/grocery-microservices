@@ -2,6 +2,7 @@ package com.example.product.service;
 
 import com.example.product.model.Product;
 import com.example.product.repository.ProductRepository;
+import com.example.product.exception.ProductNotFoundException;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -33,7 +34,7 @@ public class ProductService {
 
     @Cacheable(value = PRODUCT_BY_ID_CACHE, key = "#id")
     public Product getProductById(Long id) {
-        return productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
+        return productRepository.findById(id).orElseThrow(() -> new ProductNotFoundException(id));
     }
 
     @Caching(
@@ -49,7 +50,7 @@ public class ProductService {
             @CacheEvict(value = PRODUCT_BY_ID_CACHE, key = "#id", beforeInvocation = true)
     })
     public void deleteProduct(Long id) {
-        productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
+        productRepository.findById(id).orElseThrow(() -> new ProductNotFoundException(id));
         productRepository.deleteById(id);
     }
 }

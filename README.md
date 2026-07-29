@@ -373,7 +373,7 @@ Access services at:
 | Variable                  | Description                | Default Value         |
 |---------------------------|----------------------------|----------------------|
 | POSTGRES_USER             | DB username                | grocellery           |
-| POSTGRES_PASSWORD         | DB password                | grocellerypass       |
+| POSTGRES_PASSWORD         | DB password                | required             |
 | POSTGRES_DB               | DB name                    | grocery              |
 | test-cart-service-secret  | JWT secret for cart        | dummy-cart-secret    |
 | test-order-service-secret | JWT secret for order       | dummy-order-secret   |
@@ -405,6 +405,16 @@ mvn test -pl microservices/cart-service -Dspring.profiles.active=test
 - JUnit 5 for testing
 - Maven for build automation
 - GitHub Actions for CI/CD
+
+## Production Documentation
+
+- [Architecture overview](docs/architecture-overview.md)
+- [API documentation](docs/api-documentation.md)
+- [Developer guide](docs/developer-guide.md)
+- [Configuration guide](docs/configuration-guide.md)
+- [Deployment guide](docs/deployment-guide.md)
+- [Troubleshooting guide](docs/troubleshooting-guide.md)
+- [Production readiness review](docs/production-readiness-review.md)
 
 ## Project Structure
 
@@ -470,13 +480,13 @@ If you get an empty reply or 401 error, make sure the service is running and tha
 
 - Ensure the service is running and mapped to the correct port (see `docker-compose ps`).
 - If running inside Docker, make sure you are accessing the correct host port.
-  
+
 - If you get an empty reply from `/actuator/health`, check your security configuration to allow public access to actuator endpoints.
 - Check service logs with `docker logs <container-name>` for errors.
 
 ## Test Credentials for Microservices
 
-All microservices are secured with HTTP Basic authentication. 
+All microservices are secured with HTTP Basic authentication.
 
 The Swagger UI and OpenAPI documentation endpoints are publicly accessible without authentication.
 

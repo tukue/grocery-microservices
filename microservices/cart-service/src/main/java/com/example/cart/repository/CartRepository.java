@@ -1,6 +1,13 @@
 package com.example.cart.repository;
 
 import com.example.cart.model.Cart;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface CartRepository extends JpaRepository<Cart, Long> {} 
+import java.util.Optional;
+
+public interface CartRepository extends JpaRepository<Cart, Long> {
+    @Override
+    @EntityGraph(attributePaths = "items")
+    Optional<Cart> findById(Long id);
+}

@@ -58,7 +58,7 @@ public class OrderControllerTest {
         mockMvc.perform(post("/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(orderDTO)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.status").value("PENDING"));
     }
@@ -91,4 +91,4 @@ public class OrderControllerTest {
             return new com.example.order.config.JwtUtil();
         }
     }
-} 
+}

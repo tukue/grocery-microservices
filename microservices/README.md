@@ -122,10 +122,7 @@ Access services at:
 | POSTGRES_USER             | DB username                |         |
 | POSTGRES_PASSWORD         | DB password                |        |
 | POSTGRES_DB               | DB name                    | grocery          |
-| test-cart-service-secret  | JWT secret for cart        | dummy-cart-secret    |
-| test-order-service-secret | JWT secret for order       | dummy-order-secret   |
-| test-product-service-secret | JWT secret for product    | dummy-product-secret |
-| test-summary-service-secret | JWT secret for summary    | dummy-summary-secret |
+| JWT_SECRET                | JWT signing key            | Required outside test |
 
 ## Architecture
 
@@ -252,8 +249,9 @@ The product-service is preloaded with the following demo products for showcase p
 All microservices use JWT (JSON Web Token) authentication for securing APIs. Each service requires a unique JWT secret, which should be set via environment variables or configuration files. **Never commit real secrets to version control.**
 
 ### Setting JWT Secrets for Local Development and Testing
-```
+
 - Each service should have a unique value for `JWT_SECRET`.
+- Runtime profiles fail startup when the JWT signing key is missing or blank.
 - These files are ignored by git (see `.gitignore`).
 
 ### Production Secrets

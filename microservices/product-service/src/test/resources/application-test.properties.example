@@ -1,1 +1,1 @@
-test-product-service-secret=dummy-product-secret 
+jwt.secret=${random.uuid}

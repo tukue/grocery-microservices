@@ -4,6 +4,8 @@ import com.example.product.dto.ProductDTO;
 import com.example.product.model.Product;
 import com.example.product.service.ProductService;
 import org.springframework.beans.BeanUtils;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
@@ -41,10 +43,10 @@ public class ProductController {
     }
 
     @PostMapping
-    public ProductDTO createProduct(@Valid @RequestBody ProductDTO productDTO) {
+    public ResponseEntity<ProductDTO> createProduct(@Valid @RequestBody ProductDTO productDTO) {
         Product product = convertToEntity(productDTO);
         Product savedProduct = productService.saveProduct(product);
-        return convertToDto(savedProduct);
+        return ResponseEntity.status(HttpStatus.CREATED).body(convertToDto(savedProduct));
     }
 
     @PutMapping("/{id}")
@@ -56,8 +58,9 @@ public class ProductController {
     }
 
     @DeleteMapping("/{id}")
-    public void deleteProduct(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
+        return ResponseEntity.noContent().build();
     }
 
     private ProductDTO convertToDto(Product product) {
@@ -71,4 +74,4 @@ public class ProductController {
         BeanUtils.copyProperties(productDto, product);
         return product;
     }
-} 
+}

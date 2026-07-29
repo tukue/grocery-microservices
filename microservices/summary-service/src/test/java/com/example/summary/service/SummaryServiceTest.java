@@ -1,5 +1,6 @@
 package com.example.summary.service;
 
+import com.example.summary.exception.SummaryNotFoundException;
 import com.example.summary.model.Summary;
 import com.example.summary.repository.SummaryRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +32,7 @@ class SummaryServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        
+
         testSummary = new Summary();
         testSummary.setId(1L);
         testSummary.setUserId("user123");
@@ -82,7 +83,7 @@ class SummaryServiceTest {
         when(summaryRepository.findById(999L)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(RuntimeException.class, () -> summaryService.getSummaryById(999L));
+        assertThrows(SummaryNotFoundException.class, () -> summaryService.getSummaryById(999L));
         verify(summaryRepository, times(1)).findById(999L);
     }
 
@@ -193,4 +194,4 @@ class SummaryServiceTest {
         assertEquals(BigDecimal.ZERO, averageAmount);
         verify(summaryRepository, times(1)).findByUserId("user123");
     }
-} 
+}
