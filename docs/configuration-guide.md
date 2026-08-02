@@ -16,6 +16,8 @@ Use environment variables or a secret manager for:
 - `SPRING_DATASOURCE_PASSWORD`
 - `JWT_SECRET`
 
+JWT signing values must be externally supplied and at least 32 characters long. Shorter values fail application startup.
+
 Recommended production settings:
 
 ```properties
