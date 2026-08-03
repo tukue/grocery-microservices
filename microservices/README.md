@@ -101,19 +101,21 @@ cd clean-code-grocellery-app
 docker-compose up
 ```
 Access services at:
-- Cart: http://localhost:8081
-- Order: http://localhost:8082
-- Product: http://localhost:8083
-- Summary: http://localhost:8084
+- Cart: `{CART_SERVICE_BASE_URL}`
+- Order: `{ORDER_SERVICE_BASE_URL}`
+- Product: `{PRODUCT_SERVICE_BASE_URL}`
+- Summary: `{SUMMARY_SERVICE_BASE_URL}`
 
 ## Service Endpoints
 
-| Service   | Base URL              | Swagger UI                  |
-|-----------|-----------------------|-----------------------------|
-| Cart      | http://localhost:8081 | http://localhost:8081/swagger-ui.html |
-| Order     | http://localhost:8082 | http://localhost:8082/swagger-ui.html |
-| Product   | http://localhost:8083 | http://localhost:8083/swagger-ui.html |
-| Summary   | http://localhost:8084 | http://localhost:8084/swagger-ui.html |
+Use the following placeholders for environment-specific service hosts:
+
+| Service   | Base URL placeholder         | Swagger UI                                    |
+|-----------|------------------------------|-----------------------------------------------|
+| Cart      | `{CART_SERVICE_BASE_URL}`    | `{CART_SERVICE_BASE_URL}/swagger-ui.html`     |
+| Order     | `{ORDER_SERVICE_BASE_URL}`   | `{ORDER_SERVICE_BASE_URL}/swagger-ui.html`    |
+| Product   | `{PRODUCT_SERVICE_BASE_URL}` | `{PRODUCT_SERVICE_BASE_URL}/swagger-ui.html`  |
+| Summary   | `{SUMMARY_SERVICE_BASE_URL}` | `{SUMMARY_SERVICE_BASE_URL}/swagger-ui.html`  |
 
 ## Environment Variables
 
@@ -148,8 +150,8 @@ mvn test -pl microservices/cart-service -Dspring.profiles.active=test
 
 ## Monitoring
 
-- Prometheus: http://localhost:9090
-- Grafana: http://localhost:3000 (default login:)
+- Prometheus: `{PROMETHEUS_BASE_URL}`
+- Grafana: `{GRAFANA_BASE_URL}` (default login:)
 
 ## Features
 
@@ -204,25 +206,25 @@ This project is available under the MIT License.
 
 Each microservice exposes interactive API documentation via Swagger UI. You can access these endpoints whether running the services locally or inside Docker containers (as long as the ports are mapped):
 
-- **cart-service:** http://localhost:8081/swagger-ui.html or http://localhost:8081/swagger-ui/index.html
-- **order-service:** http://localhost:8082/swagger-ui.html or http://localhost:8082/swagger-ui/index.html
-- **product-service:** http://localhost:8083/swagger-ui.html or http://localhost:8083/swagger-ui/index.html
-- **summary-service:** http://localhost:8084/swagger-ui.html or http://localhost:8084/swagger-ui/index.html
+- **cart-service:** `{CART_SERVICE_BASE_URL}/swagger-ui.html` or `{CART_SERVICE_BASE_URL}/swagger-ui/index.html`
+- **order-service:** `{ORDER_SERVICE_BASE_URL}/swagger-ui.html` or `{ORDER_SERVICE_BASE_URL}/swagger-ui/index.html`
+- **product-service:** `{PRODUCT_SERVICE_BASE_URL}/swagger-ui.html` or `{PRODUCT_SERVICE_BASE_URL}/swagger-ui/index.html`
+- **summary-service:** `{SUMMARY_SERVICE_BASE_URL}/swagger-ui.html` or `{SUMMARY_SERVICE_BASE_URL}/swagger-ui/index.html`
 
 
 If the `/swagger-ui.html` path does not work, try `/swagger-ui/index.html`.
 
 You can also view the raw OpenAPI spec at:
-- `http://localhost:<service-port>/v3/api-docs`
+- `{SERVICE_BASE_URL}/v3/api-docs`
 
 ## Health Checks (Actuator)
 
 Each service exposes a health endpoint via Spring Boot Actuator:
 
-- **cart-service:** http://localhost:8081/actuator/health
-- **order-service:** http://localhost:8082/actuator/health
-- **product-service:** http://localhost:8083/actuator/health
-- **summary-service:** http://localhost:8084/actuator/health
+- **cart-service:** `{CART_SERVICE_BASE_URL}/actuator/health`
+- **order-service:** `{ORDER_SERVICE_BASE_URL}/actuator/health`
+- **product-service:** `{PRODUCT_SERVICE_BASE_URL}/actuator/health`
+- **summary-service:** `{SUMMARY_SERVICE_BASE_URL}/actuator/health`
 
 If you get an empty reply or 401 error, make sure the service is running and that your security configuration allows unauthenticated access to `/actuator/health`.
 
