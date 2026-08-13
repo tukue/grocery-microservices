@@ -23,6 +23,9 @@ This document outlines the high-value, low-complexity improvements planned for e
 - [x] **ACID Compliance**: Ensure `@Transactional` boundaries cover the entire order lifecycle.
 - [x] **State Clarity**: Use a clear `OrderStatus` Enum and simple transition validation (e.g., prevent cancellation of completed orders).
 - [x] **Audit Logs**: Log key lifecycle events in a structured format for troubleshooting. (Implemented in `OrderService`).
+- [x] **Checkout Input Integrity**: Added the validation starter and enforced non-blank customer IDs, positive totals, and positive product IDs before an order can be persisted. Invalid payloads now receive the standard `400` validation response. (Covered by `OrderControllerTest`.)
+
+Remaining related MVP work: validate the referenced cart and products and derive the order total server-side when the checkout contract is extended to support that cross-service flow.
 
 ## 4. Product Service
 *Focus: Performance and Data Quality.*
