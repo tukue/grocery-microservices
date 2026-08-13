@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -48,8 +49,10 @@ public class OrderControllerTest {
     @Test
     public void testCreateOrder() throws Exception {
         OrderDTO orderDTO = new OrderDTO();
+        orderDTO.setUserId("customer-1");
         orderDTO.setCartId(1L);
         orderDTO.setProductIds(Collections.singletonList(101L));
+        orderDTO.setTotal(24.50);
 
         Order savedOrder = new Order();
         savedOrder.setId(1L);
@@ -63,6 +66,26 @@ public class OrderControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.status").value("PENDING"));
+    }
+
+    @Test
+    public void rejectsInvalidCheckoutPayloadBeforeCreatingOrder() throws Exception {
+        OrderDTO orderDTO = new OrderDTO();
+        orderDTO.setUserId(" ");
+        orderDTO.setCartId(1L);
+        orderDTO.setProductIds(Collections.singletonList(0L));
+        orderDTO.setTotal(0);
+
+        mockMvc.perform(post("/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(orderDTO)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation Failed"))
+                .andExpect(jsonPath("$.validationErrors.userId").value("User ID must not be blank"))
+                .andExpect(jsonPath("$.validationErrors.total").value("Order total must be positive"))
+                .andExpect(jsonPath("$['validationErrors']['productIds[0]']").value("Product ID must be positive"));
+
+        verifyNoInteractions(orderService);
     }
 
     @Test
