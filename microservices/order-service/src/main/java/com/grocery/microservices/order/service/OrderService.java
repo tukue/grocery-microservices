@@ -37,12 +37,11 @@ public class OrderService {
         Order order = getOrder(id);
         OrderStatus oldStatus = order.getStatus();
 
-        // Basic state machine validation
-        if (oldStatus == OrderStatus.COMPLETED) {
-            throw new InvalidOrderStateException("Cannot change status of a COMPLETED order");
+        if (oldStatus != OrderStatus.PENDING) {
+            throw new InvalidOrderStateException("Cannot change status of a " + oldStatus + " order");
         }
-        if (oldStatus == OrderStatus.CANCELLED) {
-            throw new InvalidOrderStateException("Cannot change status of a CANCELLED order");
+        if (newStatus != OrderStatus.COMPLETED && newStatus != OrderStatus.CANCELLED) {
+            throw new InvalidOrderStateException("A PENDING order can only be COMPLETED or CANCELLED");
         }
 
         order.setStatus(newStatus);

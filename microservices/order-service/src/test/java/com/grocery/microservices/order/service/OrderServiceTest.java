@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.Optional;
@@ -71,6 +72,18 @@ class OrderServiceTest {
         assertThrows(InvalidOrderStateException.class, () ->
             orderService.updateOrderStatus(1L, OrderStatus.CANCELLED)
         );
+    }
+
+    @Test
+    void testUpdateOrderStatus_InvalidPendingToPending() {
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+
+        InvalidOrderStateException exception = assertThrows(InvalidOrderStateException.class, () ->
+            orderService.updateOrderStatus(1L, OrderStatus.PENDING)
+        );
+
+        assertEquals("A PENDING order can only be COMPLETED or CANCELLED", exception.getMessage());
+        verify(orderRepository, never()).save(Mockito.any(Order.class));
     }
 
     @Test

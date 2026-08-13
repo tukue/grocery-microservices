@@ -2,6 +2,7 @@ package com.grocery.microservices.order.controller;
 
 import com.grocery.microservices.order.config.SecurityConfig;
 import com.grocery.microservices.order.dto.OrderDTO;
+import com.grocery.microservices.order.exception.InvalidOrderStateException;
 import com.grocery.microservices.order.model.Order;
 import com.grocery.microservices.order.model.OrderStatus;
 import com.grocery.microservices.order.service.OrderService;
@@ -101,6 +102,17 @@ public class OrderControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("COMPLETED"));
+    }
+
+    @Test
+    public void rejectsInvalidOrderStatusTransition() throws Exception {
+        when(orderService.updateOrderStatus(1L, OrderStatus.PENDING))
+                .thenThrow(new InvalidOrderStateException("A PENDING order can only be COMPLETED or CANCELLED"));
+
+        mockMvc.perform(patch("/orders/1/status")
+                        .param("status", "PENDING"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("A PENDING order can only be COMPLETED or CANCELLED"));
     }
 
     @TestConfiguration
