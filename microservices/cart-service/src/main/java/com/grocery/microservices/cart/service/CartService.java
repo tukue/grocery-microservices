@@ -2,6 +2,7 @@ package com.grocery.microservices.cart.service;
 
 import com.grocery.microservices.cart.dto.CartDTO;
 import com.grocery.microservices.cart.dto.CartItemDTO;
+import com.grocery.microservices.cart.exception.CartItemNotFoundException;
 import com.grocery.microservices.cart.exception.CartNotFoundException;
 import com.grocery.microservices.cart.model.Cart;
 import com.grocery.microservices.cart.model.CartItem;
@@ -50,8 +51,21 @@ public class CartService {
     @Retryable(retryFor = { SQLException.class }, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     public CartDTO removeItem(Long cartId, Long itemId) {
         Cart cart = repo.findById(cartId).orElseThrow(() -> new CartNotFoundException(cartId));
-        cart.getItems().removeIf(i -> i.getId().equals(itemId));
+        CartItem item = getCartItem(cart, cartId, itemId);
+        cart.getItems().remove(item);
         Cart updatedCart = repo.save(cart);
+        log.info("EVENT=ITEM_REMOVED_FROM_CART CART_ID={} ITEM_ID={}", cartId, itemId);
+        return toDTO(updatedCart);
+    }
+
+    @Transactional
+    @Retryable(retryFor = { SQLException.class }, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    public CartDTO updateItemQuantity(Long cartId, Long itemId, int quantity) {
+        Cart cart = repo.findById(cartId).orElseThrow(() -> new CartNotFoundException(cartId));
+        CartItem item = getCartItem(cart, cartId, itemId);
+        item.setQuantity(quantity);
+        Cart updatedCart = repo.save(cart);
+        log.info("EVENT=CART_ITEM_QUANTITY_UPDATED CART_ID={} ITEM_ID={} QUANTITY={}", cartId, itemId, quantity);
         return toDTO(updatedCart);
     }
 
@@ -71,6 +85,13 @@ public class CartService {
         dto.setPrice(item.getPrice());
         dto.setQuantity(item.getQuantity());
         return dto;
+    }
+
+    private CartItem getCartItem(Cart cart, Long cartId, Long itemId) {
+        return cart.getItems().stream()
+                .filter(item -> itemId.equals(item.getId()))
+                .findFirst()
+                .orElseThrow(() -> new CartItemNotFoundException(cartId, itemId));
     }
 
     @Transactional

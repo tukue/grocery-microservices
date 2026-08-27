@@ -2,6 +2,7 @@ package com.grocery.microservices.cart.controller;
 
 import com.grocery.microservices.cart.dto.CartDTO;
 import com.grocery.microservices.cart.dto.CartItemDTO;
+import com.grocery.microservices.cart.dto.CartItemQuantityDTO;
 import com.grocery.microservices.cart.model.CartItem;
 import com.grocery.microservices.cart.service.CartService;
 import jakarta.validation.Valid;
@@ -36,6 +37,14 @@ public class CartController {
         item.setPrice(itemDto.getPrice());
         item.setQuantity(itemDto.getQuantity());
         return ResponseEntity.ok(cartService.addItem(cartId, item));
+    }
+
+    @PatchMapping("/{cartId}/items/{itemId}")
+    public ResponseEntity<CartDTO> updateItemQuantity(
+            @PathVariable Long cartId,
+            @PathVariable Long itemId,
+            @Valid @RequestBody CartItemQuantityDTO quantityDto) {
+        return ResponseEntity.ok(cartService.updateItemQuantity(cartId, itemId, quantityDto.getQuantity()));
     }
 
     @DeleteMapping("/{cartId}/items/{itemId}")
