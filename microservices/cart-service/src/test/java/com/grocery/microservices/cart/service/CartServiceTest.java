@@ -2,6 +2,7 @@ package com.grocery.microservices.cart.service;
 
 import com.grocery.microservices.cart.model.Cart;
 import com.grocery.microservices.cart.model.CartItem;
+import com.grocery.microservices.cart.exception.CartItemNotFoundException;
 import com.grocery.microservices.cart.repository.CartRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,7 @@ import org.mockito.Mockito;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.never;
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.Optional;
 import java.util.ArrayList;
@@ -92,6 +94,39 @@ class CartServiceTest {
     }
 
     @Test
+    void testRemoveMissingItemFromCart() {
+        when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
+
+        assertThrows(CartItemNotFoundException.class, () -> cartService.removeItem(1L, 99L));
+
+        verify(cartRepository, never()).save(Mockito.any(Cart.class));
+    }
+
+    @Test
+    void testUpdateItemQuantity() {
+        CartItem item = new CartItem();
+        item.setId(1L);
+        item.setQuantity(2);
+        testCart.getItems().add(item);
+        when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
+        when(cartRepository.save(Mockito.any(Cart.class))).thenReturn(testCart);
+
+        var updatedCartDTO = cartService.updateItemQuantity(1L, 1L, 3);
+
+        assertEquals(3, updatedCartDTO.getItems().get(0).getQuantity());
+        verify(cartRepository).save(testCart);
+    }
+
+    @Test
+    void testUpdateMissingItemQuantityDoesNotPersist() {
+        when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
+
+        assertThrows(CartItemNotFoundException.class, () -> cartService.updateItemQuantity(1L, 99L, 3));
+
+        verify(cartRepository, never()).save(Mockito.any(Cart.class));
+    }
+
+    @Test
     void testSaveCart() {
         // Arrange
         when(cartRepository.save(Mockito.any(Cart.class))).thenReturn(testCart);
@@ -102,4 +137,4 @@ class CartServiceTest {
         assertEquals(1L, savedCart.getId());
         verify(cartRepository, times(1)).save(Mockito.any(Cart.class));
     }
-} 
+}
