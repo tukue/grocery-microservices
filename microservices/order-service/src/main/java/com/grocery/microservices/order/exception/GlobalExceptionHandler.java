@@ -54,6 +54,11 @@ public class GlobalExceptionHandler {
         return createErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(CartAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleCartAccessDenied(CartAccessDeniedException ex, HttpServletRequest request) {
+        return createErrorResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex, HttpServletRequest request) {
         Map<String, String> errors = new HashMap<>();

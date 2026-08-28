@@ -22,10 +22,12 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -38,6 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @WebMvcTest(CartController.class)
 @Import(CartControllerTest.TestSecurityConfig.class)
+@WithMockUser(username = "customer-1")
 public class CartControllerTest {
 
     @Autowired
@@ -70,7 +73,7 @@ public class CartControllerTest {
         CartDTO cart = new CartDTO();
         cart.setId(1L);
 
-        when(cartService.getCartById(anyLong())).thenReturn(cart);
+        when(cartService.getCartById(anyLong(), anyString())).thenReturn(cart);
 
         mockMvc.perform(get("/carts/1"))
                 .andExpect(status().isOk())
@@ -83,7 +86,7 @@ public class CartControllerTest {
         CartDTO returnedCart = new CartDTO();
         returnedCart.setId(1L);
 
-        when(cartService.createCart()).thenReturn(returnedCart);
+        when(cartService.createCart(anyString())).thenReturn(returnedCart);
 
         mockMvc.perform(post("/carts")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -94,7 +97,7 @@ public class CartControllerTest {
 
     @Test
     public void returnsNotFoundWhenRemovingMissingCartItem() throws Exception {
-        when(cartService.removeItem(1L, 99L))
+        when(cartService.removeItem(1L, 99L, "customer-1"))
                 .thenThrow(new CartItemNotFoundException(1L, 99L));
 
         mockMvc.perform(delete("/carts/1/items/99"))
@@ -110,7 +113,7 @@ public class CartControllerTest {
         CartDTO updatedCart = new CartDTO();
         updatedCart.setId(1L);
 
-        when(cartService.addItem(1L, 10L, 2)).thenReturn(updatedCart);
+        when(cartService.addItem(1L, 10L, 2, "customer-1")).thenReturn(updatedCart);
 
         mockMvc.perform(post("/carts/1/items")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -124,7 +127,7 @@ public class CartControllerTest {
         CartItemDTO itemDTO = new CartItemDTO();
         itemDTO.setProductId(99L);
         itemDTO.setQuantity(2);
-        when(cartService.addItem(1L, 99L, 2)).thenThrow(new ProductNotFoundException(99L));
+        when(cartService.addItem(1L, 99L, 2, "customer-1")).thenThrow(new ProductNotFoundException(99L));
 
         mockMvc.perform(post("/carts/1/items")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -138,7 +141,7 @@ public class CartControllerTest {
         CartItemDTO itemDTO = new CartItemDTO();
         itemDTO.setProductId(10L);
         itemDTO.setQuantity(2);
-        when(cartService.addItem(1L, 10L, 2)).thenThrow(new ProductUnavailableException(10L));
+        when(cartService.addItem(1L, 10L, 2, "customer-1")).thenThrow(new ProductUnavailableException(10L));
 
         mockMvc.perform(post("/carts/1/items")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -168,7 +171,7 @@ public class CartControllerTest {
         CartDTO updatedCart = new CartDTO();
         updatedCart.setId(1L);
 
-        when(cartService.updateItemQuantity(1L, 1L, 3)).thenReturn(updatedCart);
+        when(cartService.updateItemQuantity(1L, 1L, 3, "customer-1")).thenReturn(updatedCart);
 
         mockMvc.perform(patch("/carts/1/items/1")
                         .contentType(MediaType.APPLICATION_JSON)

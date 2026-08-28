@@ -12,6 +12,12 @@ public class RestClientConfig {
     public RestTemplate restTemplate(
             @Value("${services.cart.connect-timeout-ms:2000}") int connectTimeoutMs,
             @Value("${services.cart.read-timeout-ms:3000}") int readTimeoutMs) {
+        if (connectTimeoutMs <= 0 || connectTimeoutMs > 30_000) {
+            throw new IllegalArgumentException("Cart connect timeout must be between 1 and 30000ms");
+        }
+        if (readTimeoutMs <= 0 || readTimeoutMs > 60_000) {
+            throw new IllegalArgumentException("Cart read timeout must be between 1 and 60000ms");
+        }
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(connectTimeoutMs);
         requestFactory.setReadTimeout(readTimeoutMs);
