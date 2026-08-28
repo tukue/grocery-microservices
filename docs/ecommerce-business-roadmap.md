@@ -57,6 +57,7 @@ The MVP currently supports catalog browsing and cart changes, but checkout is no
 
 **Priority:** P0  
 **Business outcome:** Customers can submit a cart as an order without controlling the final total.
+**Status:** Implemented (cart ownership remains Phase 3 work)
 
 ### Work
 
@@ -74,6 +75,14 @@ The MVP currently supports catalog browsing and cart changes, but checkout is no
 - Manipulating a request total or product list cannot alter the persisted order amount.
 - Cart/product downstream failures return meaningful `404` or `503` responses and do not persist a partial order.
 - Tests cover checkout success, empty cart, missing cart, cart ownership, and downstream unavailability.
+
+### Implemented MVP Slice
+
+- Added `POST /orders/checkout`, accepting only a validated cart ID and deriving the customer from the authenticated principal.
+- Added an explicit cart-service client with externally configured base URLs, short timeouts, and forwarded customer authorization.
+- Calculates the trusted total and immutable order lines from persisted cart snapshots; checkout requests cannot provide prices, product lists, or totals.
+- Returns `404` for a missing cart, `409` for an empty cart, and `503` when cart-service is unavailable; no order is persisted for these failures.
+- Cart ownership and post-checkout cart state remain part of Phase 3 because carts do not yet carry a customer identity.
 
 ## Phase 3: Customer Identity and Account Ownership
 

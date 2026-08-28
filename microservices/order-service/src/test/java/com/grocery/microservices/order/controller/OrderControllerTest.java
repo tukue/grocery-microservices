@@ -1,7 +1,7 @@
 package com.grocery.microservices.order.controller;
 
 import com.grocery.microservices.order.config.SecurityConfig;
-import com.grocery.microservices.order.dto.OrderDTO;
+import com.grocery.microservices.order.dto.CheckoutRequest;
 import com.grocery.microservices.order.exception.InvalidOrderStateException;
 import com.grocery.microservices.order.model.Order;
 import com.grocery.microservices.order.model.OrderStatus;
@@ -22,7 +22,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.Collections;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -32,6 +31,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 
 @ActiveProfiles("test")
 @WebMvcTest(OrderController.class)
@@ -48,43 +48,39 @@ public class OrderControllerTest {
     private ObjectMapper objectMapper;
 
     @Test
-    public void testCreateOrder() throws Exception {
-        OrderDTO orderDTO = new OrderDTO();
-        orderDTO.setUserId("customer-1");
-        orderDTO.setCartId(1L);
-        orderDTO.setProductIds(Collections.singletonList(101L));
-        orderDTO.setTotal(24.50);
+    public void checkoutCreatesOrderFromCart() throws Exception {
+        CheckoutRequest checkoutRequest = new CheckoutRequest();
+        checkoutRequest.setCartId(1L);
 
         Order savedOrder = new Order();
         savedOrder.setId(1L);
         savedOrder.setStatus(OrderStatus.PENDING);
+        savedOrder.setTotal(24.50);
 
-        when(orderService.createOrder(any(Order.class))).thenReturn(savedOrder);
+        when(orderService.checkout(1L, "customer-1", null)).thenReturn(savedOrder);
 
-        mockMvc.perform(post("/orders")
+        mockMvc.perform(post("/orders/checkout")
+                        .with(user("customer-1"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(orderDTO)))
+                        .content(objectMapper.writeValueAsString(checkoutRequest)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.status").value("PENDING"));
+                .andExpect(jsonPath("$.status").value("PENDING"))
+                .andExpect(jsonPath("$.total").value(24.50));
     }
 
     @Test
     public void rejectsInvalidCheckoutPayloadBeforeCreatingOrder() throws Exception {
-        OrderDTO orderDTO = new OrderDTO();
-        orderDTO.setUserId(" ");
-        orderDTO.setCartId(1L);
-        orderDTO.setProductIds(Collections.singletonList(0L));
-        orderDTO.setTotal(0);
+        CheckoutRequest checkoutRequest = new CheckoutRequest();
+        checkoutRequest.setCartId(0L);
 
-        mockMvc.perform(post("/orders")
+        mockMvc.perform(post("/orders/checkout")
+                        .with(user("customer-1"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(orderDTO)))
+                        .content(objectMapper.writeValueAsString(checkoutRequest)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Validation Failed"))
-                .andExpect(jsonPath("$.validationErrors.userId").value("User ID must not be blank"))
-                .andExpect(jsonPath("$.validationErrors.total").value("Order total must be positive"))
-                .andExpect(jsonPath("$['validationErrors']['productIds[0]']").value("Product ID must be positive"));
+                .andExpect(jsonPath("$.validationErrors.cartId").value("Cart ID must be positive"));
 
         verifyNoInteractions(orderService);
     }

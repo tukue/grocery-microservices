@@ -3,27 +3,16 @@ package com.grocery.microservices.order.dto;
 import com.grocery.microservices.order.model.OrderStatus;
 import java.time.LocalDateTime;
 import java.util.List;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Positive;
 
 public class OrderDTO {
     private Long id;
 
-    @NotBlank(message = "User ID must not be blank")
     private String userId;
     private OrderStatus status;
     private LocalDateTime orderDate;
-    @Positive(message = "Order total must be positive")
     private double total;
-    
-    @NotNull(message = "Cart ID must not be null")
     private Long cartId;
-    @NotEmpty(message = "Product IDs must not be empty")
-    @Valid
-    private List<@NotNull(message = "Product ID must not be null") @Positive(message = "Product ID must be positive") Long> productIds;
+    private List<OrderLineDTO> orderLines;
 
     // Getters and setters
     public Long getId() {
@@ -74,11 +63,11 @@ public class OrderDTO {
         this.cartId = cartId;
     }
 
-    public List<Long> getProductIds() {
-        return productIds;
+    public List<OrderLineDTO> getOrderLines() {
+        return orderLines;
     }
 
-    public void setProductIds(List<Long> productIds) {
-        this.productIds = productIds;
+    public void setOrderLines(List<OrderLineDTO> orderLines) {
+        this.orderLines = orderLines;
     }
 }

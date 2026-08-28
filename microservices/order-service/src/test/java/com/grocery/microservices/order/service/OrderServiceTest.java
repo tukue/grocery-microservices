@@ -2,6 +2,11 @@ package com.grocery.microservices.order.service;
 
 import com.grocery.microservices.order.model.Order;
 import com.grocery.microservices.order.model.OrderStatus;
+import com.grocery.microservices.order.client.CartClient;
+import com.grocery.microservices.order.client.CartItemSnapshot;
+import com.grocery.microservices.order.client.CartSnapshot;
+import com.grocery.microservices.order.exception.EmptyCartException;
+import com.grocery.microservices.order.exception.CheckoutCartNotFoundException;
 import com.grocery.microservices.order.exception.InvalidOrderStateException;
 import com.grocery.microservices.order.exception.OrderNotFoundException;
 import com.grocery.microservices.order.repository.OrderRepository;
@@ -14,18 +19,21 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.Optional;
+import java.util.List;
 import org.springframework.test.context.ActiveProfiles;
 
 @ActiveProfiles("test")
 class OrderServiceTest {
     private OrderRepository orderRepository;
+    private CartClient cartClient;
     private OrderService orderService;
     private Order testOrder;
 
     @BeforeEach
     void setUp() {
         orderRepository = Mockito.mock(OrderRepository.class);
-        orderService = new OrderService(orderRepository);
+        cartClient = Mockito.mock(CartClient.class);
+        orderService = new OrderService(orderRepository, cartClient);
         testOrder = new Order();
         testOrder.setId(1L);
         testOrder.setTotal(100.0);
@@ -72,6 +80,43 @@ class OrderServiceTest {
         assertThrows(InvalidOrderStateException.class, () ->
             orderService.updateOrderStatus(1L, OrderStatus.CANCELLED)
         );
+    }
+
+    @Test
+    void checkoutCreatesOrderFromCartSnapshot() {
+        CartSnapshot cart = new CartSnapshot(1L, List.of(
+                new CartItemSnapshot(10L, 101L, "Apples", 2.50, 2),
+                new CartItemSnapshot(11L, 102L, "Bread", 3.00, 1)));
+        when(cartClient.getCart(1L, "Bearer token")).thenReturn(cart);
+        when(orderRepository.save(Mockito.any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Order createdOrder = orderService.checkout(1L, "customer-1", "Bearer token");
+
+        assertEquals("customer-1", createdOrder.getUserId());
+        assertEquals(8.0, createdOrder.getTotal());
+        assertEquals(2, createdOrder.getOrderLines().size());
+        assertEquals(5.0, createdOrder.getOrderLines().getFirst().getLineTotal());
+        assertEquals(OrderStatus.PENDING, createdOrder.getStatus());
+        verify(orderRepository).save(createdOrder);
+    }
+
+    @Test
+    void checkoutRejectsEmptyCartWithoutPersistingOrder() {
+        when(cartClient.getCart(1L, "Bearer token")).thenReturn(new CartSnapshot(1L, List.of()));
+
+        assertThrows(EmptyCartException.class, () -> orderService.checkout(1L, "customer-1", "Bearer token"));
+
+        verify(orderRepository, never()).save(Mockito.any(Order.class));
+    }
+
+    @Test
+    void checkoutDoesNotPersistWhenCartIsMissing() {
+        when(cartClient.getCart(99L, "Bearer token")).thenThrow(new CheckoutCartNotFoundException(99L));
+
+        assertThrows(CheckoutCartNotFoundException.class,
+                () -> orderService.checkout(99L, "customer-1", "Bearer token"));
+
+        verify(orderRepository, never()).save(Mockito.any(Order.class));
     }
 
     @Test
