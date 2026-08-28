@@ -3,7 +3,6 @@ package com.grocery.microservices.cart.controller;
 import com.grocery.microservices.cart.dto.CartDTO;
 import com.grocery.microservices.cart.dto.CartItemDTO;
 import com.grocery.microservices.cart.dto.CartItemQuantityDTO;
-import com.grocery.microservices.cart.model.CartItem;
 import com.grocery.microservices.cart.service.CartService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -32,11 +31,7 @@ public class CartController {
 
     @PostMapping("/{cartId}/items")
     public ResponseEntity<CartDTO> addItemToCart(@PathVariable Long cartId, @Valid @RequestBody CartItemDTO itemDto) {
-        CartItem item = new CartItem();
-        item.setProductName(itemDto.getProductName());
-        item.setPrice(itemDto.getPrice());
-        item.setQuantity(itemDto.getQuantity());
-        return ResponseEntity.ok(cartService.addItem(cartId, item));
+        return ResponseEntity.ok(cartService.addItem(cartId, itemDto.getProductId(), itemDto.getQuantity()));
     }
 
     @PatchMapping("/{cartId}/items/{itemId}")

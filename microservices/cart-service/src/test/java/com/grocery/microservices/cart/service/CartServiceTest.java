@@ -1,5 +1,10 @@
 package com.grocery.microservices.cart.service;
 
+import com.grocery.microservices.cart.client.CatalogProduct;
+import com.grocery.microservices.cart.client.ProductCatalogClient;
+import com.grocery.microservices.cart.exception.ProductCatalogUnavailableException;
+import com.grocery.microservices.cart.exception.ProductNotFoundException;
+import com.grocery.microservices.cart.exception.ProductUnavailableException;
 import com.grocery.microservices.cart.model.Cart;
 import com.grocery.microservices.cart.model.CartItem;
 import com.grocery.microservices.cart.exception.CartItemNotFoundException;
@@ -19,13 +24,15 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("test")
 class CartServiceTest {
     private CartRepository cartRepository;
+    private ProductCatalogClient productCatalogClient;
     private CartService cartService;
     private Cart testCart;
 
     @BeforeEach
     void setUp() {
         cartRepository = Mockito.mock(CartRepository.class);
-        cartService = new CartService(cartRepository);
+        productCatalogClient = Mockito.mock(ProductCatalogClient.class);
+        cartService = new CartService(cartRepository, productCatalogClient);
         testCart = new Cart();
         testCart.setId(1L);
         testCart.setItems(new ArrayList<>());
@@ -59,20 +66,48 @@ class CartServiceTest {
     @Test
     void testAddItemToCart() {
         // Arrange
-        CartItem item = new CartItem();
-        item.setProductName("Apple");
-        item.setPrice(1.5);
-        item.setQuantity(2);
-        // Do NOT add item to testCart.getItems() here!
         when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
         when(cartRepository.save(Mockito.any(Cart.class))).thenReturn(testCart);
+        when(productCatalogClient.getProduct(10L)).thenReturn(new CatalogProduct(10L, "Apple", 1.5, true));
         // Act
-        var updatedCartDTO = cartService.addItem(1L, item);
+        var updatedCartDTO = cartService.addItem(1L, 10L, 2);
         // Assert
         assertNotNull(updatedCartDTO);
         assertEquals(1, updatedCartDTO.getItems().size());
+        assertEquals(10L, updatedCartDTO.getItems().get(0).getProductId());
         assertEquals("Apple", updatedCartDTO.getItems().get(0).getProductName());
+        assertEquals(1.5, updatedCartDTO.getItems().get(0).getPrice());
         assertEquals(2, updatedCartDTO.getItems().get(0).getQuantity());
+    }
+
+    @Test
+    void testAddItemRejectsMissingProduct() {
+        when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
+        when(productCatalogClient.getProduct(99L)).thenThrow(new ProductNotFoundException(99L));
+
+        assertThrows(ProductNotFoundException.class, () -> cartService.addItem(1L, 99L, 2));
+
+        verify(cartRepository, never()).save(Mockito.any(Cart.class));
+    }
+
+    @Test
+    void testAddItemRejectsUnavailableProduct() {
+        when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
+        when(productCatalogClient.getProduct(10L)).thenReturn(new CatalogProduct(10L, "Apple", 1.5, false));
+
+        assertThrows(ProductUnavailableException.class, () -> cartService.addItem(1L, 10L, 2));
+
+        verify(cartRepository, never()).save(Mockito.any(Cart.class));
+    }
+
+    @Test
+    void testAddItemDoesNotPersistWhenCatalogIsUnavailable() {
+        when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
+        when(productCatalogClient.getProduct(10L)).thenThrow(new ProductCatalogUnavailableException());
+
+        assertThrows(ProductCatalogUnavailableException.class, () -> cartService.addItem(1L, 10L, 2));
+
+        verify(cartRepository, never()).save(Mockito.any(Cart.class));
     }
 
     @Test

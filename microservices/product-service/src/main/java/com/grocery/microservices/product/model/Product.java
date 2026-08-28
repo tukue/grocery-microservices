@@ -17,6 +17,8 @@ public class Product {
     private Long id;
     private String name;
     private double price;
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean available = true;
     @Column(name = "image_url")
     private String imageUrl;
 
@@ -43,6 +45,14 @@ public class Product {
 
     public void setPrice(double price) {
         this.price = price;
+    }
+
+    public boolean isAvailable() {
+        return available;
+    }
+
+    public void setAvailable(boolean available) {
+        this.available = available;
     }
 
     public String getImageUrl() {

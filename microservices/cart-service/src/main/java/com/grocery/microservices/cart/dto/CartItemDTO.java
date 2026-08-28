@@ -1,16 +1,18 @@
 package com.grocery.microservices.cart.dto;
 
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 public class CartItemDTO {
     private Long id;
 
-    @NotBlank(message = "Product name is required")
+    @NotNull(message = "Product ID is required")
+    @Positive(message = "Product ID must be positive")
+    private Long productId;
+
     private String productName;
 
-    @Min(value = 0, message = "Price must be non-negative")
     private double price;
 
     @Min(value = 1, message = "Quantity must be at least 1")
@@ -22,6 +24,14 @@ public class CartItemDTO {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getProductId() {
+        return productId;
+    }
+
+    public void setProductId(Long productId) {
+        this.productId = productId;
     }
 
     public String getProductName() {
@@ -47,4 +57,4 @@ public class CartItemDTO {
     public void setQuantity(int quantity) {
         this.quantity = quantity;
     }
-} 
+}
