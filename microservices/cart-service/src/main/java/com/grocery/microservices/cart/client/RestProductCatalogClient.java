@@ -19,7 +19,7 @@ public class RestProductCatalogClient implements ProductCatalogClient {
 
     public RestProductCatalogClient(
             RestTemplateBuilder builder,
-            @Value("${services.product.base-url}") String productServiceBaseUrl,
+            @Value("${services.product.base-url:http://localhost:8083}") String productServiceBaseUrl,
             @Value("${services.product.connect-timeout:2s}") Duration connectTimeout,
             @Value("${services.product.read-timeout:2s}") Duration readTimeout) {
         this.restTemplate = builder
