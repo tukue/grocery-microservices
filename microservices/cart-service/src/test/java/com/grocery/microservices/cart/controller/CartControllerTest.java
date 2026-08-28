@@ -1,8 +1,11 @@
 package com.grocery.microservices.cart.controller;
 
 import com.grocery.microservices.cart.dto.CartDTO;
+import com.grocery.microservices.cart.dto.CartItemDTO;
 import com.grocery.microservices.cart.dto.CartItemQuantityDTO;
 import com.grocery.microservices.cart.exception.CartItemNotFoundException;
+import com.grocery.microservices.cart.exception.ProductNotFoundException;
+import com.grocery.microservices.cart.exception.ProductUnavailableException;
 import com.grocery.microservices.cart.service.CartService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -97,6 +100,65 @@ public class CartControllerTest {
         mockMvc.perform(delete("/carts/1/items/99"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Cart item 99 was not found in cart 1"));
+    }
+
+    @Test
+    public void addsCatalogProductToCart() throws Exception {
+        CartItemDTO itemDTO = new CartItemDTO();
+        itemDTO.setProductId(10L);
+        itemDTO.setQuantity(2);
+        CartDTO updatedCart = new CartDTO();
+        updatedCart.setId(1L);
+
+        when(cartService.addItem(1L, 10L, 2)).thenReturn(updatedCart);
+
+        mockMvc.perform(post("/carts/1/items")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(itemDTO)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L));
+    }
+
+    @Test
+    public void returnsNotFoundWhenAddingMissingProduct() throws Exception {
+        CartItemDTO itemDTO = new CartItemDTO();
+        itemDTO.setProductId(99L);
+        itemDTO.setQuantity(2);
+        when(cartService.addItem(1L, 99L, 2)).thenThrow(new ProductNotFoundException(99L));
+
+        mockMvc.perform(post("/carts/1/items")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(itemDTO)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Product 99 was not found"));
+    }
+
+    @Test
+    public void returnsConflictWhenAddingUnavailableProduct() throws Exception {
+        CartItemDTO itemDTO = new CartItemDTO();
+        itemDTO.setProductId(10L);
+        itemDTO.setQuantity(2);
+        when(cartService.addItem(1L, 10L, 2)).thenThrow(new ProductUnavailableException(10L));
+
+        mockMvc.perform(post("/carts/1/items")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(itemDTO)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Product 10 is unavailable"));
+    }
+
+    @Test
+    public void rejectsInvalidCatalogProductRequest() throws Exception {
+        CartItemDTO itemDTO = new CartItemDTO();
+        itemDTO.setProductId(10L);
+
+        mockMvc.perform(post("/carts/1/items")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(itemDTO)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.validationErrors.quantity").value("Quantity must be at least 1"));
+
+        verifyNoInteractions(cartService);
     }
 
     @Test

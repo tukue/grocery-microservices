@@ -36,6 +36,7 @@ The MVP currently supports catalog browsing and cart changes, but checkout is no
 
 **Priority:** P0  
 **Business outcome:** A cart contains identifiable products and can be validated against the catalog.
+**Status:** Implemented
 
 ### Work
 

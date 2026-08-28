@@ -145,6 +145,20 @@ public class ProductControllerTest {
                 .andExpect(jsonPath("$.name").value("New Product"));
     }
 
+    @Test
+    public void exposesProductAvailability() throws Exception {
+        Product product = new Product();
+        product.setId(1L);
+        product.setName("Unavailable Product");
+        product.setPrice(10.0);
+        product.setAvailable(false);
+        when(productService.getProductById(1L)).thenReturn(product);
+
+        mockMvc.perform(get("/products/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.available").value(false));
+    }
+
     @TestConfiguration
     @Profile("test")
     static class TestSecurityConfig {

@@ -1,9 +1,12 @@
 package com.grocery.microservices.cart.service;
 
+import com.grocery.microservices.cart.client.CatalogProduct;
+import com.grocery.microservices.cart.client.ProductCatalogClient;
 import com.grocery.microservices.cart.dto.CartDTO;
 import com.grocery.microservices.cart.dto.CartItemDTO;
 import com.grocery.microservices.cart.exception.CartItemNotFoundException;
 import com.grocery.microservices.cart.exception.CartNotFoundException;
+import com.grocery.microservices.cart.exception.ProductUnavailableException;
 import com.grocery.microservices.cart.model.Cart;
 import com.grocery.microservices.cart.model.CartItem;
 import com.grocery.microservices.cart.repository.CartRepository;
@@ -21,7 +24,12 @@ import java.util.stream.Collectors;
 public class CartService {
     private static final Logger log = LoggerFactory.getLogger(CartService.class);
     private final CartRepository repo;
-    public CartService(CartRepository repo) { this.repo = repo; }
+    private final ProductCatalogClient productCatalogClient;
+
+    public CartService(CartRepository repo, ProductCatalogClient productCatalogClient) {
+        this.repo = repo;
+        this.productCatalogClient = productCatalogClient;
+    }
 
     @Transactional
     @Retryable(retryFor = { SQLException.class }, maxAttempts = 3, backoff = @Backoff(delay = 2000))
@@ -38,8 +46,17 @@ public class CartService {
 
     @Transactional
     @Retryable(retryFor = { SQLException.class }, maxAttempts = 3, backoff = @Backoff(delay = 2000))
-    public CartDTO addItem(Long cartId, CartItem item) {
+    public CartDTO addItem(Long cartId, Long productId, int quantity) {
         Cart cart = repo.findById(cartId).orElseThrow(() -> new CartNotFoundException(cartId));
+        CatalogProduct product = productCatalogClient.getProduct(productId);
+        if (!product.available()) {
+            throw new ProductUnavailableException(productId);
+        }
+        CartItem item = new CartItem();
+        item.setProductId(product.id());
+        item.setProductName(product.name());
+        item.setPrice(product.price());
+        item.setQuantity(quantity);
         cart.getItems().add(item);
         Cart updatedCart = repo.save(cart);
         log.info("EVENT=ITEM_ADDED_TO_CART CART_ID={} PRODUCT={} QTY={}", 
@@ -81,6 +98,7 @@ public class CartService {
     private CartItemDTO toDTO(CartItem item) {
         CartItemDTO dto = new CartItemDTO();
         dto.setId(item.getId());
+        dto.setProductId(item.getProductId());
         dto.setProductName(item.getProductName());
         dto.setPrice(item.getPrice());
         dto.setQuantity(item.getQuantity());

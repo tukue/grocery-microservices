@@ -19,6 +19,7 @@ This document outlines the high-value, low-complexity improvements planned for e
 - [x] **Audit Logs**: Added structured logging for cart operations.
 - [x] **Removal Correctness**: Return a `404` when a requested cart item does not exist, instead of reporting a successful removal. (Covered by `CartServiceTest` and `CartControllerTest`.)
 - [x] **Quantity Adjustments**: Added validated quantity updates for existing cart items, including `404` handling when the item is absent. (Covered by `CartServiceTest` and `CartControllerTest`.)
+- [x] **Catalog-Backed Cart Items**: Cart additions now require a product ID and fetch the catalog snapshot (name, price, availability) from `product-service`. Missing products return `404`, unavailable products return `409`, and catalog outages return `503`. (Covered by cart and product service/controller tests.)
 
 ## 3. Order Service
 *Focus: Transactional Integrity and State Management.*
