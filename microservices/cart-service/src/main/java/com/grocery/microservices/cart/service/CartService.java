@@ -6,6 +6,7 @@ import com.grocery.microservices.cart.dto.CartDTO;
 import com.grocery.microservices.cart.dto.CartItemDTO;
 import com.grocery.microservices.cart.exception.CartItemNotFoundException;
 import com.grocery.microservices.cart.exception.CartNotFoundException;
+import com.grocery.microservices.cart.exception.CartAccessDeniedException;
 import com.grocery.microservices.cart.exception.ProductUnavailableException;
 import com.grocery.microservices.cart.model.Cart;
 import com.grocery.microservices.cart.model.CartItem;
@@ -33,21 +34,25 @@ public class CartService {
 
     @Transactional
     @Retryable(retryFor = { SQLException.class }, maxAttempts = 3, backoff = @Backoff(delay = 2000))
-    public CartDTO createCart() {
-        Cart cart = repo.save(new Cart());
+    public CartDTO createCart(String userId) {
+        Cart newCart = new Cart();
+        newCart.setUserId(userId);
+        Cart cart = repo.save(newCart);
         log.info("EVENT=CART_CREATED CART_ID={}", cart.getId());
         return toDTO(cart);
     }
 
-    public CartDTO getCartById(Long id) {
+    public CartDTO getCartById(Long id, String userId) {
         Cart cart = repo.findById(id).orElseThrow(() -> new CartNotFoundException(id));
+        verifyOwner(cart, userId);
         return toDTO(cart);
     }
 
     @Transactional
     @Retryable(retryFor = { SQLException.class }, maxAttempts = 3, backoff = @Backoff(delay = 2000))
-    public CartDTO addItem(Long cartId, Long productId, int quantity) {
+    public CartDTO addItem(Long cartId, Long productId, int quantity, String userId) {
         Cart cart = repo.findById(cartId).orElseThrow(() -> new CartNotFoundException(cartId));
+        verifyOwner(cart, userId);
         CatalogProduct product = productCatalogClient.getProduct(productId);
         if (!product.available()) {
             throw new ProductUnavailableException(productId);
@@ -66,8 +71,9 @@ public class CartService {
 
     @Transactional
     @Retryable(retryFor = { SQLException.class }, maxAttempts = 3, backoff = @Backoff(delay = 2000))
-    public CartDTO removeItem(Long cartId, Long itemId) {
+    public CartDTO removeItem(Long cartId, Long itemId, String userId) {
         Cart cart = repo.findById(cartId).orElseThrow(() -> new CartNotFoundException(cartId));
+        verifyOwner(cart, userId);
         CartItem item = getCartItem(cart, cartId, itemId);
         cart.getItems().remove(item);
         Cart updatedCart = repo.save(cart);
@@ -77,8 +83,9 @@ public class CartService {
 
     @Transactional
     @Retryable(retryFor = { SQLException.class }, maxAttempts = 3, backoff = @Backoff(delay = 2000))
-    public CartDTO updateItemQuantity(Long cartId, Long itemId, int quantity) {
+    public CartDTO updateItemQuantity(Long cartId, Long itemId, int quantity, String userId) {
         Cart cart = repo.findById(cartId).orElseThrow(() -> new CartNotFoundException(cartId));
+        verifyOwner(cart, userId);
         CartItem item = getCartItem(cart, cartId, itemId);
         item.setQuantity(quantity);
         Cart updatedCart = repo.save(cart);
@@ -110,6 +117,12 @@ public class CartService {
                 .filter(item -> itemId.equals(item.getId()))
                 .findFirst()
                 .orElseThrow(() -> new CartItemNotFoundException(cartId, itemId));
+    }
+
+    private void verifyOwner(Cart cart, String userId) {
+        if (!userId.equals(cart.getUserId())) {
+            throw new CartAccessDeniedException(cart.getId());
+        }
     }
 
     @Transactional

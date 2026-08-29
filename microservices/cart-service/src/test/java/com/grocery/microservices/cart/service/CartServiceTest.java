@@ -43,7 +43,7 @@ class CartServiceTest {
         // Arrange
         when(cartRepository.save(Mockito.any(Cart.class))).thenReturn(testCart);
         // Act
-        var createdCartDTO = cartService.createCart();
+        var createdCartDTO = cartService.createCart("customer-1");
         // Assert
         assertNotNull(createdCartDTO);
         assertEquals(1L, createdCartDTO.getId());
@@ -56,11 +56,12 @@ class CartServiceTest {
         when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
         when(cartRepository.findById(2L)).thenReturn(Optional.empty());
         // Act & Assert
-        var foundCartDTO = cartService.getCartById(1L);
+        testCart.setUserId("customer-1");
+        var foundCartDTO = cartService.getCartById(1L, "customer-1");
         assertNotNull(foundCartDTO);
         assertEquals(1L, foundCartDTO.getId());
         // Test not found scenario
-        assertThrows(Exception.class, () -> cartService.getCartById(2L));
+        assertThrows(Exception.class, () -> cartService.getCartById(2L, "customer-1"));
     }
 
     @Test
@@ -70,7 +71,8 @@ class CartServiceTest {
         when(cartRepository.save(Mockito.any(Cart.class))).thenReturn(testCart);
         when(productCatalogClient.getProduct(10L)).thenReturn(new CatalogProduct(10L, "Apple", 1.5, true));
         // Act
-        var updatedCartDTO = cartService.addItem(1L, 10L, 2);
+        testCart.setUserId("customer-1");
+        var updatedCartDTO = cartService.addItem(1L, 10L, 2, "customer-1");
         // Assert
         assertNotNull(updatedCartDTO);
         assertEquals(1, updatedCartDTO.getItems().size());
@@ -85,7 +87,8 @@ class CartServiceTest {
         when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
         when(productCatalogClient.getProduct(99L)).thenThrow(new ProductNotFoundException(99L));
 
-        assertThrows(ProductNotFoundException.class, () -> cartService.addItem(1L, 99L, 2));
+        testCart.setUserId("customer-1");
+        assertThrows(ProductNotFoundException.class, () -> cartService.addItem(1L, 99L, 2, "customer-1"));
 
         verify(cartRepository, never()).save(Mockito.any(Cart.class));
     }
@@ -95,7 +98,8 @@ class CartServiceTest {
         when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
         when(productCatalogClient.getProduct(10L)).thenReturn(new CatalogProduct(10L, "Apple", 1.5, false));
 
-        assertThrows(ProductUnavailableException.class, () -> cartService.addItem(1L, 10L, 2));
+        testCart.setUserId("customer-1");
+        assertThrows(ProductUnavailableException.class, () -> cartService.addItem(1L, 10L, 2, "customer-1"));
 
         verify(cartRepository, never()).save(Mockito.any(Cart.class));
     }
@@ -105,7 +109,8 @@ class CartServiceTest {
         when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
         when(productCatalogClient.getProduct(10L)).thenThrow(new ProductCatalogUnavailableException());
 
-        assertThrows(ProductCatalogUnavailableException.class, () -> cartService.addItem(1L, 10L, 2));
+        testCart.setUserId("customer-1");
+        assertThrows(ProductCatalogUnavailableException.class, () -> cartService.addItem(1L, 10L, 2, "customer-1"));
 
         verify(cartRepository, never()).save(Mockito.any(Cart.class));
     }
@@ -122,7 +127,8 @@ class CartServiceTest {
         when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
         when(cartRepository.save(Mockito.any(Cart.class))).thenReturn(testCart);
         // Act
-        var updatedCartDTO = cartService.removeItem(1L, 1L);
+        testCart.setUserId("customer-1");
+        var updatedCartDTO = cartService.removeItem(1L, 1L, "customer-1");
         // Assert
         assertNotNull(updatedCartDTO);
         verify(cartRepository, times(1)).save(Mockito.any(Cart.class));
@@ -132,7 +138,8 @@ class CartServiceTest {
     void testRemoveMissingItemFromCart() {
         when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
 
-        assertThrows(CartItemNotFoundException.class, () -> cartService.removeItem(1L, 99L));
+        testCart.setUserId("customer-1");
+        assertThrows(CartItemNotFoundException.class, () -> cartService.removeItem(1L, 99L, "customer-1"));
 
         verify(cartRepository, never()).save(Mockito.any(Cart.class));
     }
@@ -146,7 +153,8 @@ class CartServiceTest {
         when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
         when(cartRepository.save(Mockito.any(Cart.class))).thenReturn(testCart);
 
-        var updatedCartDTO = cartService.updateItemQuantity(1L, 1L, 3);
+        testCart.setUserId("customer-1");
+        var updatedCartDTO = cartService.updateItemQuantity(1L, 1L, 3, "customer-1");
 
         assertEquals(3, updatedCartDTO.getItems().get(0).getQuantity());
         verify(cartRepository).save(testCart);
@@ -156,7 +164,8 @@ class CartServiceTest {
     void testUpdateMissingItemQuantityDoesNotPersist() {
         when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
 
-        assertThrows(CartItemNotFoundException.class, () -> cartService.updateItemQuantity(1L, 99L, 3));
+        testCart.setUserId("customer-1");
+        assertThrows(CartItemNotFoundException.class, () -> cartService.updateItemQuantity(1L, 99L, 3, "customer-1"));
 
         verify(cartRepository, never()).save(Mockito.any(Cart.class));
     }

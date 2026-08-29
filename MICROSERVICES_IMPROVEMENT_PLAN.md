@@ -29,7 +29,9 @@ This document outlines the high-value, low-complexity improvements planned for e
 - [x] **Checkout Input Integrity**: Added the validation starter and enforced non-blank customer IDs, positive totals, and positive product IDs before an order can be persisted. Invalid payloads now receive the standard `400` validation response. (Covered by `OrderControllerTest`.)
 - [x] **Order Lifecycle Integrity**: Restricted status changes to `PENDING → COMPLETED` or `PENDING → CANCELLED`, preventing no-op and invalid status transitions. (Covered by `OrderServiceTest`.)
 
-Remaining related MVP work: validate the referenced cart and products and derive the order total server-side when the checkout contract is extended to support that cross-service flow.
+- [x] **Trusted Checkout**: Added `POST /orders/checkout`, which reads cart snapshots through an explicit cart client, derives the authenticated customer and total server-side, and persists immutable order lines. Missing carts return `404`, empty carts `409`, and cart-service outages `503`. (Covered by `OrderServiceTest` and `OrderControllerTest`.)
+
+Remaining related MVP work: add cart ownership and checkout cart-state handling after authenticated customer identity is persisted in carts (Phase 3).
 
 ## 4. Product Service
 *Focus: Performance and Data Quality.*

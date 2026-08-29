@@ -39,6 +39,26 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(CheckoutCartNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleCheckoutCartNotFound(CheckoutCartNotFoundException ex, HttpServletRequest request) {
+        return createErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(EmptyCartException.class)
+    public ResponseEntity<ErrorResponse> handleEmptyCart(EmptyCartException ex, HttpServletRequest request) {
+        return createErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(CartServiceUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleCartServiceUnavailable(CartServiceUnavailableException ex, HttpServletRequest request) {
+        return createErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(CartAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleCartAccessDenied(CartAccessDeniedException ex, HttpServletRequest request) {
+        return createErrorResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex, HttpServletRequest request) {
         Map<String, String> errors = new HashMap<>();
@@ -66,5 +86,10 @@ public class GlobalExceptionHandler {
                 request.getRequestURI()
         );
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    private ResponseEntity<ErrorResponse> createErrorResponse(HttpStatus status, String message, HttpServletRequest request) {
+        ErrorResponse error = new ErrorResponse(status.value(), status.getReasonPhrase(), message, request.getRequestURI());
+        return new ResponseEntity<>(error, status);
     }
 }
