@@ -39,6 +39,11 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(OrderAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleOrderAccessDenied(OrderAccessDeniedException ex, HttpServletRequest request) {
+        return createErrorResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request);
+    }
+
     @ExceptionHandler(CheckoutCartNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleCheckoutCartNotFound(CheckoutCartNotFoundException ex, HttpServletRequest request) {
         return createErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);

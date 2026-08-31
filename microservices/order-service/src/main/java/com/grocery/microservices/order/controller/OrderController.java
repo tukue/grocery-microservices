@@ -37,15 +37,21 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(convertToDto(createdOrder));
     }
 
+    @GetMapping
+    public List<OrderDTO> getOrders(Authentication authentication) {
+        return orderService.getOrdersForUser(authentication.getName()).stream().map(this::convertToDto).toList();
+    }
+
     @GetMapping("/{id}")
-    public OrderDTO getOrder(@PathVariable Long id) {
-        Order order = orderService.getOrder(id);
+    public OrderDTO getOrder(@PathVariable Long id, Authentication authentication) {
+        Order order = orderService.getOrder(id, authentication.getName());
         return convertToDto(order);
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<OrderDTO> updateStatus(@PathVariable Long id, @RequestParam OrderStatus status) {
-        Order updatedOrder = orderService.updateOrderStatus(id, status);
+    public ResponseEntity<OrderDTO> updateStatus(@PathVariable Long id, @RequestParam OrderStatus status,
+                                                  Authentication authentication) {
+        Order updatedOrder = orderService.updateOrderStatus(id, status, authentication.getName());
         return ResponseEntity.ok(convertToDto(updatedOrder));
     }
 
