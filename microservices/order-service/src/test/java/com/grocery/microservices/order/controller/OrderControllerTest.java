@@ -21,6 +21,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import java.util.UUID;
 
@@ -36,6 +37,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 @ActiveProfiles("test")
 @WebMvcTest(OrderController.class)
 @Import(OrderControllerTest.TestSecurityConfig.class)
+@WithMockUser(username = "customer-1")
 public class OrderControllerTest {
 
     @Autowired
@@ -91,7 +93,7 @@ public class OrderControllerTest {
         updatedOrder.setId(1L);
         updatedOrder.setStatus(OrderStatus.COMPLETED);
 
-        when(orderService.updateOrderStatus(any(Long.class), any(OrderStatus.class))).thenReturn(updatedOrder);
+        when(orderService.updateOrderStatus(any(Long.class), any(OrderStatus.class), any(String.class))).thenReturn(updatedOrder);
 
         mockMvc.perform(patch("/orders/1/status")
                         .param("status", "COMPLETED")
@@ -102,7 +104,7 @@ public class OrderControllerTest {
 
     @Test
     public void rejectsInvalidOrderStatusTransition() throws Exception {
-        when(orderService.updateOrderStatus(1L, OrderStatus.PENDING))
+        when(orderService.updateOrderStatus(1L, OrderStatus.PENDING, "customer-1"))
                 .thenThrow(new InvalidOrderStateException("A PENDING order can only be COMPLETED or CANCELLED"));
 
         mockMvc.perform(patch("/orders/1/status")

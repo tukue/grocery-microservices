@@ -66,7 +66,7 @@ class OrderServiceTest {
         when(orderRepository.save(Mockito.any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
-        Order updatedOrder = orderService.updateOrderStatus(1L, OrderStatus.COMPLETED);
+        Order updatedOrder = orderService.updateOrderStatus(1L, OrderStatus.COMPLETED, "customer-1");
 
         // Assert
         assertEquals(OrderStatus.COMPLETED, updatedOrder.getStatus());
@@ -80,7 +80,7 @@ class OrderServiceTest {
 
         // Act & Assert
         assertThrows(InvalidOrderStateException.class, () ->
-            orderService.updateOrderStatus(1L, OrderStatus.CANCELLED)
+            orderService.updateOrderStatus(1L, OrderStatus.CANCELLED, "customer-1")
         );
     }
 
@@ -126,7 +126,7 @@ class OrderServiceTest {
         when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
 
         InvalidOrderStateException exception = assertThrows(InvalidOrderStateException.class, () ->
-            orderService.updateOrderStatus(1L, OrderStatus.PENDING)
+            orderService.updateOrderStatus(1L, OrderStatus.PENDING, "customer-1")
         );
 
         assertEquals("A PENDING order can only be COMPLETED or CANCELLED", exception.getMessage());
@@ -153,5 +153,15 @@ class OrderServiceTest {
         when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
 
         assertThrows(OrderAccessDeniedException.class, () -> orderService.getOrder(1L, "customer-2"));
+    }
+
+    @Test
+    void updateOrderStatusRejectsAnotherCustomer() {
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+
+        assertThrows(OrderAccessDeniedException.class,
+                () -> orderService.updateOrderStatus(1L, OrderStatus.COMPLETED, "customer-2"));
+
+        verify(orderRepository, never()).save(Mockito.any(Order.class));
     }
 }

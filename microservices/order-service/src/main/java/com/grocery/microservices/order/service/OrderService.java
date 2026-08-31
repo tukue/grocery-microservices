@@ -71,8 +71,8 @@ public class OrderService {
     }
 
     @Transactional
-    public Order updateOrderStatus(Long id, OrderStatus newStatus) {
-        Order order = repo.findById(id).orElseThrow(() -> new OrderNotFoundException(id));
+    public Order updateOrderStatus(Long id, OrderStatus newStatus, String userId) {
+        Order order = getOrder(id, userId);
         OrderStatus oldStatus = order.getStatus();
 
         if (oldStatus != OrderStatus.PENDING) {
