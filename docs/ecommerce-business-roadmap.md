@@ -88,6 +88,7 @@ The MVP currently supports catalog browsing and cart changes, but checkout is no
 
 **Priority:** P1  
 **Business outcome:** Customers can safely manage only their own carts and orders.
+**Status:** Partially implemented
 
 ### Work
 
@@ -102,6 +103,12 @@ The MVP currently supports catalog browsing and cart changes, but checkout is no
 - One authenticated customer cannot read or mutate another customer's data.
 - Customer identity is consistent across cart, order, and receipt records.
 - Authorization failures return `403` without exposing resource details.
+
+### Implemented MVP Slice
+
+- Carts and orders persist the authenticated customer identity and enforce ownership checks.
+- Added `GET /orders` for customer order history and protected `GET /orders/{id}` with a `403` response for another customer's order.
+- Real external identity-provider integration and receipt retrieval remain pending.
 
 ## Phase 4: Product Availability and Inventory
 

@@ -9,6 +9,7 @@ import com.grocery.microservices.order.exception.EmptyCartException;
 import com.grocery.microservices.order.exception.CheckoutCartNotFoundException;
 import com.grocery.microservices.order.exception.InvalidOrderStateException;
 import com.grocery.microservices.order.exception.OrderNotFoundException;
+import com.grocery.microservices.order.exception.OrderAccessDeniedException;
 import com.grocery.microservices.order.repository.OrderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,7 @@ class OrderServiceTest {
         orderService = new OrderService(orderRepository, cartClient);
         testOrder = new Order();
         testOrder.setId(1L);
+        testOrder.setUserId("customer-1");
         testOrder.setTotal(100.0);
         testOrder.setStatus(OrderStatus.PENDING);
     }
@@ -137,12 +139,19 @@ class OrderServiceTest {
         when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
 
         // Act & Assert
-        Order foundOrder = orderService.getOrder(1L);
+        Order foundOrder = orderService.getOrder(1L, "customer-1");
         assertNotNull(foundOrder);
         assertEquals(1L, foundOrder.getId());
 
         // Test not found scenario
         when(orderRepository.findById(2L)).thenReturn(Optional.empty());
-        assertThrows(OrderNotFoundException.class, () -> orderService.getOrder(2L));
+        assertThrows(OrderNotFoundException.class, () -> orderService.getOrder(2L, "customer-1"));
+    }
+
+    @Test
+    void getOrderRejectsAnotherCustomer() {
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+
+        assertThrows(OrderAccessDeniedException.class, () -> orderService.getOrder(1L, "customer-2"));
     }
 }

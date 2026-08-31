@@ -9,6 +9,7 @@ import com.grocery.microservices.order.client.CartSnapshot;
 import com.grocery.microservices.order.exception.EmptyCartException;
 import com.grocery.microservices.order.exception.InvalidOrderStateException;
 import com.grocery.microservices.order.exception.OrderNotFoundException;
+import com.grocery.microservices.order.exception.OrderAccessDeniedException;
 import com.grocery.microservices.order.repository.OrderRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,13 +58,21 @@ public class OrderService {
         return createOrder(order);
     }
 
-    public Order getOrder(Long id) {
-        return repo.findById(id).orElseThrow(() -> new OrderNotFoundException(id));
+    public Order getOrder(Long id, String userId) {
+        Order order = repo.findById(id).orElseThrow(() -> new OrderNotFoundException(id));
+        if (!userId.equals(order.getUserId())) {
+            throw new OrderAccessDeniedException(id);
+        }
+        return order;
+    }
+
+    public List<Order> getOrdersForUser(String userId) {
+        return repo.findByUserIdOrderByOrderDateDesc(userId);
     }
 
     @Transactional
     public Order updateOrderStatus(Long id, OrderStatus newStatus) {
-        Order order = getOrder(id);
+        Order order = repo.findById(id).orElseThrow(() -> new OrderNotFoundException(id));
         OrderStatus oldStatus = order.getStatus();
 
         if (oldStatus != OrderStatus.PENDING) {
