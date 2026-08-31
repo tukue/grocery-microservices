@@ -60,7 +60,7 @@ public class OrderService {
 
     public Order getOrder(Long id, String userId) {
         Order order = repo.findById(id).orElseThrow(() -> new OrderNotFoundException(id));
-        if (!userId.equals(order.getUserId())) {
+        if (userId == null || !userId.equals(order.getUserId())) {
             throw new OrderAccessDeniedException(id);
         }
         return order;

@@ -156,6 +156,13 @@ class OrderServiceTest {
     }
 
     @Test
+    void getOrderRejectsMissingCustomerIdentity() {
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+
+        assertThrows(OrderAccessDeniedException.class, () -> orderService.getOrder(1L, null));
+    }
+
+    @Test
     void updateOrderStatusRejectsAnotherCustomer() {
         when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
 
