@@ -40,4 +40,4 @@ Validated request -> Controller -> Service rule -> Repository/downstream client 
 
 ## Maintenance
 
-Update this file after meaningful feature work, security reviews, or recurring implementation lessons. See `docs/backend-implementation-playbook.md` for expanded guidance.
+Update this file after meaningful feature work, security reviews, or recurring implementation lessons. See `docs/backend-engineering-specification.md` for expanded guidance.
