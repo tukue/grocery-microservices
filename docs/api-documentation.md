@@ -55,3 +55,8 @@ Services return a consistent JSON shape for handled errors:
   }
 }
 ```
+
+Authentication and authorization failures also use this shape:
+
+- `401 Unauthorized`: missing, malformed, expired, or invalid bearer token.
+- `403 Forbidden`: authenticated caller does not have permission for the endpoint.
