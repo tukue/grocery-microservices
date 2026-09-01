@@ -43,7 +43,7 @@ This application is designed using the microservices architectural style, where 
 - **Order Service:** Manages order creation and processing.
 - **Summary Service:** Generates purchase summaries and receipts.
 
-All services communicate via REST APIs and are containerized for easy orchestration with Docker Compose. For local development, each service has its own database, codebase, and can be tested and deployed independently.
+Services use REST for request-response operations and Kafka for asynchronous order-created events. Order Service emits `order.created.v1` after its database transaction commits, and Summary Service consumes it to build its summary read model. For local development, each service has its own database, codebase, and can be tested and deployed independently.
 
 ## Prerequisites
 
@@ -125,6 +125,9 @@ Use the following placeholders for environment-specific service hosts:
 | POSTGRES_PASSWORD         | DB password                |        |
 | POSTGRES_DB               | DB name                    | grocery          |
 | JWT_SECRET                | JWT signing key            | Required outside test |
+| KAFKA_BOOTSTRAP_SERVERS   | Kafka broker bootstrap address | Required in production |
+| KAFKA_ORDER_CREATED_TOPIC | Versioned order-created topic | `order.created.v1` |
+| KAFKA_SUMMARY_CONSUMER_GROUP | Summary consumer group | `summary-service` |
 
 ## Architecture
 
@@ -134,6 +137,8 @@ graph TD
   OrderService --> OrderDB
   ProductService --> ProductDB
   SummaryService --> SummaryDB
+  OrderService -->|order.created.v1| Kafka
+  Kafka --> SummaryService
   Prometheus --> CartService
   Prometheus --> OrderService
   Prometheus --> ProductService
@@ -159,6 +164,13 @@ mvn test -pl microservices/cart-service -Dspring.profiles.active=test
 - Shopping cart operations
 - Flexible discount system
 - Receipt generation
+- Asynchronous order-created summaries through Kafka
+
+## Kafka Integration
+
+Order Service emits a typed `OrderCreatedEvent` only after the creating transaction commits. Summary Service consumes the event with its own consumer group. A unique `summary.order_id` constraint and duplicate check make standard Kafka redelivery idempotent.
+
+Docker Compose includes a single-node Kafka broker for development and Order Service provisions the topic. Production deployments must provide a managed Kafka bootstrap address and configure TLS/SASL at the platform level. A transactional outbox remains the next step when delivery must be guaranteed across a database commit and a Kafka outage.
 
 ## Technical Stack
 

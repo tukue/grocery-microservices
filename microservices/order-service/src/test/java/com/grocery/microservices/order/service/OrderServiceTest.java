@@ -5,7 +5,6 @@ import com.grocery.microservices.order.model.OrderStatus;
 import com.grocery.microservices.order.client.CartClient;
 import com.grocery.microservices.order.client.CartItemSnapshot;
 import com.grocery.microservices.order.client.CartSnapshot;
-import com.grocery.microservices.order.messaging.OrderEventPublisher;
 import com.grocery.microservices.order.exception.EmptyCartException;
 import com.grocery.microservices.order.exception.CheckoutCartNotFoundException;
 import com.grocery.microservices.order.exception.InvalidOrderStateException;
@@ -23,12 +22,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.Optional;
 import java.util.List;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ActiveProfiles("test")
 class OrderServiceTest {
     private OrderRepository orderRepository;
     private CartClient cartClient;
-    private OrderEventPublisher orderEventPublisher;
+    private ApplicationEventPublisher applicationEventPublisher;
     private OrderService orderService;
     private Order testOrder;
 
@@ -36,8 +36,8 @@ class OrderServiceTest {
     void setUp() {
         orderRepository = Mockito.mock(OrderRepository.class);
         cartClient = Mockito.mock(CartClient.class);
-        orderEventPublisher = Mockito.mock(OrderEventPublisher.class);
-        orderService = new OrderService(orderRepository, cartClient, orderEventPublisher);
+        applicationEventPublisher = Mockito.mock(ApplicationEventPublisher.class);
+        orderService = new OrderService(orderRepository, cartClient, applicationEventPublisher);
         testOrder = new Order();
         testOrder.setId(1L);
         testOrder.setUserId("customer-1");
@@ -60,7 +60,7 @@ class OrderServiceTest {
         assertEquals(OrderStatus.PENDING, createdOrder.getStatus());
         assertNotNull(createdOrder.getOrderDate());
         verify(orderRepository, times(1)).save(Mockito.any(Order.class));
-        verify(orderEventPublisher).publish(Mockito.any());
+        verify(applicationEventPublisher).publishEvent(Mockito.any());
     }
 
     @Test
