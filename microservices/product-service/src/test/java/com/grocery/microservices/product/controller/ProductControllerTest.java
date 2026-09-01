@@ -152,11 +152,27 @@ public class ProductControllerTest {
         product.setName("Unavailable Product");
         product.setPrice(10.0);
         product.setAvailable(false);
+        product.setStockQuantity(4);
         when(productService.getProductById(1L)).thenReturn(product);
 
         mockMvc.perform(get("/products/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.available").value(false));
+                .andExpect(jsonPath("$.available").value(false))
+                .andExpect(jsonPath("$.stockQuantity").value(4));
+    }
+
+    @Test
+    public void rejectsNegativeStockQuantity() throws Exception {
+        ProductDTO productDTO = new ProductDTO();
+        productDTO.setName("New Product");
+        productDTO.setPrice(20.0);
+        productDTO.setStockQuantity(-1);
+
+        mockMvc.perform(post("/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(productDTO)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.validationErrors.stockQuantity").value("Stock quantity must not be negative"));
     }
 
     @TestConfiguration

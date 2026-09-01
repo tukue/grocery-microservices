@@ -51,6 +51,11 @@ public class GlobalExceptionHandler {
         return createErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(InsufficientProductStockException.class)
+    public ResponseEntity<ErrorResponse> handleInsufficientProductStock(InsufficientProductStockException ex, HttpServletRequest request) {
+        return createErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
     @ExceptionHandler(ProductCatalogUnavailableException.class)
     public ResponseEntity<ErrorResponse> handleProductCatalogUnavailableException(
             ProductCatalogUnavailableException ex, HttpServletRequest request) {

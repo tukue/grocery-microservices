@@ -114,6 +114,7 @@ The MVP currently supports catalog browsing and cart changes, but checkout is no
 
 **Priority:** P1  
 **Business outcome:** Customers cannot buy products that are unavailable.
+**Status:** Partially implemented
 
 ### Work
 
@@ -128,6 +129,12 @@ The MVP currently supports catalog browsing and cart changes, but checkout is no
 - Checkout cannot confirm quantities above available stock.
 - Stock changes are auditable and tested for concurrent checkout attempts.
 - Product availability is exposed to the storefront API.
+
+### Implemented MVP Slice
+
+- Product-service now persists and exposes non-negative `stockQuantity` alongside availability.
+- Cart-service validates catalog stock when adding an item and rejects quantities above available stock with `409 Conflict`.
+- Stock reservation/decrement during checkout and concurrent checkout handling remain pending.
 
 ## Phase 5: Payments and Order Fulfilment
 

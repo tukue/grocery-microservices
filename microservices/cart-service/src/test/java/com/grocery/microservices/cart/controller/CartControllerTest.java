@@ -6,6 +6,7 @@ import com.grocery.microservices.cart.dto.CartItemQuantityDTO;
 import com.grocery.microservices.cart.exception.CartItemNotFoundException;
 import com.grocery.microservices.cart.exception.ProductNotFoundException;
 import com.grocery.microservices.cart.exception.ProductUnavailableException;
+import com.grocery.microservices.cart.exception.InsufficientProductStockException;
 import com.grocery.microservices.cart.service.CartService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -148,6 +149,21 @@ public class CartControllerTest {
                         .content(objectMapper.writeValueAsString(itemDTO)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Product 10 is unavailable"));
+    }
+
+    @Test
+    public void returnsConflictWhenAddingQuantityAboveStock() throws Exception {
+        CartItemDTO itemDTO = new CartItemDTO();
+        itemDTO.setProductId(10L);
+        itemDTO.setQuantity(2);
+        when(cartService.addItem(1L, 10L, 2, "customer-1"))
+                .thenThrow(new InsufficientProductStockException(10L));
+
+        mockMvc.perform(post("/carts/1/items")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(itemDTO)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Product 10 does not have enough stock"));
     }
 
     @Test

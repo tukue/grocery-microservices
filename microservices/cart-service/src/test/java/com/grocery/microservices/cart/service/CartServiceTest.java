@@ -5,6 +5,7 @@ import com.grocery.microservices.cart.client.ProductCatalogClient;
 import com.grocery.microservices.cart.exception.ProductCatalogUnavailableException;
 import com.grocery.microservices.cart.exception.ProductNotFoundException;
 import com.grocery.microservices.cart.exception.ProductUnavailableException;
+import com.grocery.microservices.cart.exception.InsufficientProductStockException;
 import com.grocery.microservices.cart.model.Cart;
 import com.grocery.microservices.cart.model.CartItem;
 import com.grocery.microservices.cart.exception.CartItemNotFoundException;
@@ -69,7 +70,7 @@ class CartServiceTest {
         // Arrange
         when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
         when(cartRepository.save(Mockito.any(Cart.class))).thenReturn(testCart);
-        when(productCatalogClient.getProduct(10L)).thenReturn(new CatalogProduct(10L, "Apple", 1.5, true));
+        when(productCatalogClient.getProduct(10L)).thenReturn(new CatalogProduct(10L, "Apple", 1.5, true, 10));
         // Act
         testCart.setUserId("customer-1");
         var updatedCartDTO = cartService.addItem(1L, 10L, 2, "customer-1");
@@ -96,7 +97,7 @@ class CartServiceTest {
     @Test
     void testAddItemRejectsUnavailableProduct() {
         when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
-        when(productCatalogClient.getProduct(10L)).thenReturn(new CatalogProduct(10L, "Apple", 1.5, false));
+        when(productCatalogClient.getProduct(10L)).thenReturn(new CatalogProduct(10L, "Apple", 1.5, false, 10));
 
         testCart.setUserId("customer-1");
         assertThrows(ProductUnavailableException.class, () -> cartService.addItem(1L, 10L, 2, "customer-1"));
@@ -111,6 +112,18 @@ class CartServiceTest {
 
         testCart.setUserId("customer-1");
         assertThrows(ProductCatalogUnavailableException.class, () -> cartService.addItem(1L, 10L, 2, "customer-1"));
+
+        verify(cartRepository, never()).save(Mockito.any(Cart.class));
+    }
+
+    @Test
+    void testAddItemRejectsQuantityAboveAvailableStock() {
+        when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
+        testCart.setUserId("customer-1");
+        when(productCatalogClient.getProduct(10L)).thenReturn(new CatalogProduct(10L, "Apple", 1.5, true, 1));
+
+        assertThrows(InsufficientProductStockException.class,
+                () -> cartService.addItem(1L, 10L, 2, "customer-1"));
 
         verify(cartRepository, never()).save(Mockito.any(Cart.class));
     }
