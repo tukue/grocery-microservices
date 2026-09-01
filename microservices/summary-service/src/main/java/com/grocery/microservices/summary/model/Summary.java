@@ -15,7 +15,7 @@ public class Summary {
     private Long id;
     @Column(name = "user_id")
     private String userId;
-    @Column(name = "order_id")
+    @Column(name = "order_id", unique = true, nullable = false)
     private Long orderId;
     @Column(name = "total_amount")
     private BigDecimal totalAmount;

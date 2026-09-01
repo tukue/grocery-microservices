@@ -4,6 +4,7 @@ import com.grocery.microservices.summary.model.Summary;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface SummaryRepository extends JpaRepository<Summary, Long> {
+    java.util.Optional<Summary> findByOrderId(Long orderId);
     java.util.List<Summary> findByUserId(String userId);
     long countByUserId(String userId);
 } 
