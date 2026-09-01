@@ -14,9 +14,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Profile("!test")
 public class SecurityConfig {
     private final JwtRequestFilter jwtRequestFilter;
+    private final SecurityExceptionHandler securityExceptionHandler;
 
-    public SecurityConfig(JwtRequestFilter jwtRequestFilter) {
+    public SecurityConfig(JwtRequestFilter jwtRequestFilter, SecurityExceptionHandler securityExceptionHandler) {
         this.jwtRequestFilter = jwtRequestFilter;
+        this.securityExceptionHandler = securityExceptionHandler;
     }
 
     @Bean
@@ -34,6 +36,10 @@ public class SecurityConfig {
                     "/actuator/info"
                 ).permitAll()
                 .anyRequest().authenticated()
+            )
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint(securityExceptionHandler)
+                .accessDeniedHandler(securityExceptionHandler)
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);

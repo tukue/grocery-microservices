@@ -375,10 +375,9 @@ Access services at:
 | POSTGRES_USER             | DB username                | grocellery           |
 | POSTGRES_PASSWORD         | DB password                | required             |
 | POSTGRES_DB               | DB name                    | grocery              |
-| test-cart-service-secret  | JWT secret for cart        | dummy-cart-secret    |
-| test-order-service-secret | JWT secret for order       | dummy-order-secret   |
-| test-product-service-secret | JWT secret for product    | dummy-product-secret |
-| test-summary-service-secret | JWT secret for summary    | dummy-summary-secret |
+| JWT_SECRET                | JWT signing secret for each service | required |
+
+JWT secrets intentionally have no runtime fallback. Configure a strong `JWT_SECRET` value per service in the deployment environment.
 
 ## Running Tests
 
