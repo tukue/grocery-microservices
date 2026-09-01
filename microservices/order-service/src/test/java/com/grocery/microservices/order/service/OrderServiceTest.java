@@ -11,6 +11,7 @@ import com.grocery.microservices.order.exception.InvalidOrderStateException;
 import com.grocery.microservices.order.exception.OrderNotFoundException;
 import com.grocery.microservices.order.exception.OrderAccessDeniedException;
 import com.grocery.microservices.order.repository.OrderRepository;
+import com.grocery.microservices.order.event.OrderCreatedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -60,7 +61,7 @@ class OrderServiceTest {
         assertEquals(OrderStatus.PENDING, createdOrder.getStatus());
         assertNotNull(createdOrder.getOrderDate());
         verify(orderRepository, times(1)).save(Mockito.any(Order.class));
-        verify(applicationEventPublisher).publishEvent(Mockito.any());
+        verify(applicationEventPublisher).publishEvent(Mockito.any(OrderCreatedEvent.class));
     }
 
     @Test
