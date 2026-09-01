@@ -120,7 +120,11 @@ class CartServiceTest {
     void testAddItemRejectsQuantityAboveAvailableStock() {
         when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
         testCart.setUserId("customer-1");
-        when(productCatalogClient.getProduct(10L)).thenReturn(new CatalogProduct(10L, "Apple", 1.5, true, 1));
+        CartItem existingItem = new CartItem();
+        existingItem.setProductId(10L);
+        existingItem.setQuantity(1);
+        testCart.getItems().add(existingItem);
+        when(productCatalogClient.getProduct(10L)).thenReturn(new CatalogProduct(10L, "Apple", 1.5, true, 2));
 
         assertThrows(InsufficientProductStockException.class,
                 () -> cartService.addItem(1L, 10L, 2, "customer-1"));

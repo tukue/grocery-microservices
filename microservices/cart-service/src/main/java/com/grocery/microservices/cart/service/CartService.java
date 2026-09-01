@@ -58,8 +58,12 @@ public class CartService {
         if (!product.available()) {
             throw new ProductUnavailableException(productId);
         }
-        if (product.stockQuantity() < quantity) {
-            throw new InsufficientProductStockException(productId);
+        int requestedQuantity = cart.getItems().stream()
+                .filter(item -> productId.equals(item.getProductId()))
+                .mapToInt(CartItem::getQuantity)
+                .sum() + quantity;
+        if (product.stockQuantity() < requestedQuantity) {
+            throw new InsufficientProductStockException(productId, requestedQuantity, product.stockQuantity());
         }
         CartItem item = new CartItem();
         item.setProductId(product.id());

@@ -157,13 +157,13 @@ public class CartControllerTest {
         itemDTO.setProductId(10L);
         itemDTO.setQuantity(2);
         when(cartService.addItem(1L, 10L, 2, "customer-1"))
-                .thenThrow(new InsufficientProductStockException(10L));
+                .thenThrow(new InsufficientProductStockException(10L, 3, 2));
 
         mockMvc.perform(post("/carts/1/items")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(itemDTO)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").value("Product 10 does not have enough stock"));
+                .andExpect(jsonPath("$.message").value("Product 10 does not have enough stock. Requested: 3, Available: 2"));
     }
 
     @Test
