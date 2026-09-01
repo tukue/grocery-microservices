@@ -168,9 +168,9 @@ mvn test -pl microservices/cart-service -Dspring.profiles.active=test
 
 ## Kafka Integration
 
-Order Service emits a typed `OrderCreatedEvent` only after the creating transaction commits. Summary Service consumes the event with its own consumer group. A unique `summary.order_id` constraint and duplicate check make standard Kafka redelivery idempotent.
+Order Service writes a typed `OrderCreatedEvent` to its transactional outbox with the order. A scheduled relay publishes pending outbox records to Kafka, and Summary Service consumes the event with its own consumer group. A unique `summary.order_id` constraint and duplicate check make standard Kafka redelivery idempotent.
 
-Docker Compose includes a single-node Kafka broker for development and Order Service provisions the topic. Production deployments must provide a managed Kafka bootstrap address and configure TLS/SASL at the platform level. A transactional outbox remains the next step when delivery must be guaranteed across a database commit and a Kafka outage.
+Docker Compose includes a single-node Kafka broker for development and initializes the topic explicitly. Production deployments must provide managed Kafka with at least three brokers, topic replication factor `3`, `min.insync.replicas=2`, and TLS/SASL configured at the platform level.
 
 ## Technical Stack
 

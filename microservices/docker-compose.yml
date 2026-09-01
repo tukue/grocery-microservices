@@ -46,6 +46,7 @@ services:
       - backend
 
   kafka:
+    # Single-node broker for local development only. Production uses managed Kafka provisioned by IaC.
     image: apache/kafka:4.3.0
     container_name: kafka
     environment:
@@ -69,6 +70,27 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
+    networks:
+      - backend
+
+  kafka-init:
+    image: apache/kafka:4.3.0
+    container_name: kafka-init
+    command:
+      - /opt/kafka/bin/kafka-topics.sh
+      - --bootstrap-server
+      - kafka:9092
+      - --create
+      - --if-not-exists
+      - --topic
+      - ${KAFKA_ORDER_CREATED_TOPIC:-order.created.v1}
+      - --partitions
+      - "3"
+      - --replication-factor
+      - "1"
+    depends_on:
+      kafka:
+        condition: service_healthy
     networks:
       - backend
 
@@ -117,8 +139,8 @@ services:
     depends_on:
       order-db:
         condition: service_healthy
-      kafka:
-        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     networks:
       - backend
 
@@ -167,8 +189,8 @@ services:
     depends_on:
       summary-db:
         condition: service_healthy
-      kafka:
-        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     networks:
       - backend
 

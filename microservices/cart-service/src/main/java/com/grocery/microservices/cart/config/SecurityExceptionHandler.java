@@ -11,11 +11,14 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
 @Component
 public class SecurityExceptionHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
+    private static final Logger log = LoggerFactory.getLogger(SecurityExceptionHandler.class);
     private final ObjectMapper objectMapper;
 
     public SecurityExceptionHandler(ObjectMapper objectMapper) {
@@ -25,12 +28,16 @@ public class SecurityExceptionHandler implements AuthenticationEntryPoint, Acces
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
             throws IOException {
+        log.warn("EVENT=AUTHENTICATION_FAILED METHOD={} PATH={} CLIENT_IP={} REASON={}",
+                request.getMethod(), request.getRequestURI(), request.getRemoteAddr(), authException.getClass().getSimpleName());
         writeErrorResponse(request, response, HttpStatus.UNAUTHORIZED, "Authentication required");
     }
 
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException)
             throws IOException {
+        log.warn("EVENT=AUTHORIZATION_DENIED METHOD={} PATH={} CLIENT_IP={} REASON={}",
+                request.getMethod(), request.getRequestURI(), request.getRemoteAddr(), accessDeniedException.getClass().getSimpleName());
         writeErrorResponse(request, response, HttpStatus.FORBIDDEN, "Access denied");
     }
 
