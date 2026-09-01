@@ -12,7 +12,7 @@ Update it after meaningful implementation or review lessons so future work follo
 - Request payloads use Bean Validation for required IDs, positive quantities/prices, and non-negative inventory values.
 - Cart and order resources persist a customer owner and enforce it from the authenticated JWT principal for reads and mutations.
 - Checkout obtains cart snapshots through an explicit client, derives order totals server-side, and stores immutable order lines.
-- Product-service owns catalog availability and stock; cart-service rejects unavailable or insufficient-stock additions.
+- Product-service owns catalog availability and stock; cart-service rejects out-of-stock or insufficient-stock additions.
 - Service URLs and timeouts are environment-configured; localhost defaults are avoided for service-to-service deployment configuration.
 - Downstream errors are mapped to customer-safe HTTP responses rather than exposing internal exceptions.
 - Service and controller tests cover both successful flows and rejected persistence/authorization paths.
@@ -99,7 +99,7 @@ Add the smallest useful test set for each feature:
 
 Examples:
 
-- A cart addition rejects an unavailable product or quantity above catalog stock.
+- A cart addition rejects an out-of-stock product or quantity above catalog stock.
 - Checkout derives its total from cart snapshots rather than request data.
 - One customer cannot update another customer's order status.
 - A denied action never invokes repository `save`.

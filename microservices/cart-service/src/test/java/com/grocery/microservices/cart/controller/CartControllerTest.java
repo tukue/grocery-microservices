@@ -148,7 +148,7 @@ public class CartControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(itemDTO)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").value("Product 10 is unavailable"));
+                .andExpect(jsonPath("$.message").value("Product 10 is out of stock"));
     }
 
     @Test

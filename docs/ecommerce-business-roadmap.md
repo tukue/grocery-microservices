@@ -43,14 +43,14 @@ The MVP currently supports catalog browsing and cart changes, but checkout is no
 1. Add `productId` to `CartItem`, `CartItemDTO`, and persisted cart data.
 2. Change the add-to-cart API to accept a product ID and quantity instead of a client-owned price.
 3. Have `cart-service` retrieve the product from `product-service` and store an item snapshot: product ID, name, unit price, and quantity.
-4. Reject a missing, unavailable, or invalid product with a clear API error.
+4. Reject a missing, out-of-stock, or invalid product with a clear API error.
 5. Keep the existing quantity-update and remove-item APIs operating on cart item IDs.
 
 ### Definition of Done
 
 - A customer can add a valid catalog product to a cart.
 - The stored item has a stable `productId` and server-derived price snapshot.
-- Invalid or unavailable products do not change the cart.
+- Invalid or out-of-stock products do not change the cart.
 - Controller and service tests cover valid product, missing product, and invalid quantity cases.
 
 ## Phase 2: Trusted Checkout and Order Lines
@@ -113,7 +113,7 @@ The MVP currently supports catalog browsing and cart changes, but checkout is no
 ## Phase 4: Product Availability and Inventory
 
 **Priority:** P1  
-**Business outcome:** Customers cannot buy products that are unavailable.
+**Business outcome:** Customers cannot buy products that are out of stock.
 **Status:** Partially implemented
 
 ### Work
@@ -133,7 +133,9 @@ The MVP currently supports catalog browsing and cart changes, but checkout is no
 ### Implemented MVP Slice
 
 - Product-service now persists and exposes non-negative `stockQuantity` alongside availability.
-- Cart-service validates catalog stock when adding an item and rejects quantities above available stock with `409 Conflict`.
+- Cart-service validates catalog stock when adding an item and rejects cumulative quantities above available stock with `409 Conflict`.
+- Customers receive a clear stock response showing the total requested quantity and currently available units, helping them adjust their cart confidently.
+- Product and cart tests cover stock exposure, negative-stock validation, single-request stock validation, and cumulative cart-quantity protection.
 - Stock reservation/decrement during checkout and concurrent checkout handling remain pending.
 
 ## Phase 5: Payments and Order Fulfilment
