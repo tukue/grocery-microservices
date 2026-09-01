@@ -3,6 +3,7 @@ package com.grocery.microservices.product.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 
 public class ProductDTO {
     private Long id;
@@ -15,6 +16,9 @@ public class ProductDTO {
 
     @NotNull(message = "Product availability must be specified")
     private Boolean available = true;
+
+    @PositiveOrZero(message = "Stock quantity must not be negative")
+    private int stockQuantity;
 
     private String imageUrl;
 
@@ -50,6 +54,8 @@ public class ProductDTO {
     public void setAvailable(Boolean available) {
         this.available = available;
     }
+    public int getStockQuantity() { return stockQuantity; }
+    public void setStockQuantity(int stockQuantity) { this.stockQuantity = stockQuantity; }
 
     public String getImageUrl() {
         return imageUrl;

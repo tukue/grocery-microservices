@@ -19,6 +19,8 @@ public class Product {
     private double price;
     @Column(nullable = false, columnDefinition = "boolean default true")
     private boolean available = true;
+    @Column(name = "stock_quantity", nullable = false)
+    private int stockQuantity;
     @Column(name = "image_url")
     private String imageUrl;
 
@@ -54,6 +56,8 @@ public class Product {
     public void setAvailable(boolean available) {
         this.available = available;
     }
+    public int getStockQuantity() { return stockQuantity; }
+    public void setStockQuantity(int stockQuantity) { this.stockQuantity = stockQuantity; }
 
     public String getImageUrl() {
         return imageUrl;

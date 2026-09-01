@@ -8,6 +8,7 @@ import com.grocery.microservices.cart.exception.CartItemNotFoundException;
 import com.grocery.microservices.cart.exception.CartNotFoundException;
 import com.grocery.microservices.cart.exception.CartAccessDeniedException;
 import com.grocery.microservices.cart.exception.ProductUnavailableException;
+import com.grocery.microservices.cart.exception.InsufficientProductStockException;
 import com.grocery.microservices.cart.model.Cart;
 import com.grocery.microservices.cart.model.CartItem;
 import com.grocery.microservices.cart.repository.CartRepository;
@@ -56,6 +57,13 @@ public class CartService {
         CatalogProduct product = productCatalogClient.getProduct(productId);
         if (!product.available()) {
             throw new ProductUnavailableException(productId);
+        }
+        int requestedQuantity = cart.getItems().stream()
+                .filter(item -> productId.equals(item.getProductId()))
+                .mapToInt(CartItem::getQuantity)
+                .sum() + quantity;
+        if (product.stockQuantity() < requestedQuantity) {
+            throw new InsufficientProductStockException(productId, requestedQuantity, product.stockQuantity());
         }
         CartItem item = new CartItem();
         item.setProductId(product.id());
