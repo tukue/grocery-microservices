@@ -5,6 +5,7 @@ import com.grocery.microservices.order.model.OrderStatus;
 import com.grocery.microservices.order.client.CartClient;
 import com.grocery.microservices.order.client.CartItemSnapshot;
 import com.grocery.microservices.order.client.CartSnapshot;
+import com.grocery.microservices.order.messaging.OrderEventPublisher;
 import com.grocery.microservices.order.exception.EmptyCartException;
 import com.grocery.microservices.order.exception.CheckoutCartNotFoundException;
 import com.grocery.microservices.order.exception.InvalidOrderStateException;
@@ -27,6 +28,7 @@ import org.springframework.test.context.ActiveProfiles;
 class OrderServiceTest {
     private OrderRepository orderRepository;
     private CartClient cartClient;
+    private OrderEventPublisher orderEventPublisher;
     private OrderService orderService;
     private Order testOrder;
 
@@ -34,7 +36,8 @@ class OrderServiceTest {
     void setUp() {
         orderRepository = Mockito.mock(OrderRepository.class);
         cartClient = Mockito.mock(CartClient.class);
-        orderService = new OrderService(orderRepository, cartClient);
+        orderEventPublisher = Mockito.mock(OrderEventPublisher.class);
+        orderService = new OrderService(orderRepository, cartClient, orderEventPublisher);
         testOrder = new Order();
         testOrder.setId(1L);
         testOrder.setUserId("customer-1");
@@ -57,6 +60,7 @@ class OrderServiceTest {
         assertEquals(OrderStatus.PENDING, createdOrder.getStatus());
         assertNotNull(createdOrder.getOrderDate());
         verify(orderRepository, times(1)).save(Mockito.any(Order.class));
+        verify(orderEventPublisher).publish(Mockito.any());
     }
 
     @Test
