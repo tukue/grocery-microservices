@@ -12,7 +12,7 @@ import com.grocery.microservices.order.exception.OrderNotFoundException;
 import com.grocery.microservices.order.exception.OrderAccessDeniedException;
 import com.grocery.microservices.order.repository.OrderRepository;
 import com.grocery.microservices.order.event.OrderCreatedEvent;
-import com.grocery.microservices.order.outbox.OrderOutboxService;
+import com.grocery.microservices.order.eventstore.OrderEventStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -29,7 +29,7 @@ import org.springframework.test.context.ActiveProfiles;
 class OrderServiceTest {
     private OrderRepository orderRepository;
     private CartClient cartClient;
-    private OrderOutboxService orderOutboxService;
+    private OrderEventStore orderEventStore;
     private OrderService orderService;
     private Order testOrder;
 
@@ -37,8 +37,8 @@ class OrderServiceTest {
     void setUp() {
         orderRepository = Mockito.mock(OrderRepository.class);
         cartClient = Mockito.mock(CartClient.class);
-        orderOutboxService = Mockito.mock(OrderOutboxService.class);
-        orderService = new OrderService(orderRepository, cartClient, orderOutboxService);
+        orderEventStore = Mockito.mock(OrderEventStore.class);
+        orderService = new OrderService(orderRepository, cartClient, orderEventStore);
         testOrder = new Order();
         testOrder.setId(1L);
         testOrder.setUserId("customer-1");
@@ -61,7 +61,7 @@ class OrderServiceTest {
         assertEquals(OrderStatus.PENDING, createdOrder.getStatus());
         assertNotNull(createdOrder.getOrderDate());
         verify(orderRepository, times(1)).save(Mockito.any(Order.class));
-        verify(orderOutboxService).enqueue(Mockito.any(OrderCreatedEvent.class));
+        verify(orderEventStore).enqueue(Mockito.any(OrderCreatedEvent.class));
     }
 
     @Test

@@ -1,4 +1,4 @@
-package com.grocery.microservices.order.outbox;
+package com.grocery.microservices.order.eventstore;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grocery.microservices.order.event.OrderCreatedEvent;
@@ -12,21 +12,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-class OrderOutboxServiceTest {
+class OrderEventStoreTest {
 
     @Test
-    void persistsOrderEventAsPendingOutboxRecord() throws Exception {
-        OutboxEventRepository repository = mock(OutboxEventRepository.class);
-        OrderOutboxService service = new OrderOutboxService(repository, new ObjectMapper().findAndRegisterModules());
+    void persistsOrderEventAsPendingStoredRecord() throws Exception {
+        StoredOrderEventRepository repository = mock(StoredOrderEventRepository.class);
+        OrderEventStore service = new OrderEventStore(repository, new ObjectMapper().findAndRegisterModules());
         OrderCreatedEvent event = new OrderCreatedEvent(
                 UUID.randomUUID(), OrderCreatedEvent.TYPE, Instant.parse("2026-01-01T00:00:00Z"), 42L, "customer-1", 7L, 19.95);
 
         service.enqueue(event);
 
-        ArgumentCaptor<OutboxEvent> record = ArgumentCaptor.forClass(OutboxEvent.class);
+        ArgumentCaptor<StoredOrderEvent> record = ArgumentCaptor.forClass(StoredOrderEvent.class);
         verify(repository).save(record.capture());
         assertEquals(event.eventId(), record.getValue().getId());
-        assertEquals(OutboxEventStatus.PENDING, record.getValue().getStatus());
+        assertEquals(StoredOrderEventStatus.PENDING, record.getValue().getStatus());
         assertEquals(event.orderId(), new ObjectMapper().findAndRegisterModules()
                 .readValue(record.getValue().getPayload(), OrderCreatedEvent.class).orderId());
     }

@@ -1,4 +1,4 @@
-package com.grocery.microservices.order.outbox;
+package com.grocery.microservices.order.eventstore;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,10 +12,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "outbox_events", indexes = {
-        @Index(name = "idx_outbox_status_created", columnList = "status,created_at")
+@Table(name = "order_event_store", indexes = {
+        @Index(name = "idx_order_event_store_status_created", columnList = "status,created_at")
 })
-public class OutboxEvent {
+public class StoredOrderEvent {
     @Id
     private UUID id;
     @Column(name = "event_type", nullable = false, length = 100)
@@ -26,7 +26,7 @@ public class OutboxEvent {
     private String payload;
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private OutboxEventStatus status;
+    private StoredOrderEventStatus status;
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
     @Column(name = "published_at")
@@ -36,24 +36,24 @@ public class OutboxEvent {
     @Column(name = "last_error", length = 500)
     private String lastError;
 
-    protected OutboxEvent() {
+    protected StoredOrderEvent() {
     }
 
-    public OutboxEvent(UUID id, String eventType, Long aggregateId, String payload) {
+    public StoredOrderEvent(UUID id, String eventType, Long aggregateId, String payload) {
         this.id = id;
         this.eventType = eventType;
         this.aggregateId = aggregateId;
         this.payload = payload;
-        this.status = OutboxEventStatus.PENDING;
+        this.status = StoredOrderEventStatus.PENDING;
         this.createdAt = Instant.now();
     }
 
     public UUID getId() { return id; }
     public String getPayload() { return payload; }
-    public OutboxEventStatus getStatus() { return status; }
+    public StoredOrderEventStatus getStatus() { return status; }
 
     public void markPublished() {
-        status = OutboxEventStatus.PUBLISHED;
+        status = StoredOrderEventStatus.PUBLISHED;
         publishedAt = Instant.now();
         lastError = null;
     }
