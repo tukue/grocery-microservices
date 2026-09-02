@@ -21,7 +21,7 @@ public class KafkaConsumerConfiguration {
             @Value("${app.kafka.consumer.maximum-retries:3}") long maximumRetries) {
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
                 kafkaTemplate,
-                (record, exception) -> new TopicPartition(record.topic() + ".DLT", record.partition()));
+                (record, exception) -> new TopicPartition(record.topic() + ".failed", record.partition()));
         return new DefaultErrorHandler(recoverer, new FixedBackOff(retryDelayMs, maximumRetries));
     }
 }
