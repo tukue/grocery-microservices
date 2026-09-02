@@ -71,8 +71,13 @@ graph TB
         subgraph "Data Layer"
             CART_DB[(Cart DB<br/>PostgreSQL)]
             ORDER_DB[(Order DB<br/>PostgreSQL)]
+            EVENT_STORE[(Order Event Store<br/>Leased delivery records)]
             PROD_DB[(Product DB<br/>PostgreSQL)]
             SUMM_DB[(Summary DB<br/>PostgreSQL)]
+        end
+
+        subgraph "Event Streaming"
+            KAFKA[(Kafka<br/>order.created.v1)]
         end
 
         subgraph "Observability"
@@ -99,6 +104,9 @@ graph TB
 
     CART --> CART_DB
     ORDER --> ORDER_DB
+    ORDER -->|atomic order-created record| EVENT_STORE
+    EVENT_STORE -->|leased publisher| KAFKA
+    KAFKA -->|summary-service consumer group| SUMM
     PROD --> PROD_DB
     SUMM --> SUMM_DB
 
@@ -126,8 +134,10 @@ graph TB
     style SUMM fill:#e8f5e9,stroke:#1b5e20
     style CART_DB fill:#fce4ec,stroke:#b71c1c
     style ORDER_DB fill:#fce4ec,stroke:#b71c1c
+    style EVENT_STORE fill:#fce4ec,stroke:#b71c1c
     style PROD_DB fill:#fce4ec,stroke:#b71c1c
     style SUMM_DB fill:#fce4ec,stroke:#b71c1c
+    style KAFKA fill:#fff3e0,stroke:#e65100
     style PROM fill:#f3e5f5,stroke:#4a148c
     style GRAF fill:#f3e5f5,stroke:#4a148c
     style GH fill:#fff,stroke:#333
@@ -145,6 +155,8 @@ sequenceDiagram
     participant Cart as Cart Service
     participant Order as Order Service
     participant Product as Product Service
+    participant EventStore as Order Event Store
+    participant Kafka
     participant Summary as Summary Service
 
     Client->>Cart: POST /auth/login
@@ -162,13 +174,12 @@ sequenceDiagram
     Cart-->>Client: Updated cart
 
     Client->>Order: POST /orders {cartId, productIds, userId, total}
+    Order->>EventStore: Persist order.created.v1 with order
     Order-->>Client: Order (status=PENDING)
 
-    Client->>Order: PATCH /orders/{id}/status?status=COMPLETED
-    Order-->>Client: Updated order
-
-    Client->>Summary: POST /summaries {orderId, items, total}
-    Summary-->>Client: Summary ID
+    EventStore->>Kafka: Publish leased order.created.v1
+    Kafka->>Summary: Consume with summary-service group
+    Summary-->>Kafka: Commit after idempotent persistence
 
     Client->>Summary: GET /summaries/{id}/receipt
     Summary-->>Client: Formatted receipt
