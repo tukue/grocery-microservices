@@ -77,17 +77,13 @@ services:
     image: apache/kafka:4.3.0
     container_name: kafka-init
     command:
-      - /opt/kafka/bin/kafka-topics.sh
-      - --bootstrap-server
-      - kafka:9092
-      - --create
-      - --if-not-exists
-      - --topic
-      - ${KAFKA_ORDER_CREATED_TOPIC:-order.created.v1}
-      - --partitions
-      - "3"
-      - --replication-factor
-      - "1"
+      - /bin/sh
+      - -ec
+      - |
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists \
+          --topic ${KAFKA_ORDER_CREATED_TOPIC:-order.created.v1} --partitions 3 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists \
+          --topic ${KAFKA_ORDER_CREATED_TOPIC:-order.created.v1}.failed --partitions 3 --replication-factor 1
     depends_on:
       kafka:
         condition: service_healthy
