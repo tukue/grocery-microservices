@@ -31,6 +31,10 @@ public class StoredOrderEvent {
     private Instant createdAt;
     @Column(name = "published_at")
     private Instant publishedAt;
+    @Column(name = "next_attempt_at", nullable = false)
+    private Instant nextAttemptAt;
+    @Column(name = "lease_until")
+    private Instant leaseUntil;
     @Column(nullable = false)
     private int attempts;
     @Column(name = "last_error", length = 500)
@@ -46,20 +50,41 @@ public class StoredOrderEvent {
         this.payload = payload;
         this.status = StoredOrderEventStatus.PENDING;
         this.createdAt = Instant.now();
+        this.nextAttemptAt = createdAt;
     }
 
     public UUID getId() { return id; }
     public String getPayload() { return payload; }
     public StoredOrderEventStatus getStatus() { return status; }
+    public int getAttempts() { return attempts; }
+
+    public void claim(Instant leaseExpiry) {
+        status = StoredOrderEventStatus.PROCESSING;
+        leaseUntil = leaseExpiry;
+    }
 
     public void markPublished() {
+        if (status != StoredOrderEventStatus.PROCESSING) {
+            return;
+        }
         status = StoredOrderEventStatus.PUBLISHED;
         publishedAt = Instant.now();
+        leaseUntil = null;
         lastError = null;
     }
 
-    public void recordFailure(Exception exception) {
+    public void recordFailure(Throwable exception, Instant nextRetryAt, int maximumAttempts) {
+        if (status != StoredOrderEventStatus.PROCESSING) {
+            return;
+        }
         attempts++;
         lastError = exception.getClass().getSimpleName();
+        leaseUntil = null;
+        if (attempts >= maximumAttempts) {
+            status = StoredOrderEventStatus.FAILED;
+            return;
+        }
+        status = StoredOrderEventStatus.PENDING;
+        nextAttemptAt = nextRetryAt;
     }
 }
