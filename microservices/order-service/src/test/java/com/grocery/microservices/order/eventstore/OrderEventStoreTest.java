@@ -51,14 +51,20 @@ class OrderEventStoreTest {
     }
 
     @Test
-    void marksEventAsTerminalAfterMaximumDeliveryFailures() {
+    void retriesEventBeforeMarkingItAsTerminal() {
         StoredOrderEvent event = new StoredOrderEvent(UUID.randomUUID(), OrderCreatedEvent.TYPE, 42L, "{}");
         event.claim(Instant.now().plusSeconds(30));
 
         event.recordFailure(new IllegalStateException(), Instant.now().plusSeconds(5), 1);
 
-        assertEquals(StoredOrderEventStatus.FAILED, event.getStatus());
+        assertEquals(StoredOrderEventStatus.PENDING, event.getStatus());
         assertEquals(1, event.getAttempts());
+
+        event.claim(Instant.now().plusSeconds(30));
+        event.recordFailure(new IllegalStateException(), Instant.now().plusSeconds(5), 1);
+
+        assertEquals(StoredOrderEventStatus.FAILED, event.getStatus());
+        assertEquals(2, event.getAttempts());
     }
 
     private OrderEventStore newEventStore(StoredOrderEventRepository repository) {

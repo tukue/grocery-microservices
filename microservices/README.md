@@ -170,7 +170,7 @@ mvn test -pl microservices/cart-service -Dspring.profiles.active=test
 
 Order Service writes a typed `OrderCreatedEvent` to its transactional event store with the order. A scheduled relay claims events with a time-limited lease, publishes them outside the database transaction, and records the result. This prevents Kafka latency from holding database locks and enables recovery after a publisher instance stops. Failed publishes are retried with a configurable delay and become terminal `FAILED` records after the configured maximum attempts. Summary Service consumes the event with its own consumer group. A unique `summary.order_id` constraint and duplicate check make standard Kafka redelivery idempotent.
 
-Configure the relay with `KAFKA_EVENT_STORE_BATCH_SIZE`, `KAFKA_EVENT_STORE_LEASE_DURATION`, `KAFKA_EVENT_STORE_RETRY_DELAY`, and `KAFKA_EVENT_STORE_MAXIMUM_ATTEMPTS`. Terminal failures must be monitored and replayed only after their cause is resolved.
+Configure the relay with `KAFKA_EVENT_STORE_BATCH_SIZE`, `KAFKA_EVENT_STORE_LEASE_DURATION`, `KAFKA_EVENT_STORE_RETRY_DELAY`, and `KAFKA_EVENT_STORE_MAXIMUM_RETRIES`. The initial publish is followed by at most the configured number of retries. Terminal failures must be monitored and replayed only after their cause is resolved.
 
 Docker Compose includes a single-node Kafka broker for development and initializes the topic explicitly. Production deployments must provide managed Kafka with at least three brokers, topic replication factor `3`, `min.insync.replicas=2`, and TLS/SASL configured at the platform level.
 

@@ -18,19 +18,19 @@ public class OrderEventStore {
     private final StoredOrderEventRepository repository;
     private final ObjectMapper objectMapper;
     private final int batchSize;
-    private final int maximumAttempts;
+    private final int maximumRetries;
     private final Duration leaseDuration;
     private final Duration retryDelay;
 
     public OrderEventStore(StoredOrderEventRepository repository, ObjectMapper objectMapper,
                            @Value("${app.kafka.event-store.batch-size:100}") int batchSize,
-                           @Value("${app.kafka.event-store.maximum-attempts:10}") int maximumAttempts,
+                           @Value("${app.kafka.event-store.maximum-retries:10}") int maximumRetries,
                            @Value("${app.kafka.event-store.lease-duration:PT30S}") Duration leaseDuration,
                            @Value("${app.kafka.event-store.retry-delay:PT5S}") Duration retryDelay) {
         this.repository = repository;
         this.objectMapper = objectMapper;
         this.batchSize = batchSize;
-        this.maximumAttempts = maximumAttempts;
+        this.maximumRetries = maximumRetries;
         this.leaseDuration = leaseDuration;
         this.retryDelay = retryDelay;
     }
@@ -68,6 +68,6 @@ public class OrderEventStore {
     @Transactional
     public void recordDeliveryFailure(UUID eventId, Throwable exception) {
         repository.findById(eventId).ifPresent(event ->
-                event.recordFailure(exception, Instant.now().plus(retryDelay), maximumAttempts));
+                event.recordFailure(exception, Instant.now().plus(retryDelay), maximumRetries));
     }
 }

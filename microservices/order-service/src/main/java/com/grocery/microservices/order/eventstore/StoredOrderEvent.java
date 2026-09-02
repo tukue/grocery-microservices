@@ -36,7 +36,7 @@ public class StoredOrderEvent {
     @Column(name = "lease_until")
     private Instant leaseUntil;
     @Column(nullable = false)
-    private int attempts;
+    private int attempts = 0;
     @Column(name = "last_error", length = 500)
     private String lastError;
 
@@ -73,14 +73,14 @@ public class StoredOrderEvent {
         lastError = null;
     }
 
-    public void recordFailure(Throwable exception, Instant nextRetryAt, int maximumAttempts) {
+    public void recordFailure(Throwable exception, Instant nextRetryAt, int maximumRetries) {
         if (status != StoredOrderEventStatus.PROCESSING) {
             return;
         }
         attempts++;
         lastError = exception.getClass().getSimpleName();
         leaseUntil = null;
-        if (attempts >= maximumAttempts) {
+        if (attempts > maximumRetries) {
             status = StoredOrderEventStatus.FAILED;
             return;
         }
