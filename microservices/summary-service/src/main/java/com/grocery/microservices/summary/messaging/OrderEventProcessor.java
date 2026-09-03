@@ -17,6 +17,7 @@ public class OrderEventProcessor {
 
     @Transactional
     public void process(OrderCreatedEvent event) {
+        validate(event);
         if (summaryRepository.findByOrderId(event.orderId()).isPresent()) return;
         Summary summary = new Summary();
         summary.setOrderId(event.orderId());
@@ -26,5 +27,13 @@ public class OrderEventProcessor {
         summary.setCreatedAt(LocalDateTime.now());
         summary.setDetails("Order created");
         summaryRepository.save(summary);
+    }
+
+    private void validate(OrderCreatedEvent event) {
+        if (event == null || event.eventId() == null || event.orderId() == null
+                || event.orderId() <= 0 || event.userId() == null || event.userId().isBlank()
+                || event.cartId() == null || event.cartId() <= 0 || event.total() < 0) {
+            throw new IllegalArgumentException("Invalid order-created event");
+        }
     }
 }

@@ -131,6 +131,10 @@ Use the following placeholders for environment-specific service hosts:
 
 ## Architecture
 
+For the cross-team production plan covering frontend integration, API contracts, security, operations, and release gates, see the [Production Product and Integration Roadmap](../docs/production-alignment-roadmap.md).
+
+For the browser-facing endpoint map, authentication expectations, receipt UX, and frontend delivery checklist, see the [Frontend Integration Contract](../docs/frontend-integration.md).
+
 ```mermaid
 flowchart LR
   CartService[Cart Service] --> CartDB[(Cart DB)]
@@ -177,6 +181,8 @@ mvn test -pl microservices/cart-service -Dspring.profiles.active=test
 - Asynchronous order-created summaries through Kafka
 
 ## Kafka Integration
+
+For the event flow, configuration reference, failure handling, local commands, and operational practices, see [Kafka Integration Guide](../docs/kafka-integration.md).
 
 Order Service writes a typed `OrderCreatedEvent` to its transactional event store with the order. A scheduled relay claims events with a time-limited lease, publishes them outside the database transaction, and records the result. This prevents Kafka latency from holding database locks and enables recovery after a publisher instance stops. Failed publishes are retried with a configurable delay and become terminal `FAILED` records after the configured maximum retries. Summary Service consumes the event with its own consumer group. A unique `summary.order_id` constraint and duplicate check make standard Kafka redelivery idempotent.
 

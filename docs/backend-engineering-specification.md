@@ -16,6 +16,7 @@ Update it after meaningful implementation or review lessons so future work follo
 - Service URLs and timeouts are environment-configured; localhost defaults are avoided for service-to-service deployment configuration.
 - Downstream errors are mapped to customer-safe HTTP responses rather than exposing internal exceptions.
 - Service and controller tests cover both successful flows and rejected persistence/authorization paths.
+- Order-created events use a database-backed event store, an order ID Kafka key, bounded delivery waits, and an idempotent summary consumer. See the [Kafka Integration Guide](kafka-integration.md) for the operational contract.
 
 ## Core Skill: Build Trusted Customer Flows
 
@@ -78,16 +79,26 @@ Store copies of data only when required for an immutable business record, such a
   - invalid business state: `409`
   - unavailable dependency: `503`
 
-Do not add a service mesh, retry framework, event broker, or distributed transaction solely for an MVP flow.
+Do not add a service mesh, additional retry framework, or distributed transaction solely for an MVP flow.
 
-### 7. Validate at API Boundaries
+### 7. Build Reliable Kafka Event Flows
+
+- Treat the service database as authoritative. Persist the business change and the intent to publish in the same transaction when downstream processing is required.
+- Publish relay records outside the database transaction and use a bounded acknowledgement wait. Mark an event published only after Kafka confirms delivery; record failures for retry instead of silently dropping them.
+- Use the aggregate ID as the Kafka key so related events remain ordered within a partition.
+- Design consumers for at-least-once delivery. Make writes idempotent with a stable business or event identifier before acknowledging successful processing.
+- Use bounded backoff retries. Send records that exhaust consumer retries to the failed-letter queue and require explicit operator replay.
+- Keep event payloads independent of JPA entities. Use a versioned topic name and additive fields for compatible changes; create a new version for breaking changes.
+- Log identifiers and Kafka context needed for investigation, but never credentials, payment data, or unnecessary customer data.
+
+### 8. Validate at API Boundaries
 
 - Use Bean Validation annotations for required IDs, positive quantities and prices, and non-negative stock.
 - Validate nested DTOs where required.
 - Reject malformed input before calling repositories or downstream services.
 - Keep validation messages useful to frontend developers and customers.
 
-### 8. Test Behavior, Not Just Methods
+### 9. Test Behavior, Not Just Methods
 
 Add the smallest useful test set for each feature:
 
@@ -113,6 +124,8 @@ Before requesting review, confirm:
 - Client-supplied financial data is ignored or removed.
 - Exceptions map to consistent customer-safe responses.
 - Remote calls have externalized URLs and bounded timeouts.
+- Kafka event publication uses a persisted event store, a bounded delivery timeout, and a stable aggregate key.
+- Kafka consumers are idempotent and their retry behavior terminates safely in the failed-letter queue.
 - Tests cover a main success path and meaningful failure paths.
 - The affected module test suite passes.
 - The improvement roadmap records the delivered MVP behavior and any deliberate follow-up work.

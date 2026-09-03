@@ -29,6 +29,10 @@ public class SummaryService {
         return summaryRepository.findById(id).orElseThrow(() -> new SummaryNotFoundException(id));
     }
 
+    public Summary getSummaryByOrderId(Long orderId) {
+        return summaryRepository.findByOrderId(orderId).orElseThrow(() -> new SummaryNotFoundException(orderId));
+    }
+
     public List<Summary> getSummariesByUserId(String userId) {
         return summaryRepository.findByUserId(userId);
     }

@@ -88,6 +88,16 @@ class SummaryServiceTest {
     }
 
     @Test
+    void testGetSummaryByOrderId() {
+        when(summaryRepository.findByOrderId(1L)).thenReturn(Optional.of(testSummary));
+
+        Summary result = summaryService.getSummaryByOrderId(1L);
+
+        assertEquals(testSummary, result);
+        verify(summaryRepository).findByOrderId(1L);
+    }
+
+    @Test
     void testGetSummariesByUserId() {
         // Arrange
         when(summaryRepository.findByUserId("user123")).thenReturn(Arrays.asList(testSummary));
