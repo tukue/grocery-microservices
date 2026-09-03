@@ -7,12 +7,12 @@ import com.grocery.microservices.order.model.Order;
 import com.grocery.microservices.order.model.OrderLine;
 import com.grocery.microservices.order.model.OrderStatus;
 import com.grocery.microservices.order.service.OrderService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import jakarta.servlet.http.HttpServletRequest;
+import java.net.URI;
 import java.util.List;
 import java.util.Collections;
 
@@ -34,7 +34,8 @@ public class OrderController {
                 checkoutRequest.getCartId(),
                 authentication.getName(),
                 request.getHeader("Authorization"));
-        return ResponseEntity.status(HttpStatus.CREATED).body(convertToDto(createdOrder));
+        return ResponseEntity.created(URI.create("/orders/" + createdOrder.getId()))
+                .body(convertToDto(createdOrder));
     }
 
     @GetMapping

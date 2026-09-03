@@ -14,6 +14,14 @@ Frontend runtime configuration -> HTTPS API base URL -> ALB -> microservice rout
 
 The browser must have only public runtime values, for example `PUBLIC_API_BASE_URL`. JWT signing keys, database credentials, Kafka credentials, and service-to-service URLs must never be included in frontend build output.
 
+## Local MVP Setup
+
+1. Start the backend with `CORS_ALLOWED_ORIGINS=http://localhost:3000 docker compose -f microservices/docker-compose.yml up --build`.
+2. Configure the frontend with the service URLs: product `http://localhost:8083`, cart `http://localhost:8081`, order `http://localhost:8082`, and summary `http://localhost:8084`.
+3. For a deployed frontend, set `CORS_ALLOWED_ORIGINS` to its exact HTTPS origin before starting the services. Do not use `*`.
+
+The MVP uses the existing service URLs directly. Add an API gateway or generated frontend SDK only when the frontend needs a stable single-host API boundary or the number of clients makes duplicated request code costly.
+
 ## Current API Mapping
 
 | User capability | HTTP operation | Backend owner | Frontend behavior |

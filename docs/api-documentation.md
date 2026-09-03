@@ -5,10 +5,10 @@ Each service exposes OpenAPI at `/v3/api-docs` and Swagger UI at `/swagger-ui/in
 ## Browser Integration
 
 All services accept browser requests from the comma-separated origin allowlist in
-`CORS_ALLOWED_ORIGINS`; the safe local default is `http://localhost:3000`. Configure
-the deployed frontend origin explicitly in every production service. Requests may send
-`Authorization`, `Content-Type`, and `X-Correlation-Id`; responses expose
-`X-Correlation-Id` and `Location`. Cookie credentials are intentionally disabled because
+`CORS_ALLOWED_ORIGINS`; the safe local default is `http://localhost:3000`. Docker Compose
+passes this one variable to every service. Configure the deployed frontend origin explicitly
+in production. Requests may send `Authorization`, `Content-Type`, and `X-Correlation-Id`;
+responses expose `Location`. Cookie credentials are intentionally disabled because
 authentication uses bearer tokens.
 
 ## Product Service
@@ -35,7 +35,7 @@ Validation: item `productName` is required, `price` must be non-negative, `quant
 
 ## Order Service
 
-- `POST /orders/checkout`: creates an order from the authenticated customer's cart, returns `201`.
+- `POST /orders/checkout`: creates an order from the authenticated customer's cart, returns `201` and `Location: /orders/{id}`.
 - `GET /orders`: returns orders for the authenticated customer.
 - `GET /orders/{id}`: returns one order, `404` if absent.
 - `PATCH /orders/{id}/status?status={PENDING|COMPLETED|CANCELLED}`: changes status.
