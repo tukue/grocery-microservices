@@ -2,6 +2,15 @@
 
 Each service exposes OpenAPI at `/v3/api-docs` and Swagger UI at `/swagger-ui/index.html`.
 
+## Browser Integration
+
+All services accept browser requests from the comma-separated origin allowlist in
+`CORS_ALLOWED_ORIGINS`; the safe local default is `http://localhost:3000`. Configure
+the deployed frontend origin explicitly in every production service. Requests may send
+`Authorization`, `Content-Type`, and `X-Correlation-Id`; responses expose
+`X-Correlation-Id` and `Location`. Cookie credentials are intentionally disabled because
+authentication uses bearer tokens.
+
 ## Product Service
 
 - `GET /products`: returns products as the legacy list response.
