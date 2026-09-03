@@ -7,6 +7,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 
 import java.time.Instant;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -31,7 +32,7 @@ class StoredOrderEventPublisherTest {
         when(kafkaTemplate.send(eq("order.created.v1"), eq("42"), any(OrderCreatedEvent.class))).thenReturn(result);
 
         new StoredOrderEventPublisher(eventStore, new ObjectMapper().findAndRegisterModules(), kafkaTemplate,
-                "order.created.v1").publishPendingEvents();
+                "order.created.v1", Duration.ofSeconds(1)).publishPendingEvents();
 
         verify(eventStore).markPublished(event.eventId());
     }
@@ -49,7 +50,24 @@ class StoredOrderEventPublisherTest {
         when(kafkaTemplate.send(eq("order.created.v1"), eq("42"), any(OrderCreatedEvent.class))).thenReturn(result);
 
         new StoredOrderEventPublisher(eventStore, new ObjectMapper().findAndRegisterModules(), kafkaTemplate,
-                "order.created.v1").publishPendingEvents();
+                "order.created.v1", Duration.ofSeconds(1)).publishPendingEvents();
+
+        verify(eventStore).recordDeliveryFailure(eq(event.eventId()), any(Throwable.class));
+    }
+
+    @Test
+    void schedulesRetryWhenKafkaPublishingTimesOut() throws Exception {
+        OrderEventStore eventStore = mock(OrderEventStore.class);
+        KafkaTemplate<String, OrderCreatedEvent> kafkaTemplate = mock(KafkaTemplate.class);
+        OrderCreatedEvent event = event();
+        StoredOrderEventDelivery delivery = new StoredOrderEventDelivery(event.eventId(),
+                new ObjectMapper().findAndRegisterModules().writeValueAsString(event));
+        when(eventStore.claimProcessableEvents()).thenReturn(List.of(delivery));
+        when(kafkaTemplate.send(eq("order.created.v1"), eq("42"), any(OrderCreatedEvent.class)))
+                .thenReturn(new CompletableFuture<>());
+
+        new StoredOrderEventPublisher(eventStore, new ObjectMapper().findAndRegisterModules(), kafkaTemplate,
+                "order.created.v1", Duration.ZERO).publishPendingEvents();
 
         verify(eventStore).recordDeliveryFailure(eq(event.eventId()), any(Throwable.class));
     }
