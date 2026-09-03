@@ -12,7 +12,7 @@ import com.grocery.microservices.order.exception.OrderNotFoundException;
 import com.grocery.microservices.order.exception.OrderAccessDeniedException;
 import com.grocery.microservices.order.repository.OrderRepository;
 import com.grocery.microservices.order.event.OrderCreatedEvent;
-import com.grocery.microservices.order.messaging.OrderEventPublisher;
+import com.grocery.microservices.order.eventstore.OrderEventStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -28,12 +28,12 @@ public class OrderService {
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
     private final OrderRepository repo;
     private final CartClient cartClient;
-    private final OrderEventPublisher orderEventPublisher;
+    private final OrderEventStore orderEventStore;
 
-    public OrderService(OrderRepository repo, CartClient cartClient, OrderEventPublisher orderEventPublisher) {
+    public OrderService(OrderRepository repo, CartClient cartClient, OrderEventStore orderEventStore) {
         this.repo = repo;
         this.cartClient = cartClient;
-        this.orderEventPublisher = orderEventPublisher;
+        this.orderEventStore = orderEventStore;
     }
 
     @Transactional
@@ -41,7 +41,7 @@ public class OrderService {
         order.setStatus(OrderStatus.PENDING);
         order.setOrderDate(LocalDateTime.now());
         Order savedOrder = repo.save(order);
-        orderEventPublisher.publish(OrderCreatedEvent.create(UUID.randomUUID(), UUID.randomUUID(), Instant.now(),
+        orderEventStore.enqueue(new OrderCreatedEvent(UUID.randomUUID(), OrderCreatedEvent.TYPE, Instant.now(),
                 savedOrder.getId(), savedOrder.getUserId(), savedOrder.getCartId(), savedOrder.getTotal()));
         log.info("EVENT=ORDER_CREATED ORDER_ID={} USER_ID={} TOTAL={}",
             savedOrder.getId(), savedOrder.getUserId(), savedOrder.getTotal());

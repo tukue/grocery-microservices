@@ -43,7 +43,7 @@ This application is designed using the microservices architectural style, where 
 - **Order Service:** Manages order creation and processing.
 - **Summary Service:** Generates purchase summaries and receipts.
 
-All services communicate via REST APIs and are containerized for easy orchestration with Docker Compose. For local development, each service has its own database, codebase, and can be tested and deployed independently.
+Services use REST for request-response operations and Kafka for asynchronous order-created events. Order Service persists `order.created.v1` with the order, then a leased publisher delivers it to Kafka. Summary Service consumes it to build its summary read model. For local development, each service has its own database, codebase, and can be tested and deployed independently.
 
 ## Prerequisites
 
@@ -125,20 +125,35 @@ Use the following placeholders for environment-specific service hosts:
 | POSTGRES_PASSWORD         | DB password                |        |
 | POSTGRES_DB               | DB name                    | grocery          |
 | JWT_SECRET                | JWT signing key            | Required outside test |
+| KAFKA_BOOTSTRAP_SERVERS   | Kafka broker bootstrap address | Required in production |
+| KAFKA_ORDER_CREATED_TOPIC | Versioned order-created topic | `order.created.v1` |
+| KAFKA_SUMMARY_CONSUMER_GROUP | Summary consumer group | `summary-service` |
 
 ## Architecture
 
 ```mermaid
-graph TD
-  CartService --> CartDB
-  OrderService --> OrderDB
-  ProductService --> ProductDB
-  SummaryService --> SummaryDB
-  Prometheus --> CartService
-  Prometheus --> OrderService
+flowchart LR
+  CartService[Cart Service] --> CartDB[(Cart DB)]
+  ProductService[Product Service] --> ProductDB[(Product DB)]
+
+  subgraph OrderBoundary[Order Service]
+    OrderApi[Order API] --> OrderDB[(Order DB)]
+    OrderApi --> EventStore[(Order Event Store)]
+    EventPublisher[Leased Event Publisher] --> EventStore
+  end
+
+  EventPublisher -->|order.created.v1| Kafka[(Kafka)]
+
+  subgraph SummaryBoundary[Summary Service]
+    EventConsumer[Order-Created Consumer] --> SummaryDB[(Summary DB)]
+  end
+
+  Kafka -->|summary-service consumer group| EventConsumer
+  Prometheus[Prometheus] --> CartService
+  Prometheus --> OrderApi
   Prometheus --> ProductService
-  Prometheus --> SummaryService
-  Grafana --> Prometheus
+  Prometheus --> EventConsumer
+  Grafana[Grafana] --> Prometheus
 ```
 
 ## Running Tests
@@ -159,6 +174,15 @@ mvn test -pl microservices/cart-service -Dspring.profiles.active=test
 - Shopping cart operations
 - Flexible discount system
 - Receipt generation
+- Asynchronous order-created summaries through Kafka
+
+## Kafka Integration
+
+Order Service writes a typed `OrderCreatedEvent` to its transactional event store with the order. A scheduled relay claims events with a time-limited lease, publishes them outside the database transaction, and records the result. This prevents Kafka latency from holding database locks and enables recovery after a publisher instance stops. Failed publishes are retried with a configurable delay and become terminal `FAILED` records after the configured maximum retries. Summary Service consumes the event with its own consumer group. A unique `summary.order_id` constraint and duplicate check make standard Kafka redelivery idempotent.
+
+Configure the relay with `KAFKA_EVENT_STORE_BATCH_SIZE`, `KAFKA_EVENT_STORE_LEASE_DURATION`, `KAFKA_EVENT_STORE_RETRY_DELAY`, and `KAFKA_EVENT_STORE_MAXIMUM_RETRIES`. The initial publish is followed by at most the configured number of retries. Terminal failures must be monitored and replayed only after their cause is resolved. Summary Service retries consumer failures using `KAFKA_SUMMARY_MAXIMUM_RETRIES`, then publishes the original record to `order.created.v1.failed` for diagnosis and controlled replay.
+
+Docker Compose includes a single-node Kafka broker for development and initializes the order-created and failed-event topics explicitly. Production deployments must provide managed Kafka with at least three brokers, topic replication factor `3`, `min.insync.replicas=2`, and TLS/SASL configured at the platform level.
 
 ## Technical Stack
 
