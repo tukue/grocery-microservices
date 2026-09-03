@@ -28,19 +28,15 @@ The browser must have only public runtime values, for example `PUBLIC_API_BASE_U
 | Checkout | `POST /orders/checkout` | Order | Disable duplicate submission and render the returned order confirmation. |
 | View orders | `GET /orders` and `GET /orders/{id}` | Order | Show only orders belonging to the authenticated customer. |
 | Update order status | `PATCH /orders/{id}/status` | Order | Restrict this control to the product-approved user role/flow. |
+| Poll summary by order | `GET /summaries/by-order/{orderId}` | Summary | Treat `404` as pending summary generation and retry with a bounded poll. |
 | View a known summary | `GET /summaries/{id}` | Summary | Render the summary read model. |
 | View a known receipt | `GET /summaries/{id}/receipt` | Summary | Render a text/print receipt. |
 
 The authoritative endpoint list remains in [API Documentation](api-documentation.md). The frontend client should be generated from published OpenAPI documents once those documents are made part of CI.
 
-## Required Backend Contract Before Receipt UX
+## Receipt Availability Behavior
 
-Checkout returns an order, while summary creation is asynchronous through Kafka. The current summary endpoints are addressed by summary ID, but checkout does not give the browser that ID. Before a production frontend can show an eventual receipt, add one stable contract:
-
-1. `GET /summaries/by-order/{orderId}` returning `200` when ready and `404` or `202` while the summary is pending; or
-2. a summary/receipt link or summary ID in the order response once it is available.
-
-The frontend should display **Order confirmed** immediately after successful checkout, then poll the documented summary-by-order endpoint with bounded retries. It must show a calm "receipt is being prepared" state instead of treating eventual consistency as a checkout failure. Do not poll Kafka or an internal event-store table from the browser.
+Checkout returns an order, while summary creation is asynchronous through Kafka. The frontend should display **Order confirmed** immediately after successful checkout, then poll `GET /summaries/by-order/{orderId}` with bounded retries. A `404` means the summary is still pending; it is not a checkout failure. Do not poll Kafka or an internal event-store table from the browser.
 
 ## Authentication and CORS
 

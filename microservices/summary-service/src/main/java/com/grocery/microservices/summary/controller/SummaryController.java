@@ -36,6 +36,11 @@ public class SummaryController {
         return convertToDto(summary);
     }
 
+    @GetMapping("/by-order/{orderId}")
+    public SummaryDTO getSummaryByOrderId(@PathVariable Long orderId) {
+        return convertToDto(summaryService.getSummaryByOrderId(orderId));
+    }
+
     @GetMapping("/{id}/receipt")
     public String getReceipt(@PathVariable Long id) {
         return summaryService.getFormattedReceipt(id);

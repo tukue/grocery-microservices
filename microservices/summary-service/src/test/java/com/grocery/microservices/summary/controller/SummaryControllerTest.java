@@ -26,6 +26,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -67,6 +68,20 @@ public class SummaryControllerTest {
                 .andExpect(jsonPath("$.orderId").value(42L))
                 .andExpect(jsonPath("$.items[0]").value("Apple"))
                 .andExpect(jsonPath("$.total").value(12.5));
+    }
+
+    @Test
+    public void testGetSummaryByOrderId() throws Exception {
+        Summary summary = new Summary();
+        summary.setId(1L);
+        summary.setOrderId(42L);
+        summary.setTotalAmount(new BigDecimal("12.5"));
+        when(summaryService.getSummaryByOrderId(42L)).thenReturn(summary);
+
+        mockMvc.perform(get("/summaries/by-order/42"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.orderId").value(42L));
     }
 
     @TestConfiguration

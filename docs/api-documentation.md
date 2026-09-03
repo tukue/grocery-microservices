@@ -37,6 +37,7 @@ Validation: `cartId` is required, `productIds` must not be empty.
 
 - `POST /summaries`: creates a summary, returns `201`.
 - `GET /summaries/{id}`: returns a summary, `404` if absent.
+- `GET /summaries/by-order/{orderId}`: returns the asynchronously generated summary for an order, `404` while it is unavailable.
 - `GET /summaries/{id}/receipt`: returns a formatted receipt.
 
 Validation: `orderId` is required, `items` must not be empty, `total` must be positive.
