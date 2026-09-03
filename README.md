@@ -35,7 +35,7 @@ Order Service -- order.created.v1 --> Kafka --> Summary Service --> Summary DB
 - `order-service` publishes JSON `order.created` v1 events keyed by order ID; this preserves ordering per order.
 - `summary-service` consumes as group `summary-service`; a unique summary order ID makes duplicate delivery safe.
 - Events include ID, type, version, timestamp, correlation ID, aggregate ID, and an immutable payload while retaining v1 fields for compatibility.
-- Main-consumer retries are bounded with exponential backoff. Transient failures move to the retry topic; exhausted failures are preserved in the failure-letter queue without an infinite loop.
+- Main-consumer retries are bounded with exponential backoff. Transient failures move to the retry topic; exhausted failures are preserved in the failed-letter queue without an infinite loop.
 - Run locally with `docker compose -f microservices/docker-compose.yml up --build`. Configure broker and topics through `KAFKA_BOOTSTRAP_SERVERS` and `KAFKA_*_TOPIC` variables.
 - Local Kafka uses plaintext. Configure TLS/SASL through Spring Kafka environment properties for deployed environments; no credentials are stored in source.
 

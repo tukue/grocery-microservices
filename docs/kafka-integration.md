@@ -11,7 +11,7 @@ summary is a rebuildable read model.
 | `order-service` | Producer | Persist an order and its pending event in one database transaction. |
 | `order_event_store` | Order database | Retain pending, processing, published, and terminally failed events. |
 | `summary-service` | Consumer | Build one summary per order and safely tolerate redelivery. |
-| `order.created.v1.failed` | Operations | Failure-letter queue (DLQ) retaining records that exhaust summary consumer retries. |
+| `order.created.v1.failed` | Operations | Failed-letter queue retaining records that exhaust summary consumer retries. |
 
 ## Event Flow
 
@@ -47,7 +47,7 @@ The order producer uses the database-backed event store rather than publishing d
 
 The relay publishes outside the database transaction. Its lease protects against concurrent relay instances; a record is available again after `KAFKA_EVENT_STORE_LEASE_DURATION` if a relay stops unexpectedly.
 
-## Consumer Retries and Failure-Letter Queue
+## Consumer Retries and Failed-Letter Queue
 
 `summary-service` uses Spring Kafka's `DefaultErrorHandler` with a bounded fixed backoff:
 
@@ -55,7 +55,7 @@ The relay publishes outside the database transaction. Its lease protects against
 - `KAFKA_SUMMARY_MAXIMUM_RETRIES` sets the number of retries after the initial processing attempt.
 - When processing still fails, Spring Kafka publishes the original record to `<source-topic>.failed`, preserving its partition.
 
-The failure-letter queue is deliberately not consumed automatically. Inspect the record, correct the underlying issue, then replay it with an explicit operator action. This prevents poison messages from repeatedly blocking the main consumer group.
+The failed-letter queue is deliberately not consumed automatically. Inspect the record, correct the underlying issue, then replay it with an explicit operator action. This prevents poison messages from repeatedly blocking the main consumer group.
 
 ## Configuration Reference
 
