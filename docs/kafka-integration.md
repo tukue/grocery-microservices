@@ -11,7 +11,7 @@ summary is a rebuildable read model.
 | `order-service` | Producer | Persist an order and its pending event in one database transaction. |
 | `order_event_store` | Order database | Retain pending, processing, published, and terminally failed events. |
 | `summary-service` | Consumer | Build one summary per order and safely tolerate redelivery. |
-| `order.created.v1.failed` | Operations | Failure-letter queue (FLQ) retaining records that exhaust summary consumer retries. |
+| `order.created.v1.failed` | Operations | Failure-letter queue (DLQ) retaining records that exhaust summary consumer retries. |
 
 ## Event Flow
 
