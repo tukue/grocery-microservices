@@ -19,13 +19,15 @@ Validation: product `name` is required, `price` must be positive.
 - `POST /carts`: creates a cart, returns `201`.
 - `GET /carts/{id}`: returns a cart with items, `404` if absent.
 - `POST /carts/{cartId}/items`: adds an item.
+- `PATCH /carts/{cartId}/items/{itemId}`: updates an item's quantity and returns the canonical cart.
 - `DELETE /carts/{cartId}/items/{itemId}`: removes an item.
 
 Validation: item `productName` is required, `price` must be non-negative, `quantity` must be at least 1.
 
 ## Order Service
 
-- `POST /orders`: creates an order, returns `201`.
+- `POST /orders/checkout`: creates an order from the authenticated customer's cart, returns `201`.
+- `GET /orders`: returns orders for the authenticated customer.
 - `GET /orders/{id}`: returns one order, `404` if absent.
 - `PATCH /orders/{id}/status?status={PENDING|COMPLETED|CANCELLED}`: changes status.
 
