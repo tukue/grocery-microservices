@@ -131,6 +131,8 @@ Use the following placeholders for environment-specific service hosts:
 
 ## Architecture
 
+For the cross-team production plan covering frontend integration, API contracts, security, operations, and release gates, see the [Production Product and Integration Roadmap](../docs/production-alignment-roadmap.md).
+
 ```mermaid
 flowchart LR
   CartService[Cart Service] --> CartDB[(Cart DB)]
