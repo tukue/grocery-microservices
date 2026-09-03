@@ -41,7 +41,7 @@ public class OrderService {
         order.setStatus(OrderStatus.PENDING);
         order.setOrderDate(LocalDateTime.now());
         Order savedOrder = repo.save(order);
-        orderEventPublisher.publish(new OrderCreatedEvent(UUID.randomUUID(), OrderCreatedEvent.TYPE, Instant.now(),
+        orderEventPublisher.publish(OrderCreatedEvent.create(UUID.randomUUID(), UUID.randomUUID(), Instant.now(),
                 savedOrder.getId(), savedOrder.getUserId(), savedOrder.getCartId(), savedOrder.getTotal()));
         log.info("EVENT=ORDER_CREATED ORDER_ID={} USER_ID={} TOTAL={}",
             savedOrder.getId(), savedOrder.getUserId(), savedOrder.getTotal());
