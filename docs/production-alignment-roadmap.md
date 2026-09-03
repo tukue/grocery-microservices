@@ -116,7 +116,7 @@ flowchart LR
 - Configure broker replication, TLS/SASL, ACLs, retention, monitoring, and secret injection. See [Kafka Integration Guide](kafka-integration.md).
 - Run database migrations through a controlled migration tool before relying on production schema validation.
 - Add correlation IDs to HTTP logs and propagate them into Kafka event metadata and consumer logs.
-- Define dashboards and alerts for HTTP 5xx rate, latency, unavailable dependencies, order-event-store `FAILED` records, consumer lag, and failed-letter topic growth.
+- Define dashboards and alerts for HTTP 5xx rate, latency, unavailable dependencies, order-event-store `FAILED` records, consumer lag, and failure-letter queue growth.
 - Write operational runbooks for order-event replay, failed consumer record replay, rollback, and secret rotation.
 
 **Frontend**
@@ -154,7 +154,7 @@ flowchart LR
 - [ ] All customer flows have acceptance tests and no client trusts browser-supplied totals or identities.
 - [ ] JWT/session lifecycle, CORS origins, CSP, and public endpoints are reviewed for the production domain.
 - [ ] Database migrations, backups, restore testing, and retention policies are in place.
-- [ ] Kafka is managed, secured, monitored, and has a named owner for failed-letter replay.
+- [ ] Kafka is managed, secured, monitored, and has a named owner for failure-letter queue replay.
 - [ ] Alerts route to an accountable team and runbooks cover the failure modes they alert on.
 - [ ] Frontend and backend builds have immutable versions, staging validation, and documented rollback.
 - [ ] Accessibility, performance, security scanning, and error monitoring are part of release checks.
