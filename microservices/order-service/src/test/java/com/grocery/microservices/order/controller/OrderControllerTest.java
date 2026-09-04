@@ -31,6 +31,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 
@@ -66,6 +67,7 @@ public class OrderControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(checkoutRequest)))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/orders/1"))
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.status").value("PENDING"))
                 .andExpect(jsonPath("$.total").value(24.50));

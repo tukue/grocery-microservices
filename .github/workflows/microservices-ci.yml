@@ -72,6 +72,7 @@ jobs:
       run: |
         SMOKE_JWT_VALUE="$(openssl rand -hex 32)"
         export SPRING_APPLICATION_JSON="{\"jwt\":{\"secret\":\"${SMOKE_JWT_VALUE}\"}}"
+        export CORS_ALLOWED_ORIGINS="https://frontend.smoke.test"
         docker compose up -d cart-db order-db product-db summary-db cart-service order-service product-service summary-service
 
     - name: Verify health endpoints

@@ -20,6 +20,59 @@ A production-grade grocery store platform built with microservices architecture,
 
 ## System Architecture
 
+### Full-Stack Ecommerce Integration
+
+```mermaid
+flowchart TB
+    Customer[Customer browser] -->|loads storefront| Frontend[React / TypeScript frontend\nCDN or static hosting]
+    Customer -->|HTTPS REST + bearer token| Api[Public API entry\nALB path routing]
+
+    Api --> Product[Product service\nCatalog and search]
+    Api --> Cart[Cart service\nCart operations]
+    Api --> Order[Order service\nCheckout and orders]
+    Api --> Summary[Summary service\nSummaries and receipts]
+
+    Product --> ProductDb[(Product DB)]
+    Cart --> CartDb[(Cart DB)]
+    Order --> OrderDb[(Order DB)]
+    Order --> EventStore[(Order event store)]
+    EventStore -->|order.created.v1\nkey: orderId| Kafka[(Kafka)]
+    Kafka -->|summary-service group| Summary
+    Kafka -->|exhausted retries| FailedQueue[order.created.v1.failed\nFailed-letter queue]
+    Summary --> SummaryDb[(Summary DB)]
+
+    Summary -.->|frontend polls by order ID\nuntil receipt exists| Customer
+    Product -.-> Metrics[Metrics, logs, alerts]
+    Cart -.-> Metrics
+    Order -.-> Metrics
+    Summary -.-> Metrics
+    FailedQueue -.-> Metrics
+```
+
+- The frontend calls only public HTTP APIs; it never connects to Kafka or service databases.
+- `order-service` persists the order and event intent, then its relay publishes `order.created.v1`.
+- `summary-service` consumes idempotently. The frontend confirms checkout immediately and polls the summary endpoint while the receipt is pending.
+- Configure allowed browser origins with `CORS_ALLOWED_ORIGINS`; inject Kafka and database credentials only into backend deployments.
+
+### Full-Stack MVP Decisions
+
+| Decision | Rationale | MVP trade-off |
+| --- | --- | --- |
+| Direct frontend-to-service APIs | Keeps the first frontend integration simple and preserves service ownership. | The frontend coordinates cart, checkout, and receipt polling; add a BFF only when cross-service composition becomes repetitive. |
+| REST for commands and queries | Browser interactions need immediate validation and an authoritative response. | A temporary downstream outage can affect the corresponding user action. |
+| Kafka only for asynchronous projections | Receipt/summary generation does not need to delay checkout confirmation. | The summary is eventually consistent; the UI must model a pending state. |
+| Order event store and relay | Persists the intent to publish with the order and retries delivery outside the HTTP transaction. | It is a focused outbox-style relay, not a general workflow engine. |
+| `orderId` as Kafka key | Preserves partition ordering for events belonging to one order. | No ordering guarantee exists between separate orders. |
+| Idempotent summary consumer | Standard Kafka redelivery cannot create duplicate summaries. | Processing remains at-least-once, not exactly-once across services. |
+| Failed-letter queue | Bounds poison-message retries and preserves context for investigation. | Replay is an explicit operational action; it is not automatically retried forever. |
+| Database per service | Prevents hidden cross-service coupling and gives each domain ownership of its data. | Cross-service reporting requires an API call or an asynchronous read model. |
+| CORS allowlist and bearer tokens | Enables browser access without exposing internal services or using wildcard origins. | The demo authentication flow must be replaced with an approved identity provider before production. |
+
+**Evolution triggers:** introduce a BFF/API gateway when multiple clients need the same aggregation;
+introduce a managed Kafka cluster with TLS/SASL and ACLs before production; introduce an external
+identity provider before handling real customer accounts; and add contract tests/OpenAPI type
+generation when a frontend codebase is connected.
+
 ### Kafka Order Summary Flow
 
 ```text
