@@ -49,6 +49,13 @@ public class CartService {
         return toDTO(cart);
     }
 
+    @Transactional(readOnly = true)
+    public CartDTO getCurrentCart(String userId) {
+        Cart cart = repo.findFirstByUserIdOrderByIdDesc(userId)
+                .orElseThrow(() -> new CartNotFoundException("No cart found for the authenticated user"));
+        return toDTO(cart);
+    }
+
     @Transactional
     @Retryable(retryFor = { SQLException.class }, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     public CartDTO addItem(Long cartId, Long productId, int quantity, String userId) {

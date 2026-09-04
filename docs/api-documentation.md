@@ -27,6 +27,7 @@ Validation: product `name` is required, `price` must be positive.
 ## Cart Service
 
 - `POST /carts`: creates a cart, returns `201`.
+- `GET /carts/current`: returns the most recently created cart for the authenticated customer, or `404` when the customer has not created a cart.
 - `GET /carts/{id}`: returns a cart with items, `404` if absent.
 - `POST /carts/{cartId}/items`: adds an item.
 - `PATCH /carts/{cartId}/items/{itemId}`: updates an item's quantity and returns the canonical cart.

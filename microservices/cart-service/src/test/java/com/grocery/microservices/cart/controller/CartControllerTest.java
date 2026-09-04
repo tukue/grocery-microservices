@@ -97,6 +97,17 @@ public class CartControllerTest {
     }
 
     @Test
+    public void getsCurrentCartForAuthenticatedCustomer() throws Exception {
+        CartDTO cart = new CartDTO();
+        cart.setId(1L);
+        when(cartService.getCurrentCart("customer-1")).thenReturn(cart);
+
+        mockMvc.perform(get("/carts/current"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L));
+    }
+
+    @Test
     public void returnsNotFoundWhenRemovingMissingCartItem() throws Exception {
         when(cartService.removeItem(1L, 99L, "customer-1"))
                 .thenThrow(new CartItemNotFoundException(1L, 99L));
