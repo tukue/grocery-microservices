@@ -8,6 +8,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ApiCorsConfigurationTest {
 
@@ -24,5 +25,10 @@ class ApiCorsConfigurationTest {
         assertEquals(List.of("Authorization", "Content-Type", "X-Correlation-Id"),
                 configuration.getAllowedHeaders());
         assertFalse(configuration.getAllowCredentials());
+    }
+
+    @Test
+    void rejectsMissingFrontendOrigins() {
+        assertThrows(IllegalStateException.class, () -> new SecurityConfig(null, null, " "));
     }
 }

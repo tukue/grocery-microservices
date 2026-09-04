@@ -31,6 +31,9 @@ public class SecurityConfig {
         this.securityExceptionHandler = securityExceptionHandler;
         this.allowedOrigins = Arrays.stream(allowedOrigins.split(",")).map(String::trim)
                 .filter(origin -> !origin.isEmpty()).toList();
+        if (this.allowedOrigins.isEmpty()) {
+            throw new IllegalStateException("app.cors.allowed-origins must configure at least one origin");
+        }
     }
 
     @Bean
