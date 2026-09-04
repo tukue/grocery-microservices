@@ -57,7 +57,7 @@ The MVP currently supports catalog browsing and cart changes, but checkout is no
 
 **Priority:** P0  
 **Business outcome:** Customers can submit a cart as an order without controlling the final total.
-**Status:** Implemented (cart ownership remains Phase 3 work)
+**Status:** Implemented (cart ownership and current-cart retrieval are implemented; post-checkout cart state remains Phase 3 work)
 
 ### Work
 
@@ -82,7 +82,7 @@ The MVP currently supports catalog browsing and cart changes, but checkout is no
 - Added an explicit cart-service client with externally configured base URLs, short timeouts, and forwarded customer authorization.
 - Calculates the trusted total and immutable order lines from persisted cart snapshots; checkout requests cannot provide prices, product lists, or totals.
 - Returns `404` for a missing cart, `409` for an empty cart, and `503` when cart-service is unavailable; no order is persisted for these failures.
-- Cart ownership and post-checkout cart state remain part of Phase 3 because carts do not yet carry a customer identity.
+- Cart ownership and current-cart retrieval are implemented. Post-checkout cart state remains Phase 3 work.
 
 ## Phase 3: Customer Identity and Account Ownership
 
@@ -95,7 +95,7 @@ The MVP currently supports catalog browsing and cart changes, but checkout is no
 1. Replace static demo authentication with a real identity provider or Spring Authorization Server integration.
 2. Add customer ID ownership to carts, orders, and summaries.
 3. Derive customer identity from the validated JWT; do not accept it as a mutable request field.
-4. Add `GET /carts/current`, `GET /orders`, and `GET /orders/{id}` with ownership checks.
+4. Add `GET /carts/current`, `GET /orders`, and `GET /orders/{id}` with ownership checks. `GET /carts/current` and order ownership endpoints are implemented.
 5. Add customer order history and receipt retrieval.
 
 ### Definition of Done

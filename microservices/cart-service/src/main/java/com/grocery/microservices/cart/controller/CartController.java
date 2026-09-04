@@ -25,6 +25,11 @@ public class CartController {
         return ResponseEntity.status(HttpStatus.CREATED).body(cartService.createCart(authentication.getName()));
     }
 
+    @GetMapping("/current")
+    public ResponseEntity<CartDTO> getCurrentCart(Authentication authentication) {
+        return ResponseEntity.ok(cartService.getCurrentCart(authentication.getName()));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<CartDTO> getCartById(@PathVariable Long id, Authentication authentication) {
         return ResponseEntity.ok(cartService.getCartById(id, authentication.getName()));

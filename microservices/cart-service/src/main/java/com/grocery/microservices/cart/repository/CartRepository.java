@@ -10,4 +10,7 @@ public interface CartRepository extends JpaRepository<Cart, Long> {
     @Override
     @EntityGraph(attributePaths = "items")
     Optional<Cart> findById(Long id);
+
+    @EntityGraph(attributePaths = "items")
+    Optional<Cart> findFirstByUserIdOrderByIdDesc(String userId);
 }

@@ -9,6 +9,7 @@ import com.grocery.microservices.cart.exception.InsufficientProductStockExceptio
 import com.grocery.microservices.cart.model.Cart;
 import com.grocery.microservices.cart.model.CartItem;
 import com.grocery.microservices.cart.exception.CartItemNotFoundException;
+import com.grocery.microservices.cart.exception.CartNotFoundException;
 import com.grocery.microservices.cart.repository.CartRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,6 +64,24 @@ class CartServiceTest {
         assertEquals(1L, foundCartDTO.getId());
         // Test not found scenario
         assertThrows(Exception.class, () -> cartService.getCartById(2L, "customer-1"));
+    }
+
+    @Test
+    void getCurrentCartReturnsTheMostRecentlyCreatedCartForTheAuthenticatedUser() {
+        testCart.setUserId("customer-1");
+        when(cartRepository.findFirstByUserIdOrderByIdDesc("customer-1")).thenReturn(Optional.of(testCart));
+
+        var foundCartDTO = cartService.getCurrentCart("customer-1");
+
+        assertEquals(1L, foundCartDTO.getId());
+        verify(cartRepository).findFirstByUserIdOrderByIdDesc("customer-1");
+    }
+
+    @Test
+    void getCurrentCartRejectsAnAuthenticatedUserWithoutACart() {
+        when(cartRepository.findFirstByUserIdOrderByIdDesc("customer-1")).thenReturn(Optional.empty());
+
+        assertThrows(CartNotFoundException.class, () -> cartService.getCurrentCart("customer-1"));
     }
 
     @Test

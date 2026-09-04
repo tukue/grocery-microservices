@@ -28,7 +28,8 @@ The MVP uses the existing service URLs directly. Add an API gateway or generated
 | --- | --- | --- | --- |
 | Browse catalogue | `GET /products` | Product | Render server price and availability. |
 | Search catalogue | `GET /products/search?name=` | Product | Debounce input and handle empty results. |
-| Create cart | `POST /carts` | Cart | Store only the returned cart ID in client state. |
+| Load current cart | `GET /carts/current` | Cart | Load the authenticated customer's most recently created cart; create one when the API returns `404`. |
+| Create cart | `POST /carts` | Cart | Create a cart only when no current cart exists; retain the returned ID only as page state. |
 | View cart | `GET /carts/{cartId}` | Cart | Render the returned canonical cart. |
 | Add item | `POST /carts/{cartId}/items` | Cart | Replace local cart state with the response. |
 | Change quantity | `PATCH /carts/{cartId}/items/{itemId}` | Cart | Use the returned cart; do not calculate stock or totals locally. |
