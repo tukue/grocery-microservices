@@ -16,7 +16,7 @@ The browser must have only public runtime values, for example `PUBLIC_API_BASE_U
 
 ## Local MVP Setup
 
-1. Start the backend with `CORS_ALLOWED_ORIGINS=http://localhost:3000 docker compose -f microservices/docker-compose.yml up --build`.
+1. Set `CORS_ALLOWED_ORIGINS` to the exact frontend origin, then run `docker compose -f microservices/docker-compose.yml up --build`.
 2. Configure the frontend with the service URLs: product `http://localhost:8083`, cart `http://localhost:8081`, order `http://localhost:8082`, and summary `http://localhost:8084`.
 3. For a deployed frontend, set `CORS_ALLOWED_ORIGINS` to its exact HTTPS origin before starting the services. Do not use `*`.
 

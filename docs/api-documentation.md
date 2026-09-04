@@ -5,9 +5,9 @@ Each service exposes OpenAPI at `/v3/api-docs` and Swagger UI at `/swagger-ui/in
 ## Browser Integration
 
 All services accept browser requests from the comma-separated origin allowlist in
-`CORS_ALLOWED_ORIGINS`; the safe local default is `http://localhost:3000`. Docker Compose
-passes this one variable to every service. Production requires an explicit deployed frontend
-origin. Requests may send `Authorization`, `Content-Type`, and `X-Correlation-Id`;
+`CORS_ALLOWED_ORIGINS`. Docker Compose passes this required variable to every service.
+Set it to the exact frontend origin for each environment. Requests may send `Authorization`,
+`Content-Type`, and `X-Correlation-Id`;
 responses expose `Location`. Cookie credentials are intentionally disabled because
 authentication uses bearer tokens.
 
