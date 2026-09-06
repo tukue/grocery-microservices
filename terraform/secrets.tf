@@ -1,12 +1,12 @@
 # JWT Secrets for each microservice
 resource "aws_secretsmanager_secret" "jwt_secrets" {
   for_each = var.services
-  
+
   name        = "${local.name_prefix}/${each.key}/jwt-secret"
   description = "JWT secret for ${each.key} service"
-  
+
   kms_key_id = aws_kms_key.secrets.arn
-  
+
   replica {
     region = var.aws_region
   }
@@ -20,7 +20,7 @@ resource "aws_secretsmanager_secret" "jwt_secrets" {
 
 resource "aws_secretsmanager_secret_version" "jwt_secrets" {
   for_each = var.services
-  
+
   secret_id = aws_secretsmanager_secret.jwt_secrets[each.key].id
   secret_string = jsonencode({
     jwt_secret = random_password.jwt_secrets[each.key].result
@@ -30,7 +30,7 @@ resource "aws_secretsmanager_secret_version" "jwt_secrets" {
 # Generate random JWT secrets
 resource "random_password" "jwt_secrets" {
   for_each = var.services
-  
+
   length  = 64
   special = true
 }
@@ -38,10 +38,10 @@ resource "random_password" "jwt_secrets" {
 # Database password secret (legacy - keeping for backward compatibility)
 resource "aws_secretsmanager_secret" "db_password" {
   name        = "${local.name_prefix}/db-password"
-  description = "Database password for the Grocellery application"
-  
+  description = "Database password for the Grocery E-Commerce Platform"
+
   kms_key_id = aws_kms_key.secrets.arn
-  
+
   replica {
     region = var.aws_region
   }
@@ -63,13 +63,13 @@ resource "aws_secretsmanager_secret_version" "db_password_version" {
 resource "aws_ssm_parameter" "service_config" {
   for_each = var.services
 
-  name  = "/${var.project_name}/${var.environment}/${each.key}/config"
-  type  = "SecureString"
+  name   = "/${var.project_name}/${var.environment}/${each.key}/config"
+  type   = "SecureString"
   key_id = aws_kms_key.secrets.arn
   value = jsonencode({
-    environment      = var.environment
-    service          = each.key
-    config_version   = "v1"
+    environment    = var.environment
+    service        = each.key
+    config_version = "v1"
   })
 
   tags = merge(local.common_tags, {

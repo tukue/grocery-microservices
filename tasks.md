@@ -1,8 +1,8 @@
-# Tasks for Improving and Deploying the Grocellery Microservice to AWS Cloud
+# Tasks for Improving and Deploying the Grocery E-Commerce Platform to AWS Cloud
 
 ## 1. Project Overview
 
-*   ✅ The "clean-code-grocellery-app" is a Spring Boot microservice with a clear architectural separation into `controller`, `service`, `repository`, and `model` layers.
+*   ✅ The "grocery-ecommerce-platform" is a Spring Boot microservice platform with a clear architectural separation into `controller`, `service`, `repository`, and `model` layers.
 *   [ ] The application currently does not use external configuration files in `src/main/resources`.
 
 ## 2. Local Development Setup
@@ -50,7 +50,7 @@ These steps are to be performed by the developer to deploy and verify the infras
 
 ### 5.3 Verify the Pipeline
 
-1.  After the `terraform apply` is complete, navigate to the AWS CodePipeline console to see your new `grocellery-pipeline`.
+1.  After the `terraform apply` is complete, navigate to the AWS CodePipeline console to see your new `grocery-ecommerce-platform-pipeline`.
 2.  Push a code change to the `main` branch of your CodeCommit repository.
 3.  Verify that the pipeline is triggered and that each stage completes successfully.
 

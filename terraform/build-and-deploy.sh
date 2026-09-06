@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 # Configuration
 ENVIRONMENT=${1:-dev}
 AWS_REGION=${2:-${AWS_REGION:-${AWS_DEFAULT_REGION:-}}}
-PROJECT_NAME="grocellery-app"
+PROJECT_NAME="grocery-ecommerce-platform"
 SERVICES=("cart" "order" "product" "summary")
 
 if [ -z "${AWS_REGION}" ]; then

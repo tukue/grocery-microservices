@@ -1,4 +1,4 @@
-# Clean Code Grocellery App
+# Grocery E-Commerce Platform
 
 A production-grade grocery store platform built with microservices architecture, demonstrating end-to-end CI/CD, cloud-native deployment, and observability best practices.
 
@@ -435,7 +435,7 @@ The services will be available at the following ports:
 
 ```sh
 git clone <repo-url>
-cd clean-code-grocellery-app
+cd grocery-ecommerce-platform
 docker-compose up
 ```
 Access services at:

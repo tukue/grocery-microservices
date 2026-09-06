@@ -15,7 +15,7 @@ terraform {
   # Uncomment and configure for remote state management
   # backend "s3" {
   #   bucket         = "your-terraform-state-bucket"
-  #   key            = "grocellery-app/terraform.tfstate"
+  #   key            = "grocery-ecommerce-platform/terraform.tfstate"
   #   region         = "us-east-1"
   #   encrypt        = true
   #   dynamodb_table = "terraform-state-lock"

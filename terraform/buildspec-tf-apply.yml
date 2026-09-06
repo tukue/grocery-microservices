@@ -10,7 +10,7 @@ phases:
       - |
         WORKSPACE=${TF_WORKSPACE:-dev}
         if [ -n "${TF_STATE_BUCKET}" ]; then
-          STATE_KEY_PREFIX=${TF_STATE_KEY_PREFIX:-${PROJECT_NAME:-grocellery-app}}
+          STATE_KEY_PREFIX=${TF_STATE_KEY_PREFIX:-${PROJECT_NAME:-grocery-ecommerce-platform}}
           LOCK_TABLE="${TF_STATE_LOCK_TABLE:-}"
           INIT_ARGS=(
             "-backend-config=bucket=${TF_STATE_BUCKET}"

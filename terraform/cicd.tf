@@ -1,5 +1,5 @@
 resource "aws_codepipeline" "grocellery_pipeline" {
-  name     = "grocellery-pipeline"
+  name     = "${var.project_name}-pipeline"
   role_arn = aws_iam_role.codepipeline_role.arn
 
   artifact_store {
@@ -19,7 +19,7 @@ resource "aws_codepipeline" "grocellery_pipeline" {
       output_artifacts = ["source_output"]
 
       configuration = {
-        RepositoryName = "grocellery-app"
+        RepositoryName = var.project_name
         BranchName     = "main"
       }
     }
@@ -461,7 +461,7 @@ resource "aws_dynamodb_table" "terraform_lock" {
 
 resource "aws_codebuild_project" "grocellery_build" {
   name          = "grocellery-build"
-  description   = "Build project for the Grocellery microservices"
+  description   = "Build project for the Grocery E-Commerce Platform"
   build_timeout = "30"
   service_role  = aws_iam_role.codebuild_app_build_role.arn
 
@@ -514,7 +514,7 @@ resource "aws_codebuild_project" "grocellery_build" {
 
 resource "aws_codebuild_project" "grocellery_terraform" {
   name          = "grocellery-terraform"
-  description   = "Terraform plan and apply for the Grocellery microservices"
+  description   = "Terraform plan and apply for the Grocery E-Commerce Platform"
   build_timeout = "30"
   service_role  = aws_iam_role.codebuild_terraform_role.arn
 
@@ -578,11 +578,11 @@ resource "aws_iam_role" "codepipeline_role" {
   name = "grocellery-codepipeline-role"
 
   assume_role_policy = jsonencode({
-    Version   = "2012-10-17",
+    Version = "2012-10-17",
     Statement = [
       {
-        Action    = "sts:AssumeRole",
-        Effect    = "Allow",
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
         Principal = {
           Service = "codepipeline.amazonaws.com"
         }
@@ -595,11 +595,11 @@ resource "aws_iam_role" "codebuild_app_build_role" {
   name = "grocellery-codebuild-app-build-role"
 
   assume_role_policy = jsonencode({
-    Version   = "2012-10-17",
+    Version = "2012-10-17",
     Statement = [
       {
-        Action    = "sts:AssumeRole",
-        Effect    = "Allow",
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
         Principal = {
           Service = "codebuild.amazonaws.com"
         }
@@ -612,11 +612,11 @@ resource "aws_iam_role" "codebuild_terraform_role" {
   name = "grocellery-codebuild-terraform-role"
 
   assume_role_policy = jsonencode({
-    Version   = "2012-10-17",
+    Version = "2012-10-17",
     Statement = [
       {
-        Action    = "sts:AssumeRole",
-        Effect    = "Allow",
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
         Principal = {
           Service = "codebuild.amazonaws.com"
         }
@@ -629,11 +629,11 @@ resource "aws_iam_role" "codebuild_quick_test_role" {
   name = "grocellery-codebuild-quick-test-role"
 
   assume_role_policy = jsonencode({
-    Version   = "2012-10-17",
+    Version = "2012-10-17",
     Statement = [
       {
-        Action    = "sts:AssumeRole",
-        Effect    = "Allow",
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
         Principal = {
           Service = "codebuild.amazonaws.com",
         }
@@ -649,11 +649,11 @@ resource "aws_iam_policy" "codepipeline_policy" {
   description = "Policy for the Grocellery CodePipeline role"
 
   policy = jsonencode({
-    Version   = "2012-10-17",
+    Version = "2012-10-17",
     Statement = [
       {
-        Effect   = "Allow",
-        Action   = [
+        Effect = "Allow",
+        Action = [
           "s3:GetObject",
           "s3:GetObjectVersion",
           "s3:GetBucketVersioning",
@@ -672,7 +672,7 @@ resource "aws_iam_policy" "codepipeline_policy" {
       {
         Effect   = "Allow",
         Action   = ["codecommit:GetBranch", "codecommit:GetCommit", "codecommit:UploadArchive", "codecommit:GetUploadArchiveStatus", "codecommit:CancelUploadArchive"],
-        Resource = "arn:aws:codecommit:${var.aws_region}:${data.aws_caller_identity.current.account_id}:grocellery-app"
+        Resource = "arn:aws:codecommit:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${var.project_name}"
       }
     ]
   })
@@ -680,10 +680,10 @@ resource "aws_iam_policy" "codepipeline_policy" {
 
 resource "aws_iam_policy" "codebuild_app_build_policy" {
   name        = "grocellery-codebuild-app-build-policy"
-  description = "Policy for the Grocellery application build project"
+  description = "Policy for the Grocery E-Commerce Platform build project"
 
   policy = jsonencode({
-    Version   = "2012-10-17",
+    Version = "2012-10-17",
     Statement = [
       {
         Effect   = "Allow",
@@ -696,8 +696,8 @@ resource "aws_iam_policy" "codebuild_app_build_policy" {
         Resource = "*"
       },
       {
-        Effect   = "Allow",
-        Action   = [
+        Effect = "Allow",
+        Action = [
           "ecr:BatchCheckLayerAvailability",
           "ecr:InitiateLayerUpload",
           "ecr:UploadLayerPart",
@@ -715,7 +715,7 @@ resource "aws_iam_policy" "codebuild_secrets_manager_policy" {
   description = "Policy to allow CodeBuild to read the DB password from Secrets Manager"
 
   policy = jsonencode({
-    Version   = "2012-10-17",
+    Version = "2012-10-17",
     Statement = [
       {
         Effect   = "Allow",

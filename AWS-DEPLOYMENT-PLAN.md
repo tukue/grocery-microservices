@@ -1,7 +1,7 @@
-# AWS Deployment Plan - Clean Code Grocellery Microservices
+# AWS Deployment Plan - Grocery E-Commerce Platform
 
 ## Overview
-This plan outlines the deployment of the Clean Code Grocellery microservices application to AWS using containerized architecture with ECS, RDS, and supporting AWS services.
+This plan outlines the deployment of the Grocery E-Commerce Platform to AWS using containerized architecture with ECS, RDS, and supporting AWS services.
 
 ## Current Architecture Analysis
 - **4 Spring Boot Microservices**: cart-service, order-service, product-service, summary-service
@@ -324,7 +324,7 @@ ALB Listener Rules:
 
 ## Conclusion
 
-This deployment plan provides a comprehensive approach to migrating the Clean Code Grocellery microservices to AWS. The plan emphasizes:
+This deployment plan provides a comprehensive approach to migrating the Grocery E-Commerce Platform to AWS. The plan emphasizes:
 
 - **Scalability**: ECS Fargate auto-scaling
 - **Reliability**: Multi-AZ deployment and health checks

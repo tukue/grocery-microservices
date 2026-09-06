@@ -36,7 +36,7 @@ phases:
         SHORT_SHA=$(printf '%s' "${CODEBUILD_RESOLVED_SOURCE_VERSION:-manual}" | cut -c1-12)
         export TF_VAR_image_tag="${IMAGE_TAG:-sha-${SHORT_SHA}}"
         if [ -n "${TF_STATE_BUCKET}" ]; then
-          STATE_KEY_PREFIX=${TF_STATE_KEY_PREFIX:-${PROJECT_NAME:-grocellery-app}}
+          STATE_KEY_PREFIX=${TF_STATE_KEY_PREFIX:-${PROJECT_NAME:-grocery-ecommerce-platform}}
           LOCK_TABLE="${TF_STATE_LOCK_TABLE:-}"
           INIT_ARGS=(
             "-backend-config=bucket=${TF_STATE_BUCKET}"

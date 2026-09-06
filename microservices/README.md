@@ -1,4 +1,4 @@
-# Clean Code Grocellery App
+# Grocery E-Commerce Platform
 
 This project is a grocery store application built with a microservices architecture. It is designed for both local development and fully automated cloud deployment to AWS.
 
@@ -97,7 +97,7 @@ The services will be available at the following ports:
 
 ```sh
 git clone <repo-url>
-cd clean-code-grocellery-app
+cd grocery-ecommerce-platform
 docker-compose up
 ```
 Access services at:

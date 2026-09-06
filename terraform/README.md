@@ -1,6 +1,6 @@
-# Terraform Infrastructure for Grocellery Microservices
+# Terraform Infrastructure for Grocery E-Commerce Platform
 
-This directory contains Terraform configurations to deploy the Grocellery microservices application to AWS using a modular approach.
+This directory contains Terraform configurations to deploy the Grocery E-Commerce Platform to AWS using a modular approach.
 
 ## Architecture
 
@@ -129,8 +129,8 @@ docker build -t summary-service ./microservices/summary-service
 # Tag and push to ECR (after terraform apply)
 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com
 
-docker tag cart-service:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/grocellery-app-dev-cart:latest
-docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/grocellery-app-dev-cart:latest
+docker tag cart-service:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/grocery-ecommerce-platform-dev-cart:latest
+docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/grocery-ecommerce-platform-dev-cart:latest
 ```
 
 ### 2. Update ECS Services
@@ -148,7 +148,7 @@ After deployment, services are accessible through the ALB:
 
 ## Monitoring
 
-- **CloudWatch Logs**: `/ecs/grocellery-app-dev/<service>`
+- **CloudWatch Logs**: `/ecs/grocery-ecommerce-platform-dev/<service>`
 - **ECS Console**: Monitor service health and scaling
 - **RDS Console**: Database performance metrics
 
@@ -195,10 +195,10 @@ After deployment, services are accessible through the ALB:
 
 ```bash
 # Check ECS service status
-aws ecs describe-services --cluster grocellery-app-dev-cluster --services grocellery-app-dev-cart-service
+aws ecs describe-services --cluster grocery-ecommerce-platform-dev-cluster --services grocery-ecommerce-platform-dev-cart-service
 
 # View CloudWatch logs
-aws logs tail /ecs/grocellery-app-dev/cart --follow
+aws logs tail /ecs/grocery-ecommerce-platform-dev/cart --follow
 
 # Check ALB target health
 aws elbv2 describe-target-health --target-group-arn <target-group-arn>
