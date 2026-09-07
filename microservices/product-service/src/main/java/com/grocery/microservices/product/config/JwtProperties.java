@@ -10,8 +10,8 @@ public record JwtProperties(
         @DefaultValue("RS256") String algorithm,
         @DefaultValue("false") boolean demoEnabled,
         @DefaultValue("customer-f7b1b25c") String demoSub,
-        @DefaultValue("user") String demoUsername,
-        @DefaultValue("password") String demoPassword,
+        @DefaultValue("${DEMO_USERNAME:demo-user}") String demoUsername,
+        @DefaultValue("${DEMO_PASSWORD:}") String demoPassword,
         @DefaultValue("cart:read cart:write order:read order:write summary:read product:admin") String demoScopes,
         @DefaultValue("300") long demoTokenTtlSeconds) {
 

@@ -134,14 +134,16 @@ Handled errors use one JSON shape containing `status`, `error`, `message`, and `
 Each service embeds an ephemeral RSA-2048 identity provider, activated only with the `dev` profile
 and `security.jwt.demo-enabled=true`:
 
-- `POST /auth/login` with `{ "username": "user", "password": "password" }` returns `{ "token", "type": "Bearer" }`.
+- `POST /auth/login` with `{ "username": "demo-user", "password": "" }` returns `{ "token", "type": "Bearer" }`.
+  The username defaults to `demo-user` and the password is empty; override both with the
+  `DEMO_USERNAME` / `DEMO_PASSWORD` environment variables.
 - `GET /.well-known/openid-configuration` and `GET /.well-known/jwks.json` serve OIDC discovery and the public key set.
 - Minted tokens: RS256, `sub=customer-f7b1b25c`, `aud=grocery-api`, TTL 300s, and all scopes
   `cart:read cart:write order:read order:write summary:read product:admin`.
 
 ```sh
 curl -s -X POST http://localhost:8080/auth/login -H 'Content-Type: application/json' \
-  -d '{"username":"user","password":"password"}'
+  -d '{"username":"demo-user","password":""}'
 # {"token":"eyJhbGciOi..."}
 ```
 
@@ -158,7 +160,7 @@ Properties in the `security.jwt.*` namespace:
 | `security.jwt.audience` | `JWT_AUDIENCE` | `grocery-api` (dev/test) | Required `aud` claim, shared across services. |
 | `security.jwt.algorithm` | — | `RS256` | Allowed signing algorithm. |
 | `security.jwt.demo-enabled` | — | `true` in `dev`, `false` otherwise | Whether the embedded demo IdP is active. |
-| `security.jwt.demo-sub` / `-username` / `-password` / `-scopes` / `-token-ttl-seconds` | — | `customer-f7b1b25c` / `user` / `password` / all scopes / `300` | Demo token contents. |
+| `security.jwt.demo-sub` / `-username` / `-password` / `-scopes` / `-token-ttl-seconds` | `DEMO_USERNAME`, `DEMO_PASSWORD` | `customer-f7b1b25c` / `demo-user` / empty / all scopes / `300` | Demo token contents; the demo password is empty and must be overridden via `DEMO_PASSWORD`. |
 | `app.cors.allowed-origins` | `CORS_ALLOWED_ORIGINS` | required (non-empty) | Comma-separated browser origins. |
 
 Profile behavior:
@@ -205,7 +207,7 @@ Then sign in once (cart's endpoint), and use the returned token against all four
 
 ```sh
 TOKEN=$(curl -s -X POST http://localhost:8080/auth/login -H 'Content-Type: application/json' \
-  -d '{"username":"user","password":"password"}' | jq -r .token)
+  -d '{"username":"demo-user","password":""}' | jq -r .token)
 
 curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/me/cart        # cart
 curl -H "Authorization: Bearer $TOKEN" http://localhost:8083/products           # public
