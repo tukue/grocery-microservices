@@ -17,7 +17,7 @@ import java.util.Map;
  * tokens. These must never be activated beyond the {@code dev} profile.
  */
 @RestController
-@Profile("dev")
+@Profile({"dev", "docker"})
 public class DemoIdentityController {
 
     private final DemoIdentityProvider provider;

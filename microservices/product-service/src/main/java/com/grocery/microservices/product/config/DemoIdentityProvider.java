@@ -33,7 +33,7 @@ import java.util.UUID;
  * {@link DemoIdentityController}.</p>
  */
 @Component
-@Profile("dev")
+@Profile({"dev", "docker"})
 public class DemoIdentityProvider {
 
     private final JwtProperties jwtProperties;

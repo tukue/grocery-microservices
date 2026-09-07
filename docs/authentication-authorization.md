@@ -154,7 +154,7 @@ Properties in the `security.jwt.*` namespace:
 
 | Property | Environment override | Default | Purpose |
 | --- | --- | --- | --- |
-| `security.jwt.issuer-uri` | `JWT_ISSUER_URI` | required in `docker`/`prod`; `DEMO_IDENTITY_BASE_URL` in `dev` | OIDC issuer used for discovery + JWKS; also the expected `iss`. |
+| `security.jwt.issuer-uri` | `JWT_ISSUER_URI` | required in `prod`; `DEMO_IDENTITY_BASE_URL` in `dev`; own service URL in `docker` | OIDC issuer used for discovery + JWKS; also the expected `iss`. |
 | `security.jwt.audience` | `JWT_AUDIENCE` | `grocery-api` (dev/test) | Required `aud` claim, shared across services. |
 | `security.jwt.algorithm` | — | `RS256` | Allowed signing algorithm. |
 | `security.jwt.demo-enabled` | — | `true` in `dev`, `false` otherwise | Whether the embedded demo IdP is active. |
@@ -167,7 +167,7 @@ Profile behavior:
 | --- | --- | --- |
 | `test` | H2 | Real validation against a test-only RSA keypair (`TestJwtSupport`), no network. |
 | `dev` | H2 | Embedded demo IdP on each service's own URL. |
-| `docker` | PostgreSQL (compose) | External IdP required; unresolved `JWT_ISSUER_URI`/`JWT_AUDIENCE` fail startup. |
+| `docker` | PostgreSQL (compose) | Standalone smoke profile: each service runs the embedded demo IdP unless `JWT_ISSUER_URI` is supplied; demo disabled with a real issuer via env. |
 | `prod` | PostgreSQL | External IdP required; demo disabled; fail-fast on missing `JWT_ISSUER_URI`/`JWT_AUDIENCE`. |
 
 ## How to Integrate with the Full Stack (Frontend)
