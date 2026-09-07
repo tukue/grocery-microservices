@@ -103,7 +103,7 @@ variable "db_secret_arn" {
 }
 
 variable "jwt_secret_arn" {
-  description = "ARN of the JWT secret in Secrets Manager"
+  description = "ARN of the shared OIDC config secret (issuer_uri, audience) in Secrets Manager"
   type        = string
 }
 

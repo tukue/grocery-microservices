@@ -26,30 +26,29 @@ The MVP uses the existing service URLs directly. Add an API gateway or generated
 
 | User capability | HTTP operation | Backend owner | Frontend behavior |
 | --- | --- | --- | --- |
-| Browse catalogue | `GET /products` | Product | Render server price and availability. |
+| Browse catalogue | `GET /products` | Product | Render server price and availability. Public, no token needed. |
 | Search catalogue | `GET /products/search?name=` | Product | Debounce input and handle empty results. |
-| Load current cart | `GET /carts/current` | Cart | Load the authenticated customer's most recently created cart; create one when the API returns `404`. |
-| Create cart | `POST /carts` | Cart | Create a cart only when no current cart exists; retain the returned ID only as page state. |
-| View cart | `GET /carts/{cartId}` | Cart | Render the returned canonical cart. |
-| Add item | `POST /carts/{cartId}/items` | Cart | Replace local cart state with the response. |
-| Change quantity | `PATCH /carts/{cartId}/items/{itemId}` | Cart | Use the returned cart; do not calculate stock or totals locally. |
-| Remove item | `DELETE /carts/{cartId}/items/{itemId}` | Cart | Use the returned cart. |
-| Checkout | `POST /orders/checkout` | Order | Disable duplicate submission and render the returned order confirmation. |
-| View orders | `GET /orders` and `GET /orders/{id}` | Order | Show only orders belonging to the authenticated customer. |
-| Update order status | `PATCH /orders/{id}/status` | Order | Restrict this control to the product-approved user role/flow. |
-| Poll summary by order | `GET /summaries/by-order/{orderId}` | Summary | Treat `404` as pending summary generation and retry with a bounded poll. |
-| View a known summary | `GET /summaries/{id}` | Summary | Render the summary read model. |
-| View a known receipt | `GET /summaries/{id}/receipt` | Summary | Render a text/print receipt. |
+| Load current cart | `GET /api/me/cart` | Cart | Load the authenticated customer's current cart; create one when the API returns `404`. |
+| Create cart | `POST /api/me/cart` | Cart | Create a cart only when no current cart exists; retain the returned ID only as page state. |
+| View cart | `GET /api/me/carts/{cartId}` | Cart | Render the returned canonical cart. |
+| Add item | `POST /api/me/cart/{cartId}/items` | Cart | Replace local cart state with the response. |
+| Change quantity | `PATCH /api/me/cart/{cartId}/items/{itemId}` | Cart | Use the returned cart; do not calculate stock or totals locally. |
+| Remove item | `DELETE /api/me/cart/{cartId}/items/{itemId}` | Cart | Use the returned cart. |
+| Checkout | `POST /api/me/checkout` | Order | Disable duplicate submission and render the returned order confirmation. |
+| View orders | `GET /api/me/orders` and `GET /api/me/orders/{id}` | Order | Show only orders belonging to the authenticated customer. |
+| Update order status | `PATCH /api/me/orders/{id}/status` | Order | Restrict this control to the product-approved user role/flow. |
+| Load summary | `GET /api/me/summary` | Summary | Render aggregate totals and recent orders for the authenticated customer. |
+| View a known receipt | `GET /api/me/summary/orders/{orderId}/receipt` | Summary | Render a text/print receipt; `404` if the receipt is not ready or not owned by the customer. |
 
 The authoritative endpoint list remains in [API Documentation](api-documentation.md). The frontend client should be generated from published OpenAPI documents once those documents are made part of CI.
 
 ## Receipt Availability Behavior
 
-Checkout returns an order, while summary creation is asynchronous through Kafka. The frontend should display **Order confirmed** immediately after successful checkout, then poll `GET /summaries/by-order/{orderId}` with bounded retries. A `404` means the summary is still pending; it is not a checkout failure. Do not poll Kafka or an internal event-store table from the browser.
+Checkout returns an order, while summary projection is asynchronous through Kafka. The frontend should display **Order confirmed** immediately after successful checkout, then poll `GET /api/me/summary/orders/{orderId}/receipt` with bounded retries when the customer wants a receipt. A `404` means the summary is still pending or the order is not owned by the customer; it is not a checkout failure. Do not poll Kafka or an internal event-store table from the browser.
 
 ## Authentication and CORS
 
-- The current `/auth/login` endpoints are explicitly demo authentication and must be replaced by an approved identity provider or production authentication service before release.
+- The `/auth/login` endpoints served by each service are explicitly demo authentication for the `dev` profile only; production requires an approved identity provider configured with `JWT_ISSUER_URI` and `JWT_AUDIENCE`.
 - Use a single frontend API client to attach `Authorization: Bearer <token>` to protected calls.
 - On `401`, clear the local session and return to sign-in. On `403`, keep the session but show a permission message. Do not retry either automatically.
 - Backend CORS policy must allow only configured frontend origins, methods, and headers per environment. Wildcard production origins and browser-stored long-lived secrets are not acceptable.

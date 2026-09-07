@@ -124,7 +124,8 @@ Use the following placeholders for environment-specific service hosts:
 | POSTGRES_USER             | DB username                |         |
 | POSTGRES_PASSWORD         | DB password                |        |
 | POSTGRES_DB               | DB name                    | grocery          |
-| JWT_SECRET                | JWT signing key            | Required outside test |
+| JWT_ISSUER_URI            | OIDC issuer URL (JWKS discovery) | Required outside test |
+| JWT_AUDIENCE              | Required JWT audience claim | Required outside test |
 | KAFKA_BOOTSTRAP_SERVERS   | Kafka broker bootstrap address | Required in production |
 | KAFKA_ORDER_CREATED_TOPIC | Versioned order-created topic | `order.created.v1` |
 | KAFKA_SUMMARY_CONSUMER_GROUP | Summary consumer group | `summary-service` |
@@ -278,26 +279,27 @@ The product-service is preloaded with the following demo products for showcase p
 
 ## JWT Authentication Integration
 
-All microservices use JWT (JSON Web Token) authentication for securing APIs. Each service requires a unique JWT secret, which should be set via environment variables or configuration files. **Never commit real secrets to version control.**
+All microservices act as OAuth2/OIDC resource servers. They validate bearer JWTs against the identity provider configured via `JWT_ISSUER_URI` (JWKS discovery) and require the `JWT_AUDIENCE` claim, so no shared signing secret is used between services. **Never commit real secrets or private keys to version control.**
 
-### Setting JWT Secrets for Local Development and Testing
+### Setting JWT Configuration for Local Development and Testing
 
-- Each service should have a unique value for `JWT_SECRET`.
-- Runtime profiles fail startup when the JWT signing key is missing or blank.
-- These files are ignored by git (see `.gitignore`).
+- `dev` profile: each service starts an embedded demo identity provider — `POST /auth/login` (`user` / `password`) mints an RS256 token with `sub=customer-f7b1b25c`; `/.well-known/openid-configuration` and `/.well-known/jwks.json` serve discovery and keys.
+- Runtime profiles (`docker`, `prod`): services fail startup when `JWT_ISSUER_URI` or `JWT_AUDIENCE` is missing or blank.
+- Tests use a test-only RSA keypair and real JWT validation (see `TestJwtSupport`).
 
-### Production Secrets
-- Set `JWT_SECRET` as an environment variable or in a secure config file (never commit secrets).
+### Production Configuration
+- Set `JWT_ISSUER_URI` and `JWT_AUDIENCE` as environment variables or in a secure config file (never commit secrets).
 - Example for Docker Compose:
   ```yaml
   environment:
-    - JWT_SECRET=${JWT_SECRET}
+    - JWT_ISSUER_URI=${JWT_ISSUER_URI}
+    - JWT_AUDIENCE=${JWT_AUDIENCE}
   ```
 
 ### Swagger/OpenAPI and Test Security
 - All Swagger UI and OpenAPI endpoints are accessible without authentication.
-- In tests, a test-specific security config disables authentication for controller tests, so you do not need to provide tokens in test code.
-- To test authentication logic, create dedicated integration/security tests.
+- Controller tests send bearer tokens minted with a test-only RSA keypair through a real validation chain.
+- Dedicated security-matrix tests assert that expired tokens, wrong issuer/audience, missing `sub`, and invalid signatures are rejected with 401.
 
-### Rotating Secrets
-- To rotate a secret, update the value in your environment or test properties and restart the service.
+### Rotating Signing Keys
+- Rotate the signing keys in your identity provider (JWKS rotation) and restart the services; no per-service secret rotation is needed.

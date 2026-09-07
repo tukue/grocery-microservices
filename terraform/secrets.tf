@@ -1,9 +1,7 @@
-# JWT Secrets for each microservice
-resource "aws_secretsmanager_secret" "jwt_secrets" {
-  for_each = var.services
-
-  name        = "${local.name_prefix}/${each.key}/jwt-secret"
-  description = "JWT secret for ${each.key} service"
+# OIDC resource-server configuration shared by all microservices
+resource "aws_secretsmanager_secret" "oidc_config" {
+  name        = "${local.name_prefix}/oidc-config"
+  description = "OIDC issuer and audience for OAuth2 resource servers"
 
   kms_key_id = aws_kms_key.secrets.arn
 
@@ -12,27 +10,17 @@ resource "aws_secretsmanager_secret" "jwt_secrets" {
   }
 
   tags = merge(local.common_tags, {
-    Name    = "${local.name_prefix}-${each.key}-jwt-secret"
-    Service = each.key
-    Type    = "secret"
+    Name = "${local.name_prefix}-oidc-config"
+    Type = "secret"
   })
 }
 
-resource "aws_secretsmanager_secret_version" "jwt_secrets" {
-  for_each = var.services
-
-  secret_id = aws_secretsmanager_secret.jwt_secrets[each.key].id
+resource "aws_secretsmanager_secret_version" "oidc_config_version" {
+  secret_id = aws_secretsmanager_secret.oidc_config.id
   secret_string = jsonencode({
-    jwt_secret = random_password.jwt_secrets[each.key].result
+    issuer_uri = var.jwt_issuer_uri
+    audience   = var.jwt_audience
   })
-}
-
-# Generate random JWT secrets
-resource "random_password" "jwt_secrets" {
-  for_each = var.services
-
-  length  = 64
-  special = true
 }
 
 # Database password secret (legacy - keeping for backward compatibility)

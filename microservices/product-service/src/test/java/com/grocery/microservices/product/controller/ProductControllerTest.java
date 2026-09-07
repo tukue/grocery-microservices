@@ -1,5 +1,7 @@
 package com.grocery.microservices.product.controller;
 
+import com.grocery.microservices.product.config.TestJwtSupport;
+import com.grocery.microservices.product.config.TestSecurityConfig;
 import com.grocery.microservices.product.dto.ProductDTO;
 import com.grocery.microservices.product.model.Product;
 import com.grocery.microservices.product.service.ProductService;
@@ -8,33 +10,29 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import org.springframework.context.annotation.Import;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Profile;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 @ActiveProfiles("test")
 @WebMvcTest(ProductController.class)
-@Import(ProductControllerTest.TestSecurityConfig.class)
+@Import(TestSecurityConfig.class)
 public class ProductControllerTest {
 
     @Autowired
@@ -46,8 +44,12 @@ public class ProductControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    private static String bearer(String token) {
+        return "Bearer " + token;
+    }
+
     @Test
-    public void testGetAllProducts() throws Exception {
+    public void testGetAllProductsIsPublic() throws Exception {
         Product product = new Product();
         product.setId(1L);
         product.setName("Test Product");
@@ -125,7 +127,7 @@ public class ProductControllerTest {
     }
 
     @Test
-    public void testCreateProduct() throws Exception {
+    public void testCreateProductRequiresAdminScope() throws Exception {
         ProductDTO productDTO = new ProductDTO();
         productDTO.setName("New Product");
         productDTO.setPrice(20.0);
@@ -138,11 +140,58 @@ public class ProductControllerTest {
         when(productService.saveProduct(any(Product.class))).thenReturn(savedProduct);
 
         mockMvc.perform(post("/products")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(productDTO)))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("admin-1")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(productDTO)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.name").value("New Product"));
+    }
+
+    @Test
+    public void rejectsCreateProductWithoutToken() throws Exception {
+        ProductDTO productDTO = new ProductDTO();
+        productDTO.setName("New Product");
+        productDTO.setPrice(20.0);
+
+        mockMvc.perform(post("/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(productDTO)))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(productService);
+    }
+
+    @Test
+    public void rejectsCreateProductWithoutAdminScope() throws Exception {
+        ProductDTO productDTO = new ProductDTO();
+        productDTO.setName("New Product");
+        productDTO.setPrice(20.0);
+
+        mockMvc.perform(post("/products")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.tokenWithScopes("customer-1", "cart:read")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(productDTO)))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(productService);
+    }
+
+    @Test
+    public void rejectsInvalidUpdateProduct() throws Exception {
+        ProductDTO productDTO = new ProductDTO();
+        productDTO.setName("New Product");
+        productDTO.setPrice(20.0);
+        productDTO.setStockQuantity(-1);
+
+        mockMvc.perform(put("/products/1")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("admin-1")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(productDTO)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest())
+                .andExpect(jsonPath("$.validationErrors.stockQuantity").value("Stock quantity must not be negative"));
+
+        verifyNoInteractions(productService);
     }
 
     @Test
@@ -169,25 +218,10 @@ public class ProductControllerTest {
         productDTO.setStockQuantity(-1);
 
         mockMvc.perform(post("/products")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("admin-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(productDTO)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.validationErrors.stockQuantity").value("Stock quantity must not be negative"));
-    }
-
-    @TestConfiguration
-    @Profile("test")
-    static class TestSecurityConfig {
-        @Bean
-        public SecurityFilterChain testFilterChain(HttpSecurity http) throws Exception {
-            http.csrf().disable().authorizeHttpRequests().anyRequest().permitAll();
-            return http.build();
-        }
-        @Bean
-        public com.grocery.microservices.product.config.JwtUtil jwtUtil() {
-            com.grocery.microservices.product.config.JwtUtil jwtUtil = new com.grocery.microservices.product.config.JwtUtil();
-            ReflectionTestUtils.setField(jwtUtil, "secret", UUID.randomUUID().toString());
-            return jwtUtil;
-        }
     }
 }

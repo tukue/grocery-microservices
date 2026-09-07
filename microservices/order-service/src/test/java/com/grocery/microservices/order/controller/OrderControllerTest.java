@@ -1,8 +1,11 @@
 package com.grocery.microservices.order.controller;
 
-import com.grocery.microservices.order.config.SecurityConfig;
+import com.grocery.microservices.order.config.AuthenticatedCustomer;
+import com.grocery.microservices.order.config.TestJwtSupport;
+import com.grocery.microservices.order.config.TestSecurityConfig;
 import com.grocery.microservices.order.dto.CheckoutRequest;
 import com.grocery.microservices.order.exception.InvalidOrderStateException;
+import com.grocery.microservices.order.exception.OrderNotFoundException;
 import com.grocery.microservices.order.model.Order;
 import com.grocery.microservices.order.model.OrderStatus;
 import com.grocery.microservices.order.service.OrderService;
@@ -12,33 +15,25 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Profile;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.security.test.context.support.WithMockUser;
-
-import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 
 @ActiveProfiles("test")
 @WebMvcTest(OrderController.class)
-@Import(OrderControllerTest.TestSecurityConfig.class)
-@WithMockUser(username = "customer-1")
+@Import(TestSecurityConfig.class)
 public class OrderControllerTest {
 
     @Autowired
@@ -50,6 +45,23 @@ public class OrderControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    private static String bearer(String token) {
+        return "Bearer " + token;
+    }
+
+    @Test
+    public void rejectsRequestWithoutToken() throws Exception {
+        mockMvc.perform(get("/api/me/orders"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void rejectsRequestWhenTokenIsMissingScope() throws Exception {
+        mockMvc.perform(get("/api/me/orders")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.tokenWithScopes("customer-1", "cart:read"))))
+                .andExpect(status().isForbidden());
+    }
+
     @Test
     public void checkoutCreatesOrderFromCart() throws Exception {
         CheckoutRequest checkoutRequest = new CheckoutRequest();
@@ -60,14 +72,15 @@ public class OrderControllerTest {
         savedOrder.setStatus(OrderStatus.PENDING);
         savedOrder.setTotal(24.50);
 
-        when(orderService.checkout(1L, "customer-1", null)).thenReturn(savedOrder);
+        when(orderService.checkout(anyLong(), any(AuthenticatedCustomer.class), any(String.class)))
+                .thenReturn(savedOrder);
 
-        mockMvc.perform(post("/orders/checkout")
-                        .with(user("customer-1"))
+        mockMvc.perform(post("/api/me/checkout")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(checkoutRequest)))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/orders/1"))
+                .andExpect(header().string("Location", "/api/me/orders/1"))
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.status").value("PENDING"))
                 .andExpect(jsonPath("$.total").value(24.50));
@@ -78,8 +91,8 @@ public class OrderControllerTest {
         CheckoutRequest checkoutRequest = new CheckoutRequest();
         checkoutRequest.setCartId(0L);
 
-        mockMvc.perform(post("/orders/checkout")
-                        .with(user("customer-1"))
+        mockMvc.perform(post("/api/me/checkout")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(checkoutRequest)))
                 .andExpect(status().isBadRequest())
@@ -95,9 +108,11 @@ public class OrderControllerTest {
         updatedOrder.setId(1L);
         updatedOrder.setStatus(OrderStatus.COMPLETED);
 
-        when(orderService.updateOrderStatus(any(Long.class), any(OrderStatus.class), any(String.class))).thenReturn(updatedOrder);
+        when(orderService.updateOrderStatus(anyLong(), any(OrderStatus.class), any(AuthenticatedCustomer.class)))
+                .thenReturn(updatedOrder);
 
-        mockMvc.perform(patch("/orders/1/status")
+        mockMvc.perform(patch("/api/me/orders/1/status")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .param("status", "COMPLETED")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -106,28 +121,23 @@ public class OrderControllerTest {
 
     @Test
     public void rejectsInvalidOrderStatusTransition() throws Exception {
-        when(orderService.updateOrderStatus(1L, OrderStatus.PENDING, "customer-1"))
+        when(orderService.updateOrderStatus(anyLong(), any(OrderStatus.class), any(AuthenticatedCustomer.class)))
                 .thenThrow(new InvalidOrderStateException("A PENDING order can only be COMPLETED or CANCELLED"));
 
-        mockMvc.perform(patch("/orders/1/status")
+        mockMvc.perform(patch("/api/me/orders/1/status")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .param("status", "PENDING"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("A PENDING order can only be COMPLETED or CANCELLED"));
     }
 
-    @TestConfiguration
-    @Profile("test")
-    static class TestSecurityConfig {
-        @Bean
-        public SecurityFilterChain testFilterChain(HttpSecurity http) throws Exception {
-            http.csrf().disable().authorizeHttpRequests().anyRequest().permitAll();
-            return http.build();
-        }
-        @Bean
-        public com.grocery.microservices.order.config.JwtUtil jwtUtil() {
-            com.grocery.microservices.order.config.JwtUtil jwtUtil = new com.grocery.microservices.order.config.JwtUtil();
-            ReflectionTestUtils.setField(jwtUtil, "secret", UUID.randomUUID().toString());
-            return jwtUtil;
-        }
+    @Test
+    public void returnsNotFoundWhenOtherCustomersOrderIsRequested() throws Exception {
+        when(orderService.getOrder(anyLong(), any(AuthenticatedCustomer.class)))
+                .thenThrow(new OrderNotFoundException(99L));
+
+        mockMvc.perform(get("/api/me/orders/99")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-2"))))
+                .andExpect(status().isNotFound());
     }
 }

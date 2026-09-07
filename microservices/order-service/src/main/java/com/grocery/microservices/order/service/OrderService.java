@@ -3,13 +3,13 @@ package com.grocery.microservices.order.service;
 import com.grocery.microservices.order.model.Order;
 import com.grocery.microservices.order.model.OrderLine;
 import com.grocery.microservices.order.model.OrderStatus;
+import com.grocery.microservices.order.config.AuthenticatedCustomer;
 import com.grocery.microservices.order.client.CartClient;
 import com.grocery.microservices.order.client.CartItemSnapshot;
 import com.grocery.microservices.order.client.CartSnapshot;
 import com.grocery.microservices.order.exception.EmptyCartException;
 import com.grocery.microservices.order.exception.InvalidOrderStateException;
 import com.grocery.microservices.order.exception.OrderNotFoundException;
-import com.grocery.microservices.order.exception.OrderAccessDeniedException;
 import com.grocery.microservices.order.repository.OrderRepository;
 import com.grocery.microservices.order.event.OrderCreatedEvent;
 import com.grocery.microservices.order.eventstore.OrderEventStore;
@@ -41,7 +41,7 @@ public class OrderService {
         order.setStatus(OrderStatus.PENDING);
         order.setOrderDate(LocalDateTime.now());
         Order savedOrder = repo.save(order);
-        orderEventStore.enqueue(new OrderCreatedEvent(UUID.randomUUID(), OrderCreatedEvent.TYPE, Instant.now(),
+        orderEventStore.enqueue(new OrderCreatedEvent(UUID.randomUUID(), Instant.now(),
                 savedOrder.getId(), savedOrder.getUserId(), savedOrder.getCartId(), savedOrder.getTotal()));
         log.info("EVENT=ORDER_CREATED ORDER_ID={} USER_ID={} TOTAL={}",
             savedOrder.getId(), savedOrder.getUserId(), savedOrder.getTotal());
@@ -49,7 +49,7 @@ public class OrderService {
     }
 
     @Transactional
-    public Order checkout(Long cartId, String userId, String authorizationHeader) {
+    public Order checkout(Long cartId, AuthenticatedCustomer customer, String authorizationHeader) {
         CartSnapshot cart = cartClient.getCart(cartId, authorizationHeader);
         if (cart.items() == null || cart.items().isEmpty()) {
             throw new EmptyCartException(cartId);
@@ -60,27 +60,24 @@ public class OrderService {
                 .toList();
         Order order = new Order();
         order.setCartId(cartId);
-        order.setUserId(userId);
+        order.setUserId(customer.customerId());
         order.setOrderLines(orderLines);
         order.setTotal(orderLines.stream().mapToDouble(OrderLine::getLineTotal).sum());
         return createOrder(order);
     }
 
-    public Order getOrder(Long id, String userId) {
-        Order order = repo.findById(id).orElseThrow(() -> new OrderNotFoundException(id));
-        if (userId == null || !userId.equals(order.getUserId())) {
-            throw new OrderAccessDeniedException(id);
-        }
-        return order;
+    public Order getOrder(Long id, AuthenticatedCustomer customer) {
+        return repo.findByIdAndUserId(id, customer.customerId())
+                .orElseThrow(() -> new OrderNotFoundException(id));
     }
 
-    public List<Order> getOrdersForUser(String userId) {
-        return repo.findByUserIdOrderByOrderDateDesc(userId);
+    public List<Order> getOrdersForUser(AuthenticatedCustomer customer) {
+        return repo.findByUserIdOrderByOrderDateDesc(customer.customerId());
     }
 
     @Transactional
-    public Order updateOrderStatus(Long id, OrderStatus newStatus, String userId) {
-        Order order = getOrder(id, userId);
+    public Order updateOrderStatus(Long id, OrderStatus newStatus, AuthenticatedCustomer customer) {
+        Order order = getOrder(id, customer);
         OrderStatus oldStatus = order.getStatus();
 
         if (oldStatus != OrderStatus.PENDING) {

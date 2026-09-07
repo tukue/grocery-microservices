@@ -1,15 +1,25 @@
 package com.grocery.microservices.cart.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtDecoders;
+import org.springframework.security.oauth2.jwt.JwtIssuerValidator;
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -19,21 +29,64 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
+@EnableConfigurationProperties(JwtProperties.class)
 @Profile("!test")
 public class SecurityConfig {
-    private final JwtRequestFilter jwtRequestFilter;
+
     private final SecurityExceptionHandler securityExceptionHandler;
+    private final JwtProperties jwtProperties;
     private final List<String> allowedOrigins;
 
-    public SecurityConfig(JwtRequestFilter jwtRequestFilter, SecurityExceptionHandler securityExceptionHandler,
+    public SecurityConfig(SecurityExceptionHandler securityExceptionHandler,
+                          JwtProperties jwtProperties,
                           @Value("${app.cors.allowed-origins}") String allowedOrigins) {
-        this.jwtRequestFilter = jwtRequestFilter;
         this.securityExceptionHandler = securityExceptionHandler;
+        this.jwtProperties = jwtProperties;
         this.allowedOrigins = Arrays.stream(allowedOrigins.split(",")).map(String::trim)
                 .filter(origin -> !origin.isEmpty()).toList();
         if (this.allowedOrigins.isEmpty()) {
             throw new IllegalStateException("app.cors.allowed-origins must configure at least one origin");
         }
+    }
+
+    @Bean
+    public JwtDecoder jwtDecoder() {
+        if (!jwtProperties.hasIssuerUri()) {
+            throw new IllegalStateException(
+                    "Required configuration property 'security.jwt.issuer-uri' must be set when JWT validation is active");
+        }
+        return new LazyJwtDecoder(() -> createDecoder());
+    }
+
+    private NimbusJwtDecoder createDecoder() {
+        NimbusJwtDecoder decoder = JwtDecoders.fromIssuerLocation(jwtProperties.issuerUri());
+        decoder.setJwtValidator(jwtTokenValidator());
+        return decoder;
+    }
+
+    private OAuth2TokenValidator<Jwt> jwtTokenValidator() {
+        String audience = jwtProperties.audience();
+        if (audience == null || audience.isBlank()) {
+            throw new IllegalStateException(
+                    "Required configuration property 'security.jwt.audience' must be set when JWT validation is active");
+        }
+        return new DelegatingOAuth2TokenValidator<>(
+                new SubjectClaimValidator(),
+                new JwtTimestampValidator(),
+                new JwtIssuerValidator(jwtProperties.issuerUri()),
+                new AudienceValidator(audience),
+                new AllowedAlgorithmValidator(jwtProperties.algorithm())
+        );
+    }
+
+    @Bean
+    public CustomerJwtAuthenticationConverter jwtAuthenticationConverter() {
+        return new CustomerJwtAuthenticationConverter();
+    }
+
+    private String[] demoAuthPaths() {
+        return jwtProperties.demoEnabled() ? new String[] {"/auth/**", "/.well-known/**"} : new String[0];
     }
 
     @Bean
@@ -43,7 +96,6 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                    "/auth/**",
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
                     "/swagger-resources/**",
@@ -51,14 +103,23 @@ public class SecurityConfig {
                     "/actuator/health",
                     "/actuator/info"
                 ).permitAll()
+                .requestMatchers(demoAuthPaths())
+                .permitAll()
                 .anyRequest().authenticated()
+            )
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(jwt -> jwt
+                    .decoder(jwtDecoder())
+                    .jwtAuthenticationConverter(jwtAuthenticationConverter())
+                )
+                .authenticationEntryPoint(securityExceptionHandler)
+                .accessDeniedHandler(securityExceptionHandler)
             )
             .exceptionHandling(exceptions -> exceptions
                 .authenticationEntryPoint(securityExceptionHandler)
                 .accessDeniedHandler(securityExceptionHandler)
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-        http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

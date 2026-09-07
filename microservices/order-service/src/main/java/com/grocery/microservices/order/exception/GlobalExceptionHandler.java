@@ -44,6 +44,12 @@ public class GlobalExceptionHandler {
         return createErrorResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleScopeDenied(org.springframework.security.access.AccessDeniedException ex,
+                                                           HttpServletRequest request) {
+        return createErrorResponse(HttpStatus.FORBIDDEN, "Access denied", request);
+    }
+
     @ExceptionHandler(CheckoutCartNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleCheckoutCartNotFound(CheckoutCartNotFoundException ex, HttpServletRequest request) {
         return createErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);

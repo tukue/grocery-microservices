@@ -1,49 +1,50 @@
 package com.grocery.microservices.summary.controller;
 
+import com.grocery.microservices.summary.config.AuthenticatedCustomer;
+import com.grocery.microservices.summary.dto.CustomerSummaryDTO;
 import com.grocery.microservices.summary.dto.SummaryDTO;
 import com.grocery.microservices.summary.model.Summary;
-import com.grocery.microservices.summary.service.SummaryService;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import jakarta.validation.Valid;
+import com.grocery.microservices.summary.port.SummaryQuery;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
 @RestController
-@RequestMapping("/summaries")
+@RequestMapping("/api/me")
 public class SummaryController {
 
-    private final SummaryService summaryService;
+    private final SummaryQuery summaryQuery;
 
-    public SummaryController(SummaryService summaryService) {
-        this.summaryService = summaryService;
+    public SummaryController(SummaryQuery summaryQuery) {
+        this.summaryQuery = summaryQuery;
     }
 
-    @PostMapping
-    public ResponseEntity<SummaryDTO> createSummary(@Valid @RequestBody SummaryDTO summaryDto) {
-        Summary summary = convertToEntity(summaryDto);
-        Summary createdSummary = summaryService.createSummary(summary);
-        return ResponseEntity.status(HttpStatus.CREATED).body(convertToDto(createdSummary));
+    @GetMapping("/summary")
+    @PreAuthorize("hasAuthority('SCOPE_summary:read')")
+    public CustomerSummaryDTO getMySummary(@AuthenticationPrincipal AuthenticatedCustomer customer) {
+        String customerId = customer.customerId();
+        CustomerSummaryDTO dto = new CustomerSummaryDTO();
+        dto.setCustomerId(customerId);
+        dto.setOrderCount(summaryQuery.getOrderCount(customerId));
+        dto.setTotalSpending(summaryQuery.getTotalSpending(customerId));
+        dto.setAverageOrderAmount(summaryQuery.getAverageOrderAmount(customerId));
+        dto.setRecentOrders(summaryQuery.getSummariesByCustomer(customerId).stream()
+                .map(this::convertToDto)
+                .toList());
+        return dto;
     }
 
-    @GetMapping("/{id}")
-    public SummaryDTO getSummary(@PathVariable Long id) {
-        Summary summary = summaryService.getSummary(id);
-        return convertToDto(summary);
-    }
-
-    @GetMapping("/by-order/{orderId}")
-    public SummaryDTO getSummaryByOrderId(@PathVariable Long orderId) {
-        return convertToDto(summaryService.getSummaryByOrderId(orderId));
-    }
-
-    @GetMapping("/{id}/receipt")
-    public String getReceipt(@PathVariable Long id) {
-        return summaryService.getFormattedReceipt(id);
+    @GetMapping("/summary/orders/{orderId}/receipt")
+    @PreAuthorize("hasAuthority('SCOPE_summary:read')")
+    public String getReceipt(@PathVariable Long orderId,
+                             @AuthenticationPrincipal AuthenticatedCustomer customer) {
+        return summaryQuery.getFormattedReceipt(customer.customerId(), orderId);
     }
 
     private SummaryDTO convertToDto(Summary summary) {
@@ -57,19 +58,5 @@ public class SummaryController {
             summaryDto.setItems(Arrays.asList(summary.getDetails().split(", ")));
         }
         return summaryDto;
-    }
-
-    private Summary convertToEntity(SummaryDTO summaryDto) {
-        Summary summary = new Summary();
-        summary.setId(summaryDto.getId());
-        summary.setOrderId(summaryDto.getOrderId());
-        summary.setTotalAmount(BigDecimal.valueOf(summaryDto.getTotal()));
-        List<String> items = summaryDto.getItems();
-        if (items != null) {
-            summary.setItemCount(items.size());
-            summary.setDetails(String.join(", ", items));
-        }
-        summary.setCreatedAt(LocalDateTime.now());
-        return summary;
     }
 }

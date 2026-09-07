@@ -40,7 +40,7 @@ public class RestCartClient implements CartClient {
         headers.set(HttpHeaders.AUTHORIZATION, authorizationHeader);
         try {
             ResponseEntity<CartSnapshot> response = restTemplate.exchange(
-                    cartServiceBaseUrl + "/carts/{cartId}",
+                    cartServiceBaseUrl + "/api/me/carts/{cartId}",
                     HttpMethod.GET,
                     new HttpEntity<>(headers),
                     CartSnapshot.class,

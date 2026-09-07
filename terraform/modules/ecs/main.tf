@@ -51,8 +51,12 @@ resource "aws_ecs_task_definition" "service" {
           valueFrom = "${var.db_secret_arn}:password::"
         },
         {
-          name      = "JWT_SECRET"
-          valueFrom = "${var.jwt_secret_arn}:jwt_secret::"
+          name      = "JWT_ISSUER_URI"
+          valueFrom = "${var.jwt_secret_arn}:issuer_uri::"
+        },
+        {
+          name      = "JWT_AUDIENCE"
+          valueFrom = "${var.jwt_secret_arn}:audience::"
         },
         {
           name      = "SERVICE_CONFIG"

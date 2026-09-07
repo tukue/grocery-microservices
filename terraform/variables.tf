@@ -88,6 +88,22 @@ variable "initial_db_password" {
   }
 }
 
+variable "jwt_issuer_uri" {
+  description = "OIDC issuer URL used by the resource servers for JWKS discovery. The prod profile fails startup without it."
+  type        = string
+  default     = "https://auth.example.com/realms/grocery"
+  validation {
+    condition     = can(regex("^https://", var.jwt_issuer_uri))
+    error_message = "JWT issuer URI must be an HTTPS URL."
+  }
+}
+
+variable "jwt_audience" {
+  description = "Required JWT audience claim, shared by all microservices."
+  type        = string
+  default     = "grocery-api"
+}
+
 variable "services" {
   description = "Configuration for microservices"
   type = map(object({

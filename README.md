@@ -460,9 +460,10 @@ Access services at:
 | POSTGRES_USER             | DB username                | grocellery           |
 | POSTGRES_PASSWORD         | DB password                | required             |
 | POSTGRES_DB               | DB name                    | grocery              |
-| JWT_SECRET                | JWT signing secret for each service | required |
+| JWT_ISSUER_URI            | OIDC issuer URL (JWKS discovery) | required (docker/prod) |
+| JWT_AUDIENCE              | Required JWT audience claim | required (docker/prod) |
 
-JWT secrets intentionally have no runtime fallback. Configure a strong `JWT_SECRET` value per service in the deployment environment.
+JWTs are validated as OAuth2 resource-server access tokens: each service verifies signature, algorithm (RS256), issuer, audience, timestamps, and the immutable `sub` claim (the customer id). The audience is shared across services (commonly `grocery-api`). `JWT_ISSUER_URI`/`JWT_AUDIENCE` intentionally have no runtime fallback and unresolved values fail startup in the `docker` and `prod` profiles. Development runs the `dev` profile with an embedded demo identity provider that mints RS256 tokens and serves OIDC discovery + JWKS.
 
 ## Running Tests
 
@@ -580,25 +581,29 @@ The product-service is preloaded with the following demo products for showcase p
 
 ## JWT Authentication Integration
 
-All microservices use JWT (JSON Web Token) authentication for securing APIs. Each service requires a unique JWT secret, which should be set via environment variables or configuration files. **Never commit real secrets to version control.**
+All microservices act as OAuth2/OIDC resource servers. They validate bearer JWTs against the identity provider configured via `JWT_ISSUER_URI` (JWKS discovery) and require the `JWT_AUDIENCE` claim, so no shared signing secret is used between services. **Never commit real secrets or private keys to version control.**
 
-### Setting JWT Secrets for Local Development and Testing
+### Setting JWT Configuration for Local Development and Testing
 ```
-- Each service should have a unique value for `JWT_SECRET`.
-- These files are ignored by git (see `.gitignore`).
+- Set `JWT_ISSUER_URI` and `JWT_AUDIENCE` per deployment (see Environment Variables).
+- In the `dev` profile each service starts an embedded demo identity provider:
+  - `POST /auth/login` with `user` / `password` returns a signed RS256 access token (`sub=customer-f7b1b25c`).
+  - `GET /.well-known/openid-configuration` and `GET /.well-known/jwks.json` serve discovery + keys.
+- `.gitignore` ignores the generated local properties files.
 
-### Production Secrets
-- Set `JWT_SECRET` as an environment variable or in a secure config file (never commit secrets).
+### Production Configuration
+- Set `JWT_ISSUER_URI` and `JWT_AUDIENCE` as environment variables or in a secure config file (never commit secrets).
 - Example for Docker Compose:
   ```yaml
   environment:
-    - JWT_SECRET=${JWT_SECRET}
+    - JWT_ISSUER_URI=${JWT_ISSUER_URI}
+    - JWT_AUDIENCE=${JWT_AUDIENCE}
   ```
 
 ### Swagger/OpenAPI and Test Security
 - All Swagger UI and OpenAPI endpoints are accessible without authentication.
-- In tests, a test-specific security config disables authentication for controller tests, so you do not need to provide tokens in test code.
-- To test authentication logic, create dedicated integration/security tests.
+- Controller tests use a test security chain backed by a test-only RSA keypair and real JWT validation (see `TestJwtSupport`); requests send a bearer token minted with those test keys.
+- Dedicated security-matrix tests assert that expired tokens, wrong issuer/audience, missing `sub`, and invalid signatures are rejected with 401.
 
-### Rotating Secrets
-- To rotate a secret, update the value in your environment or test properties and restart the service.
+### Rotating Signing Keys
+- To rotate the IdP signing keys, update the keys in your identity provider (JWKS rotation) and restart the services; no per-service secret rotation is needed.
