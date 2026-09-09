@@ -24,7 +24,7 @@ class OrderEventStoreTest {
         StoredOrderEventRepository repository = mock(StoredOrderEventRepository.class);
         OrderEventStore service = newEventStore(repository);
         OrderCreatedEvent event = new OrderCreatedEvent(
-                UUID.randomUUID(), OrderCreatedEvent.TYPE, Instant.parse("2026-01-01T00:00:00Z"), 42L, "customer-1", 7L, 19.95);
+                UUID.randomUUID(), Instant.parse("2026-01-01T00:00:00Z"), 42L, "customer-1", 7L, 19.95);
 
         service.enqueue(event);
 

@@ -3,21 +3,23 @@ package com.grocery.microservices.order.controller;
 import com.grocery.microservices.order.dto.OrderDTO;
 import com.grocery.microservices.order.dto.CheckoutRequest;
 import com.grocery.microservices.order.dto.OrderLineDTO;
+import com.grocery.microservices.order.config.AuthenticatedCustomer;
 import com.grocery.microservices.order.model.Order;
 import com.grocery.microservices.order.model.OrderLine;
 import com.grocery.microservices.order.model.OrderStatus;
 import com.grocery.microservices.order.service.OrderService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import org.springframework.security.core.Authentication;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.List;
 import java.util.Collections;
 
 @RestController
-@RequestMapping("/orders")
+@RequestMapping("/api/customer")
 public class OrderController {
 
     private final OrderService orderService;
@@ -27,32 +29,36 @@ public class OrderController {
     }
 
     @PostMapping("/checkout")
+    @PreAuthorize("hasAuthority('SCOPE_order:write')")
     public ResponseEntity<OrderDTO> checkout(@Valid @RequestBody CheckoutRequest checkoutRequest,
-                                             Authentication authentication,
+                                             @AuthenticationPrincipal AuthenticatedCustomer customer,
                                              HttpServletRequest request) {
         Order createdOrder = orderService.checkout(
                 checkoutRequest.getCartId(),
-                authentication.getName(),
+                customer,
                 request.getHeader("Authorization"));
-        return ResponseEntity.created(URI.create("/orders/" + createdOrder.getId()))
+        return ResponseEntity.created(URI.create("/api/customer/orders/" + createdOrder.getId()))
                 .body(convertToDto(createdOrder));
     }
 
-    @GetMapping
-    public List<OrderDTO> getOrders(Authentication authentication) {
-        return orderService.getOrdersForUser(authentication.getName()).stream().map(this::convertToDto).toList();
+    @GetMapping("/orders")
+    @PreAuthorize("hasAuthority('SCOPE_order:read')")
+    public List<OrderDTO> getOrders(@AuthenticationPrincipal AuthenticatedCustomer customer) {
+        return orderService.getOrdersForUser(customer).stream().map(this::convertToDto).toList();
     }
 
-    @GetMapping("/{id}")
-    public OrderDTO getOrder(@PathVariable Long id, Authentication authentication) {
-        Order order = orderService.getOrder(id, authentication.getName());
+    @GetMapping("/orders/{id}")
+    @PreAuthorize("hasAuthority('SCOPE_order:read')")
+    public OrderDTO getOrder(@PathVariable Long id, @AuthenticationPrincipal AuthenticatedCustomer customer) {
+        Order order = orderService.getOrder(id, customer);
         return convertToDto(order);
     }
 
-    @PatchMapping("/{id}/status")
+    @PatchMapping("/orders/{id}/status")
+    @PreAuthorize("hasAuthority('SCOPE_order:write')")
     public ResponseEntity<OrderDTO> updateStatus(@PathVariable Long id, @RequestParam OrderStatus status,
-                                                  Authentication authentication) {
-        Order updatedOrder = orderService.updateOrderStatus(id, status, authentication.getName());
+                                                 @AuthenticationPrincipal AuthenticatedCustomer customer) {
+        Order updatedOrder = orderService.updateOrderStatus(id, status, customer);
         return ResponseEntity.ok(convertToDto(updatedOrder));
     }
 

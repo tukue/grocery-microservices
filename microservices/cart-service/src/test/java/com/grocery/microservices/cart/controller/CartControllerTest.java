@@ -1,9 +1,13 @@
 package com.grocery.microservices.cart.controller;
 
+import com.grocery.microservices.cart.config.AuthenticatedCustomer;
+import com.grocery.microservices.cart.config.TestJwtSupport;
+import com.grocery.microservices.cart.config.TestSecurityConfig;
 import com.grocery.microservices.cart.dto.CartDTO;
 import com.grocery.microservices.cart.dto.CartItemDTO;
 import com.grocery.microservices.cart.dto.CartItemQuantityDTO;
 import com.grocery.microservices.cart.exception.CartItemNotFoundException;
+import com.grocery.microservices.cart.exception.CartNotFoundException;
 import com.grocery.microservices.cart.exception.ProductNotFoundException;
 import com.grocery.microservices.cart.exception.ProductUnavailableException;
 import com.grocery.microservices.cart.exception.InsufficientProductStockException;
@@ -14,21 +18,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Profile;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.security.test.context.support.WithMockUser;
-
-import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -40,8 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ActiveProfiles("test")
 @WebMvcTest(CartController.class)
-@Import(CartControllerTest.TestSecurityConfig.class)
-@WithMockUser(username = "customer-1")
+@Import(TestSecurityConfig.class)
 public class CartControllerTest {
 
     @Autowired
@@ -53,20 +47,21 @@ public class CartControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @TestConfiguration
-    @Profile("test")
-    static class TestSecurityConfig {
-        @Bean
-        public SecurityFilterChain testFilterChain(HttpSecurity http) throws Exception {
-            http.csrf().disable().authorizeHttpRequests().anyRequest().permitAll();
-            return http.build();
-        }
-        @Bean
-        public com.grocery.microservices.cart.config.JwtUtil jwtUtil() {
-            com.grocery.microservices.cart.config.JwtUtil jwtUtil = new com.grocery.microservices.cart.config.JwtUtil();
-            ReflectionTestUtils.setField(jwtUtil, "secret", UUID.randomUUID().toString());
-            return jwtUtil;
-        }
+    private static String bearer(String token) {
+        return "Bearer " + token;
+    }
+
+    @Test
+    public void rejectsRequestWithoutToken() throws Exception {
+        mockMvc.perform(get("/api/customer/cart"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void rejectsRequestWhenTokenIsMissingScope() throws Exception {
+        mockMvc.perform(get("/api/customer/cart")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.tokenWithScopes("customer-1", "order:read"))))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -74,11 +69,22 @@ public class CartControllerTest {
         CartDTO cart = new CartDTO();
         cart.setId(1L);
 
-        when(cartService.getCartById(anyLong(), anyString())).thenReturn(cart);
+        when(cartService.getCartById(1L, new AuthenticatedCustomer("customer-1"))).thenReturn(cart);
 
-        mockMvc.perform(get("/carts/1"))
+        mockMvc.perform(get("/api/customer/carts/1")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L));
+    }
+
+    @Test
+    public void returnsNotFoundWhenOtherCustomersCartIsRequested() throws Exception {
+        when(cartService.getCartById(1L, new AuthenticatedCustomer("customer-2")))
+                .thenThrow(new CartNotFoundException(1L));
+
+        mockMvc.perform(get("/api/customer/carts/1")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-2"))))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -87,9 +93,10 @@ public class CartControllerTest {
         CartDTO returnedCart = new CartDTO();
         returnedCart.setId(1L);
 
-        when(cartService.createCart(anyString())).thenReturn(returnedCart);
+        when(cartService.createCart(new AuthenticatedCustomer("customer-1"))).thenReturn(returnedCart);
 
-        mockMvc.perform(post("/carts")
+        mockMvc.perform(post("/api/customer/cart")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(cartDTO)))
                 .andExpect(status().isCreated())
@@ -100,19 +107,21 @@ public class CartControllerTest {
     public void getsCurrentCartForAuthenticatedCustomer() throws Exception {
         CartDTO cart = new CartDTO();
         cart.setId(1L);
-        when(cartService.getCurrentCart("customer-1")).thenReturn(cart);
+        when(cartService.getCurrentCart(new AuthenticatedCustomer("customer-1"))).thenReturn(cart);
 
-        mockMvc.perform(get("/carts/current"))
+        mockMvc.perform(get("/api/customer/cart")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L));
     }
 
     @Test
     public void returnsNotFoundWhenRemovingMissingCartItem() throws Exception {
-        when(cartService.removeItem(1L, 99L, "customer-1"))
+        when(cartService.removeItem(1L, 99L, new AuthenticatedCustomer("customer-1")))
                 .thenThrow(new CartItemNotFoundException(1L, 99L));
 
-        mockMvc.perform(delete("/carts/1/items/99"))
+        mockMvc.perform(delete("/api/customer/cart/1/items/99")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1"))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Cart item 99 was not found in cart 1"));
     }
@@ -125,9 +134,10 @@ public class CartControllerTest {
         CartDTO updatedCart = new CartDTO();
         updatedCart.setId(1L);
 
-        when(cartService.addItem(1L, 10L, 2, "customer-1")).thenReturn(updatedCart);
+        when(cartService.addItem(1L, 10L, 2, new AuthenticatedCustomer("customer-1"))).thenReturn(updatedCart);
 
-        mockMvc.perform(post("/carts/1/items")
+        mockMvc.perform(post("/api/customer/cart/1/items")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(itemDTO)))
                 .andExpect(status().isOk())
@@ -139,9 +149,11 @@ public class CartControllerTest {
         CartItemDTO itemDTO = new CartItemDTO();
         itemDTO.setProductId(99L);
         itemDTO.setQuantity(2);
-        when(cartService.addItem(1L, 99L, 2, "customer-1")).thenThrow(new ProductNotFoundException(99L));
+        when(cartService.addItem(1L, 99L, 2, new AuthenticatedCustomer("customer-1")))
+                .thenThrow(new ProductNotFoundException(99L));
 
-        mockMvc.perform(post("/carts/1/items")
+        mockMvc.perform(post("/api/customer/cart/1/items")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(itemDTO)))
                 .andExpect(status().isNotFound())
@@ -153,9 +165,11 @@ public class CartControllerTest {
         CartItemDTO itemDTO = new CartItemDTO();
         itemDTO.setProductId(10L);
         itemDTO.setQuantity(2);
-        when(cartService.addItem(1L, 10L, 2, "customer-1")).thenThrow(new ProductUnavailableException(10L));
+        when(cartService.addItem(1L, 10L, 2, new AuthenticatedCustomer("customer-1")))
+                .thenThrow(new ProductUnavailableException(10L));
 
-        mockMvc.perform(post("/carts/1/items")
+        mockMvc.perform(post("/api/customer/cart/1/items")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(itemDTO)))
                 .andExpect(status().isConflict())
@@ -167,10 +181,11 @@ public class CartControllerTest {
         CartItemDTO itemDTO = new CartItemDTO();
         itemDTO.setProductId(10L);
         itemDTO.setQuantity(2);
-        when(cartService.addItem(1L, 10L, 2, "customer-1"))
+        when(cartService.addItem(1L, 10L, 2, new AuthenticatedCustomer("customer-1")))
                 .thenThrow(new InsufficientProductStockException(10L, 3, 2));
 
-        mockMvc.perform(post("/carts/1/items")
+        mockMvc.perform(post("/api/customer/cart/1/items")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(itemDTO)))
                 .andExpect(status().isConflict())
@@ -182,7 +197,8 @@ public class CartControllerTest {
         CartItemDTO itemDTO = new CartItemDTO();
         itemDTO.setProductId(10L);
 
-        mockMvc.perform(post("/carts/1/items")
+        mockMvc.perform(post("/api/customer/cart/1/items")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(itemDTO)))
                 .andExpect(status().isBadRequest())
@@ -198,9 +214,10 @@ public class CartControllerTest {
         CartDTO updatedCart = new CartDTO();
         updatedCart.setId(1L);
 
-        when(cartService.updateItemQuantity(1L, 1L, 3, "customer-1")).thenReturn(updatedCart);
+        when(cartService.updateItemQuantity(1L, 1L, 3, new AuthenticatedCustomer("customer-1"))).thenReturn(updatedCart);
 
-        mockMvc.perform(patch("/carts/1/items/1")
+        mockMvc.perform(patch("/api/customer/cart/1/items/1")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(quantityDTO)))
                 .andExpect(status().isOk())
@@ -211,7 +228,8 @@ public class CartControllerTest {
     public void rejectsNonPositiveCartItemQuantity() throws Exception {
         CartItemQuantityDTO quantityDTO = new CartItemQuantityDTO();
 
-        mockMvc.perform(patch("/carts/1/items/1")
+        mockMvc.perform(patch("/api/customer/cart/1/items/1")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(quantityDTO)))
                 .andExpect(status().isBadRequest())

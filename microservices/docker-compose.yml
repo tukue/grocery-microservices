@@ -99,6 +99,8 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_APPLICATION_JSON: ${SPRING_APPLICATION_JSON:-}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      JWT_ISSUER_URI: ${JWT_ISSUER_URI:-http://cart-service:8080}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-grocery-api}
     ports:
       - "8081:8080"
     security_opt:
@@ -124,6 +126,8 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_APPLICATION_JSON: ${SPRING_APPLICATION_JSON:-}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      JWT_ISSUER_URI: ${JWT_ISSUER_URI:-http://order-service:8080}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-grocery-api}
     ports:
       - "8082:8080"
     security_opt:
@@ -151,6 +155,8 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_APPLICATION_JSON: ${SPRING_APPLICATION_JSON:-}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      JWT_ISSUER_URI: ${JWT_ISSUER_URI:-http://product-service:8080}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-grocery-api}
     ports:
       - "8083:8080"
     security_opt:
@@ -176,6 +182,8 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_APPLICATION_JSON: ${SPRING_APPLICATION_JSON:-}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      JWT_ISSUER_URI: ${JWT_ISSUER_URI:-http://summary-service:8080}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-grocery-api}
     ports:
       - "8084:8080"
     security_opt:

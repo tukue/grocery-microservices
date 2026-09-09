@@ -14,4 +14,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @EntityGraph(attributePaths = "orderLines")
     List<Order> findByUserIdOrderByOrderDateDesc(String userId);
+
+    @EntityGraph(attributePaths = "orderLines")
+    Optional<Order> findByIdAndUserId(Long id, String userId);
 }

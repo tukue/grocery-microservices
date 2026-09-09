@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ENVIRONMENT=${ENVIRONMENT:-dev}
-PROJECT_NAME=${PROJECT_NAME:-grocellery-app}
+PROJECT_NAME=${PROJECT_NAME:-grocery-ecommerce-platform}
 AWS_REGION=${AWS_REGION:-${AWS_DEFAULT_REGION:-}}
 SERVICES=${SERVICES:-cart,order,product,summary}
 MAX_WAIT=${QUICK_TEST_MAX_WAIT:-300}

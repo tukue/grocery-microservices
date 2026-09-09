@@ -1,5 +1,6 @@
 package com.grocery.microservices.cart.controller;
 
+import com.grocery.microservices.cart.config.AuthenticatedCustomer;
 import com.grocery.microservices.cart.dto.CartDTO;
 import com.grocery.microservices.cart.dto.CartItemDTO;
 import com.grocery.microservices.cart.dto.CartItemQuantityDTO;
@@ -7,11 +8,19 @@ import com.grocery.microservices.cart.service.CartService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/carts")
+@RequestMapping("/api/customer")
 public class CartController {
 
     private final CartService cartService;
@@ -20,38 +29,47 @@ public class CartController {
         this.cartService = cartService;
     }
 
-    @PostMapping
-    public ResponseEntity<CartDTO> createCart(Authentication authentication) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(cartService.createCart(authentication.getName()));
+    @PostMapping("/cart")
+    @PreAuthorize("hasAuthority('SCOPE_cart:write')")
+    public ResponseEntity<CartDTO> createCart(@AuthenticationPrincipal AuthenticatedCustomer customer) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(cartService.createCart(customer));
     }
 
-    @GetMapping("/current")
-    public ResponseEntity<CartDTO> getCurrentCart(Authentication authentication) {
-        return ResponseEntity.ok(cartService.getCurrentCart(authentication.getName()));
+    @GetMapping("/cart")
+    @PreAuthorize("hasAuthority('SCOPE_cart:read')")
+    public ResponseEntity<CartDTO> getCurrentCart(@AuthenticationPrincipal AuthenticatedCustomer customer) {
+        return ResponseEntity.ok(cartService.getCurrentCart(customer));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<CartDTO> getCartById(@PathVariable Long id, Authentication authentication) {
-        return ResponseEntity.ok(cartService.getCartById(id, authentication.getName()));
+    @GetMapping("/carts/{cartId}")
+    @PreAuthorize("hasAuthority('SCOPE_cart:read')")
+    public ResponseEntity<CartDTO> getCartById(@PathVariable Long cartId,
+                                               @AuthenticationPrincipal AuthenticatedCustomer customer) {
+        return ResponseEntity.ok(cartService.getCartById(cartId, customer));
     }
 
-    @PostMapping("/{cartId}/items")
-    public ResponseEntity<CartDTO> addItemToCart(@PathVariable Long cartId, @Valid @RequestBody CartItemDTO itemDto,
-                                                  Authentication authentication) {
-        return ResponseEntity.ok(cartService.addItem(cartId, itemDto.getProductId(), itemDto.getQuantity(), authentication.getName()));
+    @PostMapping("/cart/{cartId}/items")
+    @PreAuthorize("hasAuthority('SCOPE_cart:write')")
+    public ResponseEntity<CartDTO> addItemToCart(@PathVariable Long cartId,
+                                                 @Valid @RequestBody CartItemDTO itemDto,
+                                                 @AuthenticationPrincipal AuthenticatedCustomer customer) {
+        return ResponseEntity.ok(cartService.addItem(cartId, itemDto.getProductId(), itemDto.getQuantity(), customer));
     }
 
-    @PatchMapping("/{cartId}/items/{itemId}")
-    public ResponseEntity<CartDTO> updateItemQuantity(
-            @PathVariable Long cartId,
-            @PathVariable Long itemId,
-            @Valid @RequestBody CartItemQuantityDTO quantityDto, Authentication authentication) {
-        return ResponseEntity.ok(cartService.updateItemQuantity(cartId, itemId, quantityDto.getQuantity(), authentication.getName()));
+    @PatchMapping("/cart/{cartId}/items/{itemId}")
+    @PreAuthorize("hasAuthority('SCOPE_cart:write')")
+    public ResponseEntity<CartDTO> updateItemQuantity(@PathVariable Long cartId,
+                                                      @PathVariable Long itemId,
+                                                      @Valid @RequestBody CartItemQuantityDTO quantityDto,
+                                                      @AuthenticationPrincipal AuthenticatedCustomer customer) {
+        return ResponseEntity.ok(cartService.updateItemQuantity(cartId, itemId, quantityDto.getQuantity(), customer));
     }
 
-    @DeleteMapping("/{cartId}/items/{itemId}")
-    public ResponseEntity<CartDTO> removeItemFromCart(@PathVariable Long cartId, @PathVariable Long itemId,
-                                                       Authentication authentication) {
-        return ResponseEntity.ok(cartService.removeItem(cartId, itemId, authentication.getName()));
+    @DeleteMapping("/cart/{cartId}/items/{itemId}")
+    @PreAuthorize("hasAuthority('SCOPE_cart:write')")
+    public ResponseEntity<CartDTO> removeItemFromCart(@PathVariable Long cartId,
+                                                      @PathVariable Long itemId,
+                                                      @AuthenticationPrincipal AuthenticatedCustomer customer) {
+        return ResponseEntity.ok(cartService.removeItem(cartId, itemId, customer));
     }
 }

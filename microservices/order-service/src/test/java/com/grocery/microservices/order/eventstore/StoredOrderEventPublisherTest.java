@@ -73,7 +73,7 @@ class StoredOrderEventPublisherTest {
     }
 
     private OrderCreatedEvent event() {
-        return new OrderCreatedEvent(UUID.randomUUID(), OrderCreatedEvent.TYPE,
+        return new OrderCreatedEvent(UUID.randomUUID(),
                 Instant.parse("2026-01-01T00:00:00Z"), 42L, "customer-1", 7L, 19.95);
     }
 }

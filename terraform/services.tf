@@ -92,7 +92,7 @@ module "ecs_service" {
   db_port     = module.rds.db_port
   db_name     = module.rds.db_name
   db_secret_arn = aws_secretsmanager_secret.db_password.arn
-  jwt_secret_arn = aws_secretsmanager_secret.jwt_secrets[each.key].arn
+  jwt_secret_arn = aws_secretsmanager_secret.oidc_config.arn
   service_config_parameter_arn = aws_ssm_parameter.service_config[each.key].arn
 
   # Monitoring
@@ -103,6 +103,7 @@ module "ecs_service" {
 
   depends_on = [
     module.rds,
-    aws_secretsmanager_secret_version.db_password_version
+    aws_secretsmanager_secret_version.db_password_version,
+    aws_secretsmanager_secret_version.oidc_config_version
   ]
 }

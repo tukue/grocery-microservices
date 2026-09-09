@@ -2,6 +2,7 @@ package com.grocery.microservices.order.service;
 
 import com.grocery.microservices.order.model.Order;
 import com.grocery.microservices.order.model.OrderStatus;
+import com.grocery.microservices.order.config.AuthenticatedCustomer;
 import com.grocery.microservices.order.client.CartClient;
 import com.grocery.microservices.order.client.CartItemSnapshot;
 import com.grocery.microservices.order.client.CartSnapshot;
@@ -9,7 +10,6 @@ import com.grocery.microservices.order.exception.EmptyCartException;
 import com.grocery.microservices.order.exception.CheckoutCartNotFoundException;
 import com.grocery.microservices.order.exception.InvalidOrderStateException;
 import com.grocery.microservices.order.exception.OrderNotFoundException;
-import com.grocery.microservices.order.exception.OrderAccessDeniedException;
 import com.grocery.microservices.order.repository.OrderRepository;
 import com.grocery.microservices.order.event.OrderCreatedEvent;
 import com.grocery.microservices.order.eventstore.OrderEventStore;
@@ -32,6 +32,8 @@ class OrderServiceTest {
     private OrderEventStore orderEventStore;
     private OrderService orderService;
     private Order testOrder;
+    private AuthenticatedCustomer customer1;
+    private AuthenticatedCustomer customer2;
 
     @BeforeEach
     void setUp() {
@@ -39,6 +41,8 @@ class OrderServiceTest {
         cartClient = Mockito.mock(CartClient.class);
         orderEventStore = Mockito.mock(OrderEventStore.class);
         orderService = new OrderService(orderRepository, cartClient, orderEventStore);
+        customer1 = new AuthenticatedCustomer("customer-1");
+        customer2 = new AuthenticatedCustomer("customer-2");
         testOrder = new Order();
         testOrder.setId(1L);
         testOrder.setUserId("customer-1");
@@ -48,15 +52,12 @@ class OrderServiceTest {
 
     @Test
     void testCreateOrder() {
-        // Arrange
         Order newOrder = new Order();
         newOrder.setTotal(50.0);
         when(orderRepository.save(Mockito.any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // Act
         Order createdOrder = orderService.createOrder(newOrder);
 
-        // Assert
         assertNotNull(createdOrder);
         assertEquals(OrderStatus.PENDING, createdOrder.getStatus());
         assertNotNull(createdOrder.getOrderDate());
@@ -66,26 +67,21 @@ class OrderServiceTest {
 
     @Test
     void testUpdateOrderStatus_Valid() {
-        // Arrange
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(orderRepository.findByIdAndUserId(1L, "customer-1")).thenReturn(Optional.of(testOrder));
         when(orderRepository.save(Mockito.any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // Act
-        Order updatedOrder = orderService.updateOrderStatus(1L, OrderStatus.COMPLETED, "customer-1");
+        Order updatedOrder = orderService.updateOrderStatus(1L, OrderStatus.COMPLETED, customer1);
 
-        // Assert
         assertEquals(OrderStatus.COMPLETED, updatedOrder.getStatus());
     }
 
     @Test
     void testUpdateOrderStatus_InvalidFromCompleted() {
-        // Arrange
         testOrder.setStatus(OrderStatus.COMPLETED);
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(orderRepository.findByIdAndUserId(1L, "customer-1")).thenReturn(Optional.of(testOrder));
 
-        // Act & Assert
         assertThrows(InvalidOrderStateException.class, () ->
-            orderService.updateOrderStatus(1L, OrderStatus.CANCELLED, "customer-1")
+            orderService.updateOrderStatus(1L, OrderStatus.CANCELLED, customer1)
         );
     }
 
@@ -97,7 +93,7 @@ class OrderServiceTest {
         when(cartClient.getCart(1L, "Bearer token")).thenReturn(cart);
         when(orderRepository.save(Mockito.any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Order createdOrder = orderService.checkout(1L, "customer-1", "Bearer token");
+        Order createdOrder = orderService.checkout(1L, customer1, "Bearer token");
 
         assertEquals("customer-1", createdOrder.getUserId());
         assertEquals(8.0, createdOrder.getTotal());
@@ -111,7 +107,7 @@ class OrderServiceTest {
     void checkoutRejectsEmptyCartWithoutPersistingOrder() {
         when(cartClient.getCart(1L, "Bearer token")).thenReturn(new CartSnapshot(1L, List.of()));
 
-        assertThrows(EmptyCartException.class, () -> orderService.checkout(1L, "customer-1", "Bearer token"));
+        assertThrows(EmptyCartException.class, () -> orderService.checkout(1L, customer1, "Bearer token"));
 
         verify(orderRepository, never()).save(Mockito.any(Order.class));
     }
@@ -121,17 +117,17 @@ class OrderServiceTest {
         when(cartClient.getCart(99L, "Bearer token")).thenThrow(new CheckoutCartNotFoundException(99L));
 
         assertThrows(CheckoutCartNotFoundException.class,
-                () -> orderService.checkout(99L, "customer-1", "Bearer token"));
+                () -> orderService.checkout(99L, customer1, "Bearer token"));
 
         verify(orderRepository, never()).save(Mockito.any(Order.class));
     }
 
     @Test
     void testUpdateOrderStatus_InvalidPendingToPending() {
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(orderRepository.findByIdAndUserId(1L, "customer-1")).thenReturn(Optional.of(testOrder));
 
         InvalidOrderStateException exception = assertThrows(InvalidOrderStateException.class, () ->
-            orderService.updateOrderStatus(1L, OrderStatus.PENDING, "customer-1")
+            orderService.updateOrderStatus(1L, OrderStatus.PENDING, customer1)
         );
 
         assertEquals("A PENDING order can only be COMPLETED or CANCELLED", exception.getMessage());
@@ -140,39 +136,29 @@ class OrderServiceTest {
 
     @Test
     void testGetOrderById() {
-        // Arrange
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+        when(orderRepository.findByIdAndUserId(1L, "customer-1")).thenReturn(Optional.of(testOrder));
 
-        // Act & Assert
-        Order foundOrder = orderService.getOrder(1L, "customer-1");
+        Order foundOrder = orderService.getOrder(1L, customer1);
         assertNotNull(foundOrder);
         assertEquals(1L, foundOrder.getId());
 
-        // Test not found scenario
-        when(orderRepository.findById(2L)).thenReturn(Optional.empty());
-        assertThrows(OrderNotFoundException.class, () -> orderService.getOrder(2L, "customer-1"));
+        when(orderRepository.findByIdAndUserId(2L, "customer-1")).thenReturn(Optional.empty());
+        assertThrows(OrderNotFoundException.class, () -> orderService.getOrder(2L, customer1));
     }
 
     @Test
-    void getOrderRejectsAnotherCustomer() {
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+    void getOwnedOrderIsNotFoundForAnotherCustomer() {
+        when(orderRepository.findByIdAndUserId(1L, "customer-2")).thenReturn(Optional.empty());
 
-        assertThrows(OrderAccessDeniedException.class, () -> orderService.getOrder(1L, "customer-2"));
+        assertThrows(OrderNotFoundException.class, () -> orderService.getOrder(1L, customer2));
     }
 
     @Test
-    void getOrderRejectsMissingCustomerIdentity() {
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
+    void updateOrderStatusIsNotFoundForAnotherCustomer() {
+        when(orderRepository.findByIdAndUserId(1L, "customer-2")).thenReturn(Optional.empty());
 
-        assertThrows(OrderAccessDeniedException.class, () -> orderService.getOrder(1L, null));
-    }
-
-    @Test
-    void updateOrderStatusRejectsAnotherCustomer() {
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(testOrder));
-
-        assertThrows(OrderAccessDeniedException.class,
-                () -> orderService.updateOrderStatus(1L, OrderStatus.COMPLETED, "customer-2"));
+        assertThrows(OrderNotFoundException.class,
+                () -> orderService.updateOrderStatus(1L, OrderStatus.COMPLETED, customer2));
 
         verify(orderRepository, never()).save(Mockito.any(Order.class));
     }

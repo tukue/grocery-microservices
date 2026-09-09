@@ -1,1 +1,2 @@
-jwt.secret=${random.uuid}
+security.jwt.issuer-uri=${JWT_ISSUER_URI:https://grocery-test.example.test}
+security.jwt.audience=${JWT_AUDIENCE:grocery-api}

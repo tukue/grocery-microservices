@@ -4,7 +4,7 @@ env:
   variables:
     # service-name:source-directory pairs
     SERVICES: "cart:cart-service order:order-service product:product-service summary:summary-service"
-    PROJECT_NAME: "grocellery-app"
+    PROJECT_NAME: "grocery-ecommerce-platform"
     TARGET_ENVIRONMENTS: "dev staging prod"
     SCAN_SEVERITY: "CRITICAL,HIGH"
 
@@ -13,7 +13,7 @@ phases:
     commands:
       - |
         set -euo pipefail
-        PROJECT_NAME=${PROJECT_NAME:-grocellery-app}
+        PROJECT_NAME=${PROJECT_NAME:-grocery-ecommerce-platform}
         AWS_REGION=${AWS_REGION:-${AWS_DEFAULT_REGION:-us-east-1}}
         SHORT_SHA=$(printf '%s' "${CODEBUILD_RESOLVED_SOURCE_VERSION:-manual}" | cut -c1-12)
         IMAGE_TAG=${IMAGE_TAG:-sha-${SHORT_SHA}}

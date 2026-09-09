@@ -1,7 +1,10 @@
 package com.grocery.microservices.summary.messaging;
 
 import com.grocery.microservices.summary.event.OrderCreatedEvent;
+import com.grocery.microservices.summary.model.ProcessedOrderEvent;
 import com.grocery.microservices.summary.model.Summary;
+import com.grocery.microservices.summary.port.SummaryProjectionUpdater;
+import com.grocery.microservices.summary.repository.ProcessedOrderEventRepository;
 import com.grocery.microservices.summary.repository.SummaryRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,15 +13,26 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Service
-public class OrderEventProcessor {
+public class OrderEventProcessor implements SummaryProjectionUpdater {
     private final SummaryRepository summaryRepository;
+    private final ProcessedOrderEventRepository processedEventRepository;
 
-    public OrderEventProcessor(SummaryRepository summaryRepository) { this.summaryRepository = summaryRepository; }
+    public OrderEventProcessor(SummaryRepository summaryRepository,
+                               ProcessedOrderEventRepository processedEventRepository) {
+        this.summaryRepository = summaryRepository;
+        this.processedEventRepository = processedEventRepository;
+    }
 
+    @Override
     @Transactional
     public void process(OrderCreatedEvent event) {
         validate(event);
-        if (summaryRepository.findByOrderId(event.orderId()).isPresent()) return;
+        if (processedEventRepository.existsById(event.eventId().toString())) {
+            return;
+        }
+        if (summaryRepository.findByOrderId(event.orderId()).isPresent()) {
+            return;
+        }
         Summary summary = new Summary();
         summary.setOrderId(event.orderId());
         summary.setUserId(event.userId());
@@ -27,6 +41,11 @@ public class OrderEventProcessor {
         summary.setCreatedAt(LocalDateTime.now());
         summary.setDetails("Order created");
         summaryRepository.save(summary);
+
+        ProcessedOrderEvent processed = new ProcessedOrderEvent();
+        processed.setEventId(event.eventId().toString());
+        processed.setProcessedAt(LocalDateTime.now());
+        processedEventRepository.save(processed);
     }
 
     private void validate(OrderCreatedEvent event) {

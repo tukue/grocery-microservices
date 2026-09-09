@@ -14,6 +14,8 @@ authentication uses bearer tokens.
 
 ## Product Service
 
+Catalog reads are public; writes require the `product:admin` scope.
+
 - `GET /products`: returns products as the legacy list response.
 - `GET /products?page={page}&size={size}&sort={id|name|price}&direction={asc|desc}`: returns a paginated product response. `page` is zero-based and `size` is limited to 100.
 - `GET /products/search?name={name}`: searches products by name.
@@ -26,32 +28,34 @@ Validation: product `name` is required, `price` must be positive.
 
 ## Cart Service
 
-- `POST /carts`: creates a cart, returns `201`.
-- `GET /carts/current`: returns the most recently created cart for the authenticated customer, or `404` when the customer has not created a cart.
-- `GET /carts/{id}`: returns a cart with items, `404` if absent.
-- `POST /carts/{cartId}/items`: adds an item.
-- `PATCH /carts/{cartId}/items/{itemId}`: updates an item's quantity and returns the canonical cart.
-- `DELETE /carts/{cartId}/items/{itemId}`: removes an item.
+All cart endpoints require a bearer token with the `cart:read` or `cart:write` scope and operate only on the authenticated customer's own cart (`sub` claim). Accessing another customer's cart returns `404` (not `403`) to avoid leaking resource existence.
+
+- `POST /api/customer/cart`: creates the current cart, returns `201`.
+- `GET /api/customer/cart`: returns the current cart for the authenticated customer, `404` when none exists.
+- `GET /api/customer/carts/{cartId}`: returns a cart with items, `404` if absent or owned by another customer.
+- `POST /api/customer/cart/{cartId}/items`: adds an item.
+- `PATCH /api/customer/cart/{cartId}/items/{itemId}`: updates an item's quantity and returns the canonical cart.
+- `DELETE /api/customer/cart/{cartId}/items/{itemId}`: removes an item.
 
 Validation: item `productName` is required, `price` must be non-negative, `quantity` must be at least 1.
 
 ## Order Service
 
-- `POST /orders/checkout`: creates an order from the authenticated customer's cart, returns `201` and `Location: /orders/{id}`.
-- `GET /orders`: returns orders for the authenticated customer.
-- `GET /orders/{id}`: returns one order, `404` if absent.
-- `PATCH /orders/{id}/status?status={PENDING|COMPLETED|CANCELLED}`: changes status.
+All order endpoints require a bearer token with the `order:read` or `order:write` scope and are scoped to the authenticated customer. Accessing another customer's order returns `404`. Checkout forwards the caller's bearer token to the cart service, which enforces the same ownership rules.
+
+- `POST /api/customer/checkout`: creates an order from the authenticated customer's cart, returns `201` and `Location: /api/customer/orders/{id}`.
+- `GET /api/customer/orders`: returns orders for the authenticated customer.
+- `GET /api/customer/orders/{id}`: returns one order, `404` if absent or owned by another customer.
+- `PATCH /api/customer/orders/{id}/status?status={PENDING|COMPLETED|CANCELLED}`: changes status.
 
 Validation: `cartId` is required, `productIds` must not be empty.
 
 ## Summary Service
 
-- `POST /summaries`: creates a summary, returns `201`.
-- `GET /summaries/{id}`: returns a summary, `404` if absent.
-- `GET /summaries/by-order/{orderId}`: returns the asynchronously generated summary for an order, `404` while it is unavailable.
-- `GET /summaries/{id}/receipt`: returns a formatted receipt.
+Summary is a read-only projection produced asynchronously from `OrderCreatedEvent` messages. Endpoints require the `summary:read` scope and are always scoped to the authenticated customer.
 
-Validation: `orderId` is required, `items` must not be empty, `total` must be positive.
+- `GET /api/customer/summary`: returns the customer's aggregate summary (`orderCount`, `totalSpending`, `averageOrderAmount`, `recentOrders`).
+- `GET /api/customer/summary/orders/{orderId}/receipt`: returns a formatted receipt, `404` if absent or owned by another customer.
 
 ## Error Response
 
