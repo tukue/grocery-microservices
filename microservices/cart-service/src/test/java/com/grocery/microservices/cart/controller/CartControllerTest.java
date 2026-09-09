@@ -53,13 +53,13 @@ public class CartControllerTest {
 
     @Test
     public void rejectsRequestWithoutToken() throws Exception {
-        mockMvc.perform(get("/api/me/cart"))
+        mockMvc.perform(get("/api/customer/cart"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     public void rejectsRequestWhenTokenIsMissingScope() throws Exception {
-        mockMvc.perform(get("/api/me/cart")
+        mockMvc.perform(get("/api/customer/cart")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.tokenWithScopes("customer-1", "order:read"))))
                 .andExpect(status().isForbidden());
     }
@@ -71,7 +71,7 @@ public class CartControllerTest {
 
         when(cartService.getCartById(1L, new AuthenticatedCustomer("customer-1"))).thenReturn(cart);
 
-        mockMvc.perform(get("/api/me/carts/1")
+        mockMvc.perform(get("/api/customer/carts/1")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L));
@@ -82,7 +82,7 @@ public class CartControllerTest {
         when(cartService.getCartById(1L, new AuthenticatedCustomer("customer-2")))
                 .thenThrow(new CartNotFoundException(1L));
 
-        mockMvc.perform(get("/api/me/carts/1")
+        mockMvc.perform(get("/api/customer/carts/1")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-2"))))
                 .andExpect(status().isNotFound());
     }
@@ -95,7 +95,7 @@ public class CartControllerTest {
 
         when(cartService.createCart(new AuthenticatedCustomer("customer-1"))).thenReturn(returnedCart);
 
-        mockMvc.perform(post("/api/me/cart")
+        mockMvc.perform(post("/api/customer/cart")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(cartDTO)))
@@ -109,7 +109,7 @@ public class CartControllerTest {
         cart.setId(1L);
         when(cartService.getCurrentCart(new AuthenticatedCustomer("customer-1"))).thenReturn(cart);
 
-        mockMvc.perform(get("/api/me/cart")
+        mockMvc.perform(get("/api/customer/cart")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L));
@@ -120,7 +120,7 @@ public class CartControllerTest {
         when(cartService.removeItem(1L, 99L, new AuthenticatedCustomer("customer-1")))
                 .thenThrow(new CartItemNotFoundException(1L, 99L));
 
-        mockMvc.perform(delete("/api/me/cart/1/items/99")
+        mockMvc.perform(delete("/api/customer/cart/1/items/99")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1"))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Cart item 99 was not found in cart 1"));
@@ -136,7 +136,7 @@ public class CartControllerTest {
 
         when(cartService.addItem(1L, 10L, 2, new AuthenticatedCustomer("customer-1"))).thenReturn(updatedCart);
 
-        mockMvc.perform(post("/api/me/cart/1/items")
+        mockMvc.perform(post("/api/customer/cart/1/items")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(itemDTO)))
@@ -152,7 +152,7 @@ public class CartControllerTest {
         when(cartService.addItem(1L, 99L, 2, new AuthenticatedCustomer("customer-1")))
                 .thenThrow(new ProductNotFoundException(99L));
 
-        mockMvc.perform(post("/api/me/cart/1/items")
+        mockMvc.perform(post("/api/customer/cart/1/items")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(itemDTO)))
@@ -168,7 +168,7 @@ public class CartControllerTest {
         when(cartService.addItem(1L, 10L, 2, new AuthenticatedCustomer("customer-1")))
                 .thenThrow(new ProductUnavailableException(10L));
 
-        mockMvc.perform(post("/api/me/cart/1/items")
+        mockMvc.perform(post("/api/customer/cart/1/items")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(itemDTO)))
@@ -184,7 +184,7 @@ public class CartControllerTest {
         when(cartService.addItem(1L, 10L, 2, new AuthenticatedCustomer("customer-1")))
                 .thenThrow(new InsufficientProductStockException(10L, 3, 2));
 
-        mockMvc.perform(post("/api/me/cart/1/items")
+        mockMvc.perform(post("/api/customer/cart/1/items")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(itemDTO)))
@@ -197,7 +197,7 @@ public class CartControllerTest {
         CartItemDTO itemDTO = new CartItemDTO();
         itemDTO.setProductId(10L);
 
-        mockMvc.perform(post("/api/me/cart/1/items")
+        mockMvc.perform(post("/api/customer/cart/1/items")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(itemDTO)))
@@ -216,7 +216,7 @@ public class CartControllerTest {
 
         when(cartService.updateItemQuantity(1L, 1L, 3, new AuthenticatedCustomer("customer-1"))).thenReturn(updatedCart);
 
-        mockMvc.perform(patch("/api/me/cart/1/items/1")
+        mockMvc.perform(patch("/api/customer/cart/1/items/1")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(quantityDTO)))
@@ -228,7 +228,7 @@ public class CartControllerTest {
     public void rejectsNonPositiveCartItemQuantity() throws Exception {
         CartItemQuantityDTO quantityDTO = new CartItemQuantityDTO();
 
-        mockMvc.perform(patch("/api/me/cart/1/items/1")
+        mockMvc.perform(patch("/api/customer/cart/1/items/1")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(quantityDTO)))

@@ -54,6 +54,13 @@ attacks: the signing key always comes from the configured issuer, never from the
 Spring Security context; it always asks for `customer.customerId()`. Claims such as `email` or
 `preferred_username` are **not** used as identity because they are mutable and not guaranteed unique.
 
+### Customer-scoped routes
+
+Customer-facing routes use the `/api/customer` prefix. `customer` always means the caller identified
+by the validated JWT `sub`; it is not a customer ID supplied by the browser. For example,
+`GET /api/customer/cart` reads the caller's current cart, while
+`GET /api/customer/carts/{cartId}` still performs an ownership-scoped lookup.
+
 ### Authorization (scopes)
 
 The `scope` claim becomes authorities with the `SCOPE_` prefix (for example `scope: "cart:write"`
@@ -75,21 +82,21 @@ Scopes across the platform: `cart:read`, `cart:write`, `order:read`, `order:writ
 
 | Endpoint | Scope | Notes |
 | --- | --- | --- |
-| `POST /api/me/cart` | `cart:write` | Create the current cart. |
-| `GET /api/me/cart` | `cart:read` | Current cart, `404` when none exists. |
-| `GET /api/me/carts/{cartId}` | `cart:read` | `404` if owned by another customer. |
-| `POST /api/me/cart/{cartId}/items` | `cart:write` | |
-| `PATCH /api/me/cart/{cartId}/items/{itemId}` | `cart:write` | |
-| `DELETE /api/me/cart/{cartId}/items/{itemId}` | `cart:write` | |
+| `POST /api/customer/cart` | `cart:write` | Create the current cart. |
+| `GET /api/customer/cart` | `cart:read` | Current cart, `404` when none exists. |
+| `GET /api/customer/carts/{cartId}` | `cart:read` | `404` if owned by another customer. |
+| `POST /api/customer/cart/{cartId}/items` | `cart:write` | |
+| `PATCH /api/customer/cart/{cartId}/items/{itemId}` | `cart:write` | |
+| `DELETE /api/customer/cart/{cartId}/items/{itemId}` | `cart:write` | |
 
 ### Order service
 
 | Endpoint | Scope | Notes |
 | --- | --- | --- |
-| `POST /api/me/checkout` | `order:write` | Creates the order and forwards the caller's bearer token to `cart-service` (`GET /api/me/carts/{cartId}`); a missing `Authorization` header is rejected before the call. |
-| `GET /api/me/orders` | `order:read` | Only the caller's orders. |
-| `GET /api/me/orders/{id}` | `order:read` | `404` if owned by another customer. |
-| `PATCH /api/me/orders/{id}/status` | `order:write` | |
+| `POST /api/customer/checkout` | `order:write` | Creates the order and forwards the caller's bearer token to `cart-service` (`GET /api/customer/carts/{cartId}`); a missing `Authorization` header is rejected before the call. |
+| `GET /api/customer/orders` | `order:read` | Only the caller's orders. |
+| `GET /api/customer/orders/{id}` | `order:read` | `404` if owned by another customer. |
+| `PATCH /api/customer/orders/{id}/status` | `order:write` | |
 
 ### Product service
 
@@ -104,8 +111,8 @@ Scopes across the platform: `cart:read`, `cart:write`, `order:read`, `order:writ
 
 | Endpoint | Scope | Notes |
 | --- | --- | --- |
-| `GET /api/me/summary` | `summary:read` | Aggregates `orderCount`, `totalSpending`, `averageOrderAmount`, `recentOrders`. |
-| `GET /api/me/summary/orders/{orderId}/receipt` | `summary:read` | `404` if not ready or owned by another customer. |
+| `GET /api/customer/summary` | `summary:read` | Aggregates `orderCount`, `totalSpending`, `averageOrderAmount`, `recentOrders`. |
+| `GET /api/customer/summary/orders/{orderId}/receipt` | `summary:read` | `404` if not ready or owned by another customer. |
 
 ### Public endpoints on every service
 
@@ -209,7 +216,7 @@ Then sign in once (cart's endpoint), and use the returned token against all four
 TOKEN=$(curl -s -X POST http://localhost:8080/auth/login -H 'Content-Type: application/json' \
   -d '{"username":"demo-user","password":""}' | jq -r .token)
 
-curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/me/cart        # cart
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/customer/cart        # cart
 curl -H "Authorization: Bearer $TOKEN" http://localhost:8083/products           # public
 ```
 
@@ -218,19 +225,19 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8083/products           
 - Use a **single API client** module that attaches the `Authorization` header, adds the
   `X-Correlation-Id` header, and maps the backend JSON error shape to a typed error.
 - Read `Location` on `201` responses (for example checkout returns
-  `Location: /api/me/orders/{id}`).
+  `Location: /api/customer/orders/{id}`).
 - Cart mutations return the authoritative cart — replace local state with the response; never
   recalculate totals client-side.
 - After checkout, the summary is built asynchronously (Kafka). Show **Order confirmed** immediately
   and, only if the user asks for a receipt, poll
-  `GET /api/me/summary/orders/{orderId}/receipt` with bounded retries; `404` means "pending or not
+  `GET /api/customer/summary/orders/{orderId}/receipt` with bounded retries; `404` means "pending or not
   yours", never failure.
 - Receipt-triggered flow depends on the `summary:read` scope; include it in your token scopes.
 
 Example (fetch):
 
 ```js
-const res = await fetch(`${API_BASE}/api/me/orders`, {
+const res = await fetch(`${API_BASE}/api/customer/orders`, {
   headers: { Authorization: `Bearer ${accessToken}` }
 });
 if (res.status === 401) { /* clear session, redirect to sign-in */ }

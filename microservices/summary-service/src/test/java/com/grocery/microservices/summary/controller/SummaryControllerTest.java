@@ -40,13 +40,13 @@ public class SummaryControllerTest {
 
     @Test
     public void rejectsRequestWithoutToken() throws Exception {
-        mockMvc.perform(get("/api/me/summary"))
+        mockMvc.perform(get("/api/customer/summary"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     public void rejectsRequestWhenTokenIsMissingScope() throws Exception {
-        mockMvc.perform(get("/api/me/summary")
+        mockMvc.perform(get("/api/customer/summary")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.tokenWithScopes("customer-1", "cart:read"))))
                 .andExpect(status().isForbidden());
     }
@@ -67,7 +67,7 @@ public class SummaryControllerTest {
         when(summaryService.getAverageOrderAmount("customer-1")).thenReturn(new BigDecimal("12.5"));
         when(summaryService.getSummariesByCustomer("customer-1")).thenReturn(java.util.List.of(summary));
 
-        mockMvc.perform(get("/api/me/summary")
+        mockMvc.perform(get("/api/customer/summary")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.customerId").value("customer-1"))
@@ -85,7 +85,7 @@ public class SummaryControllerTest {
         when(summaryService.getAverageOrderAmount("customer-1")).thenReturn(BigDecimal.ZERO);
         when(summaryService.getSummariesByCustomer("customer-1")).thenReturn(java.util.List.of());
 
-        mockMvc.perform(get("/api/me/summary")
+        mockMvc.perform(get("/api/customer/summary")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.orderCount").value(0))
@@ -97,7 +97,7 @@ public class SummaryControllerTest {
         when(summaryService.getFormattedReceipt("customer-2", 99L))
                 .thenThrow(new SummaryNotFoundException(99L));
 
-        mockMvc.perform(get("/api/me/summary/orders/99/receipt")
+        mockMvc.perform(get("/api/customer/summary/orders/99/receipt")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-2"))))
                 .andExpect(status().isNotFound());
     }
@@ -107,7 +107,7 @@ public class SummaryControllerTest {
         when(summaryService.getFormattedReceipt("customer-1", 42L))
                 .thenReturn("--- RECEIPT ---\nOrder ID: 42\n---------------\n");
 
-        mockMvc.perform(get("/api/me/summary/orders/42/receipt")
+        mockMvc.perform(get("/api/customer/summary/orders/42/receipt")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1"))))
                 .andExpect(status().isOk())
                 .andExpect(content().string("--- RECEIPT ---\nOrder ID: 42\n---------------\n"));

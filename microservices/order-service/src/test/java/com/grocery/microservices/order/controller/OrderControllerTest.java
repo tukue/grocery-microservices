@@ -51,13 +51,13 @@ public class OrderControllerTest {
 
     @Test
     public void rejectsRequestWithoutToken() throws Exception {
-        mockMvc.perform(get("/api/me/orders"))
+        mockMvc.perform(get("/api/customer/orders"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     public void rejectsRequestWhenTokenIsMissingScope() throws Exception {
-        mockMvc.perform(get("/api/me/orders")
+        mockMvc.perform(get("/api/customer/orders")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.tokenWithScopes("customer-1", "cart:read"))))
                 .andExpect(status().isForbidden());
     }
@@ -75,12 +75,12 @@ public class OrderControllerTest {
         when(orderService.checkout(anyLong(), any(AuthenticatedCustomer.class), any(String.class)))
                 .thenReturn(savedOrder);
 
-        mockMvc.perform(post("/api/me/checkout")
+        mockMvc.perform(post("/api/customer/checkout")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(checkoutRequest)))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/me/orders/1"))
+                .andExpect(header().string("Location", "/api/customer/orders/1"))
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.status").value("PENDING"))
                 .andExpect(jsonPath("$.total").value(24.50));
@@ -91,7 +91,7 @@ public class OrderControllerTest {
         CheckoutRequest checkoutRequest = new CheckoutRequest();
         checkoutRequest.setCartId(0L);
 
-        mockMvc.perform(post("/api/me/checkout")
+        mockMvc.perform(post("/api/customer/checkout")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(checkoutRequest)))
@@ -111,7 +111,7 @@ public class OrderControllerTest {
         when(orderService.updateOrderStatus(anyLong(), any(OrderStatus.class), any(AuthenticatedCustomer.class)))
                 .thenReturn(updatedOrder);
 
-        mockMvc.perform(patch("/api/me/orders/1/status")
+        mockMvc.perform(patch("/api/customer/orders/1/status")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .param("status", "COMPLETED")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -124,7 +124,7 @@ public class OrderControllerTest {
         when(orderService.updateOrderStatus(anyLong(), any(OrderStatus.class), any(AuthenticatedCustomer.class)))
                 .thenThrow(new InvalidOrderStateException("A PENDING order can only be COMPLETED or CANCELLED"));
 
-        mockMvc.perform(patch("/api/me/orders/1/status")
+        mockMvc.perform(patch("/api/customer/orders/1/status")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
                         .param("status", "PENDING"))
                 .andExpect(status().isBadRequest())
@@ -136,7 +136,7 @@ public class OrderControllerTest {
         when(orderService.getOrder(anyLong(), any(AuthenticatedCustomer.class)))
                 .thenThrow(new OrderNotFoundException(99L));
 
-        mockMvc.perform(get("/api/me/orders/99")
+        mockMvc.perform(get("/api/customer/orders/99")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-2"))))
                 .andExpect(status().isNotFound());
     }

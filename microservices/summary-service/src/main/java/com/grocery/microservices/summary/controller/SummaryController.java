@@ -16,7 +16,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/me")
+@RequestMapping("/api/customer")
 public class SummaryController {
 
     private final SummaryQuery summaryQuery;

@@ -9,8 +9,8 @@ vocabulary. Terms are explained in the context of this repo, not just in general
 | --- | --- |
 | Monorepo | A single Git repository containing all four microservices, shared docs, CI configuration, and infrastructure-as-code (Terraform). |
 | Microservice | A small, independently deployable Spring Boot application exposing its own HTTP API. Each owns its own data store. |
-| cart-service | Owns the customer shopping cart (`/api/me/cart`). Port `8081` in the compose stack. |
-| order-service | Handles checkout and order lifecycle (`POST /checkout`, `/api/me/orders`). Port `8082`. |
+| cart-service | Owns the customer shopping cart (`/api/customer/cart`). Port `8081` in the compose stack. |
+| order-service | Handles checkout and order lifecycle (`POST /checkout`, `/api/customer/orders`). Port `8082`. |
 | product-service | Catalogue and search; product and stock data. Port `8083`. |
 | summary-service | Read-side projection that aggregates order events into customer summaries, receipts, and trends. Port `8084`. |
 | Compose smoke stack | The local environment defined in `microservices/docker-compose.yml`: all four services, Postgres per service, and Kafka. Used by local development and the CI `health-check` job. |
@@ -77,7 +77,7 @@ vocabulary. Terms are explained in the context of this repo, not just in general
 | Order | A confirmed purchase with line items, total, status, and owner. Statuses: `PENDING`, `COMPLETED`, `CANCELLED` (`OrderStatus`). |
 | Receipt | A customer-facing order summary served by summary-service (`/summary/orders/{orderId}/receipt`). |
 | Summary / Trends | Read-side aggregates (per-customer totals, product trends) recomputed from order events. |
-| Query by ownership | Every customer- scoped read (`/api/me/*`, `/summary`) filters by the caller's identity so users only ever see their own data. |
+| Query by ownership | Every customer- scoped read (`/api/customer/*`, `/summary`) filters by the caller's identity so users only ever see their own data. |
 
 ## Environments & Profiles
 

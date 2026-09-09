@@ -50,7 +50,7 @@ public class SecurityMatrixTest {
     @ParameterizedTest(name = "{0} is rejected with 401")
     @MethodSource("invalidTokens")
     public void rejectsInvalidOrInsufficientTokens(String scenario, String token) throws Exception {
-        mockMvc.perform(get("/api/me/cart")
+        mockMvc.perform(get("/api/customer/cart")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isUnauthorized());
     }

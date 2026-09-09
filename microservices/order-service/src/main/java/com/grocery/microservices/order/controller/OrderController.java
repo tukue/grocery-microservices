@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Collections;
 
 @RestController
-@RequestMapping("/api/me")
+@RequestMapping("/api/customer")
 public class OrderController {
 
     private final OrderService orderService;
@@ -37,7 +37,7 @@ public class OrderController {
                 checkoutRequest.getCartId(),
                 customer,
                 request.getHeader("Authorization"));
-        return ResponseEntity.created(URI.create("/api/me/orders/" + createdOrder.getId()))
+        return ResponseEntity.created(URI.create("/api/customer/orders/" + createdOrder.getId()))
                 .body(convertToDto(createdOrder));
     }
 
