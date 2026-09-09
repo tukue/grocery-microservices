@@ -76,7 +76,10 @@ jobs:
     - name: Verify health endpoints
       env:
         SKIP_START: "true"
-        HEALTHCHECK_RETRIES: "20"
+        # Order and summary services initialize both PostgreSQL and Kafka on a
+        # cold Docker runner. Keep the smoke test bounded while allowing their
+        # documented readiness path to complete.
+        HEALTHCHECK_RETRIES: "60"
       working-directory: microservices
       run: |
         docker compose ps
