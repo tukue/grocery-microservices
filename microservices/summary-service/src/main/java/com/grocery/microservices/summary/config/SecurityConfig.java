@@ -92,6 +92,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+            // CSRF is disabled because this service is a stateless OAuth2-resource-server API:
+            // clients authenticate via the Authorization Bearer header (no cookie/session-based
+            // two-step requests), so the CSRF token pattern does not apply.
             .csrf(csrf -> csrf.disable())
             .cors(Customizer.withDefaults())
             .authorizeHttpRequests(auth -> auth

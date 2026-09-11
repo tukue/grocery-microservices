@@ -22,7 +22,7 @@ class ApiCorsConfigurationTest {
 
         assertEquals(List.of("https://app.example.com", "https://admin.example.com"),
                 configuration.getAllowedOrigins());
-        assertEquals(List.of("Authorization", "Content-Type", "X-Correlation-Id"),
+        assertEquals(List.of("Authorization", "Content-Type", "X-Correlation-Id", "Idempotency-Key"),
                 configuration.getAllowedHeaders());
         assertFalse(configuration.getAllowCredentials());
     }
