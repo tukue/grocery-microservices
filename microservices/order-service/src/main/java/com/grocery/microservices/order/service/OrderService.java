@@ -86,6 +86,12 @@ public class OrderService {
         }
 
         validateStockAvailability(cart.items());
+        // NOTE: This call is inside the @Transactional boundary above; the check is a
+        // read-only, advisory validation against product-service (no stock is reserved or
+        // decremented).  A concurrent checkout for the same product can still race between
+        // the read and the order commit; that is acceptable for advisory stock.  Hard
+        // oversell-prevention requires an idempotent reservation/decrement endpoint in
+        // product-service (see the MVP roadmap Stage 4 deferral).
 
         List<OrderLine> orderLines = cart.items().stream()
                 .map(this::toOrderLine)

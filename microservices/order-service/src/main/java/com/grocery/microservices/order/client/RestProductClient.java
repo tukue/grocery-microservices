@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 
@@ -30,8 +31,12 @@ public class RestProductClient implements ProductClient {
     @Override
     public ProductSnapshot getProduct(Long productId) {
         try {
-            ProductSnapshot product = restTemplate.getForObject(
-                    productServiceBaseUrl + "/products/{productId}", ProductSnapshot.class, productId);
+            URI uri = UriComponentsBuilder.fromHttpUrl(productServiceBaseUrl)
+                    .pathSegment("products", String.valueOf(productId))
+                    .build()
+                    .encode()
+                    .toUri();
+            ProductSnapshot product = restTemplate.getForObject(uri, ProductSnapshot.class);
             if (product == null || !productId.equals(product.id()) || product.name() == null
                     || product.name().isBlank() || product.price() <= 0 || product.stockQuantity() < 0) {
                 throw new ProductServiceUnavailableException();
