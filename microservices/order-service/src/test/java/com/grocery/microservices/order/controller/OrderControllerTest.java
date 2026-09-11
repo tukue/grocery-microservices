@@ -22,6 +22,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -72,7 +73,7 @@ public class OrderControllerTest {
         savedOrder.setStatus(OrderStatus.PENDING);
         savedOrder.setTotal(24.50);
 
-        when(orderService.checkout(anyLong(), any(AuthenticatedCustomer.class), any(String.class)))
+        when(orderService.checkout(anyLong(), any(), any(), any(AuthenticatedCustomer.class), any(String.class)))
                 .thenReturn(savedOrder);
 
         mockMvc.perform(post("/api/customer/checkout")
@@ -84,6 +85,28 @@ public class OrderControllerTest {
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.status").value("PENDING"))
                 .andExpect(jsonPath("$.total").value(24.50));
+    }
+
+    @Test
+    public void checkoutForwardsIdempotencyKeyHeader() throws Exception {
+        CheckoutRequest checkoutRequest = new CheckoutRequest();
+        checkoutRequest.setCartId(1L);
+
+        Order savedOrder = new Order();
+        savedOrder.setId(1L);
+        savedOrder.setStatus(OrderStatus.PENDING);
+        savedOrder.setTotal(24.50);
+
+        when(orderService.checkout(eq(1L), eq("checkout-key-123"), any(), any(AuthenticatedCustomer.class),
+                any(String.class))).thenReturn(savedOrder);
+
+        mockMvc.perform(post("/api/customer/checkout")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1")))
+                        .header("Idempotency-Key", "checkout-key-123")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(checkoutRequest)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(1L));
     }
 
     @Test

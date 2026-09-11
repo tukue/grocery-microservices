@@ -60,6 +60,21 @@ public class GlobalExceptionHandler {
         return createErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(ProductUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleProductUnavailable(ProductUnavailableException ex, HttpServletRequest request) {
+        return createErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(InsufficientProductStockException.class)
+    public ResponseEntity<ErrorResponse> handleInsufficientProductStock(InsufficientProductStockException ex, HttpServletRequest request) {
+        return createErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(ProductServiceUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleProductServiceUnavailable(ProductServiceUnavailableException ex, HttpServletRequest request) {
+        return createErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), request);
+    }
+
     @ExceptionHandler(CartServiceUnavailableException.class)
     public ResponseEntity<ErrorResponse> handleCartServiceUnavailable(CartServiceUnavailableException ex, HttpServletRequest request) {
         return createErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), request);
@@ -68,6 +83,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CartAccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleCartAccessDenied(CartAccessDeniedException ex, HttpServletRequest request) {
         return createErrorResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
+        return createErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

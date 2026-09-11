@@ -114,6 +114,27 @@ stock guarantee is documented and tested.
 **Acceptance:** CI validates the real order-to-summary flow and operators can identify
 pending or terminally failed events.
 
+## Implementation Status (2026-09-11)
+
+- **Stage 1 (Security):** implemented. Single shared issuer/JWKS across services, demo
+  auth removed outside dev, summary writes restricted to event processing, ownership
+  checks with cross-service authentication tests.
+- **Stage 2 (Cloud Runtime):** not started. ECS task definitions still lack
+  `CORS_ALLOWED_ORIGINS`, Kafka bootstrap/security, and service URL injection; managed
+  Kafka not yet provisioned.
+- **Stage 3 (Migrations):** implemented. Flyway `V1__init_schema.sql` per service
+  (plus `product-service V2__seed_demo_products.sql`); docker/prod use
+  `ddl-auto=validate` with Flyway enabled; dev/test keep Hibernate-managed H2.
+- **Stage 4 (Checkout Correctness):** implemented. Checkout accepts an
+  `Idempotency-Key` header or body field, stores a unique `(user_id, idempotency_key)`,
+  and replays the original order for duplicates. Stock is validated (availability +
+  sufficient quantity) at checkout but remains advisory — no reservation/decrement.
+- **Stage 5 (Observability):** partially implemented. Producer metrics added
+  (`outbox.events.published|failed|terminal_failed`, `outbox.events.pending` gauge);
+  `OrderCreatedEvent` now carries `correlationId` and `currency` while keeping the
+  `order.created.v1` event version. Testcontainers integration tests and failed-letter
+  replay operator docs remain outstanding (P2).
+
 ## Deliberate Deferrals
 
 - Saga frameworks, distributed transactions, and additional messaging technologies.

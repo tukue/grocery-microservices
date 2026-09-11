@@ -35,6 +35,8 @@ public class OrderController {
                                              HttpServletRequest request) {
         Order createdOrder = orderService.checkout(
                 checkoutRequest.getCartId(),
+                resolveIdempotencyKey(request, checkoutRequest),
+                request.getHeader("X-Correlation-Id"),
                 customer,
                 request.getHeader("Authorization"));
         return ResponseEntity.created(URI.create("/api/customer/orders/" + createdOrder.getId()))
@@ -87,5 +89,13 @@ public class OrderController {
             dto.setLineTotal(orderLine.getLineTotal());
             return dto;
         }).toList();
+    }
+
+    private String resolveIdempotencyKey(HttpServletRequest request, CheckoutRequest checkoutRequest) {
+        String headerKey = request.getHeader("Idempotency-Key");
+        if (headerKey != null && !headerKey.isBlank()) {
+            return headerKey;
+        }
+        return checkoutRequest.getIdempotencyKey();
     }
 }

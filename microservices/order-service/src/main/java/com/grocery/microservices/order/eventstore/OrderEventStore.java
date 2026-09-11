@@ -66,8 +66,18 @@ public class OrderEventStore {
     }
 
     @Transactional
-    public void recordDeliveryFailure(UUID eventId, Throwable exception) {
-        repository.findById(eventId).ifPresent(event ->
-                event.recordFailure(exception, Instant.now().plus(retryDelay), maximumRetries));
+    public StoredOrderEventStatus recordDeliveryFailure(UUID eventId, Throwable exception) {
+        return repository.findById(eventId)
+                .map(event -> {
+                    if (event.getStatus() == StoredOrderEventStatus.PROCESSING) {
+                        event.recordFailure(exception, Instant.now().plus(retryDelay), maximumRetries);
+                    }
+                    return event.getStatus();
+                })
+                .orElse(StoredOrderEventStatus.PUBLISHED);
+    }
+
+    public long countPendingEvents() {
+        return repository.countByStatus(StoredOrderEventStatus.PENDING);
     }
 }

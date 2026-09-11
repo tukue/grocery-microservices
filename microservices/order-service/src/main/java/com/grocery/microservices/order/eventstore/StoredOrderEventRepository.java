@@ -24,4 +24,6 @@ public interface StoredOrderEventRepository extends JpaRepository<StoredOrderEve
             @Param("processing") StoredOrderEventStatus processing,
             @Param("now") Instant now,
             Pageable pageable);
+
+    long countByStatus(StoredOrderEventStatus status);
 }
