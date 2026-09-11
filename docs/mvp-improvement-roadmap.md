@@ -114,7 +114,7 @@ stock guarantee is documented and tested.
 **Acceptance:** CI validates the real order-to-summary flow and operators can identify
 pending or terminally failed events.
 
-## Implementation Status (2026-09-11)
+## Implementation Status
 
 - **Stage 1 (Security):** implemented. Single shared issuer/JWKS across services, demo
   auth removed outside dev, summary writes restricted to event processing, ownership
