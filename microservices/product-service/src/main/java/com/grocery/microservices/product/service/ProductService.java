@@ -59,4 +59,13 @@ public class ProductService {
         productRepository.findById(id).orElseThrow(() -> new ProductNotFoundException(id));
         productRepository.deleteById(id);
     }
+
+    @Caching(evict = {
+            @CacheEvict(value = PRODUCT_LIST_CACHE, allEntries = true),
+            @CacheEvict(value = PRODUCT_BY_ID_CACHE, key = "#productId")
+    })
+    public void evictProductCache(Long productId) {
+        // Hook invoked by StockReservationService (a separate bean) so the
+        // Spring cache proxy replaces stale stock counts after a reserve/release.
+    }
 }
