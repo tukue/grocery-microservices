@@ -129,11 +129,13 @@ pending or terminally failed events.
   `Idempotency-Key` header or body field, stores a unique `(user_id, idempotency_key)`,
   and replays the original order for duplicates. Stock is validated (availability +
   sufficient quantity) at checkout but remains advisory — no reservation/decrement.
-- **Stage 5 (Observability):** partially implemented. Producer metrics added
+- **Stage 5 (Observability):** implemented. Producer metrics added
   (`outbox.events.published|failed|terminal_failed`, `outbox.events.pending` gauge);
   `OrderCreatedEvent` now carries `correlationId` and `currency` while keeping the
-  `order.created.v1` event version. Testcontainers integration tests and failed-letter
-  replay operator docs remain outstanding (P2).
+  `order.created.v1` event version. End-to-end Testcontainers coverage
+  (`microservices/e2e-tests`, PostgreSQL + Redpanda) validates happy-path relay,
+  idempotent checkout replay, and duplicate delivery without double summaries;
+  failed-letter replay operator docs remain outstanding (P2).
 
 ## Deliberate Deferrals
 
