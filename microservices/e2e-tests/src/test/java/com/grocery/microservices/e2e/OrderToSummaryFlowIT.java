@@ -8,6 +8,8 @@ import com.grocery.microservices.order.client.CartItemSnapshot;
 import com.grocery.microservices.order.client.CartSnapshot;
 import com.grocery.microservices.order.client.ProductClient;
 import com.grocery.microservices.order.client.ProductSnapshot;
+import com.grocery.microservices.order.client.StockReservationSnapshot;
+import com.grocery.microservices.order.exception.InsufficientProductStockException;
 import com.grocery.microservices.summary.SummaryServiceApplication;
 import com.grocery.microservices.summary.dto.CustomerSummaryDTO;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -47,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -73,8 +76,19 @@ class OrderToSummaryFlowIT {
     private static ConfigurableApplicationContext orderCtx;
     private static ConfigurableApplicationContext summaryCtx;
 
-    private static final RestTemplate http = new RestTemplate();
+    private static final RestTemplate http = createNonThrowingRestTemplate();
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private static RestTemplate createNonThrowingRestTemplate() {
+        RestTemplate restTemplate = new RestTemplate();
+        restTemplate.setErrorHandler(new org.springframework.web.client.DefaultResponseErrorHandler() {
+            @Override
+            public boolean hasError(org.springframework.http.client.ClientHttpResponse response) {
+                return false;
+            }
+        });
+        return restTemplate;
+    }
 
     @BeforeAll
     static void startInfrastructureAndServices() throws Exception {
@@ -186,6 +200,37 @@ class OrderToSummaryFlowIT {
         });
 
         assertMetricsContain(orderToken, "outbox_events_published_total", 1.0);
+    }
+
+    @Test
+    void checkoutWithInsufficientStockReturnsConflictAndReleasesReservedLines() throws Exception {
+        String orderToken = login(ORDER_BASE);
+        String key = "e2e-stock-" + UUID.randomUUID();
+        setStock(11L, 2);
+        setStock(12L, 0);
+
+        ResponseEntity<String> resp = orderHttp(orderToken, HttpMethod.POST, "/api/customer/checkout",
+                Map.of("cartId", 4001L), key, "corr-stock-" + UUID.randomUUID());
+
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(MAPPER.readTree(resp.getBody()).get("message").asText()).contains("insufficient stock");
+
+        assertThat(stockOf(11L)).isEqualTo(2);
+        assertThat(stockOf(12L)).isEqualTo(0);
+    }
+
+    @Test
+    void checkoutConsumesReservedStockSuccessfully() throws Exception {
+        String orderToken = login(ORDER_BASE);
+        setStock(21L, 3);
+        setStock(22L, 1);
+
+        long orderId = checkout(orderToken, 5001, "e2e-consume-" + UUID.randomUUID(),
+                "corr-consume-" + UUID.randomUUID());
+
+        assertThat(orderId).isPositive();
+        assertThat(stockOf(21L)).isEqualTo(1);
+        assertThat(stockOf(22L)).isZero();
     }
 
     private long checkout(String token, long cartId, String idempotencyKey, String correlationId) throws Exception {
@@ -326,21 +371,84 @@ class OrderToSummaryFlowIT {
         return ds;
     }
 
+    private static int stockOf(Long productId) {
+        return OrderSideStubs.productClient().stockOf(productId);
+    }
+
+    private static void setStock(Long productId, int quantity) {
+        OrderSideStubs.productClient().setStock(productId, quantity);
+    }
+
     @Configuration
     static class OrderSideStubs {
+
+        private static StubProductClient PRODUCT_CLIENT;
 
         @Bean
         @Primary
         CartClient cartClient() {
-            return (cartId, auth) -> new CartSnapshot(cartId, List.of(
-                    new CartItemSnapshot(101L, 1L, "Organic Milk", 10.50, 2),
-                    new CartItemSnapshot(102L, 2L, "Sourdough Bread", 5.25, 1)));
+            return (cartId, auth) -> switch (cartId.intValue()) {
+                case 4001 -> new CartSnapshot(cartId, List.of(
+                        new CartItemSnapshot(201L, 11L, "Tea", 2.00, 2),
+                        new CartItemSnapshot(202L, 12L, "Coffee", 3.00, 1)));
+                case 5001 -> new CartSnapshot(cartId, List.of(
+                        new CartItemSnapshot(203L, 21L, "Rice", 1.50, 2),
+                        new CartItemSnapshot(204L, 22L, "Salt", 0.75, 1)));
+                default -> new CartSnapshot(cartId, List.of(
+                        new CartItemSnapshot(101L, 1L, "Organic Milk", 10.50, 2),
+                        new CartItemSnapshot(102L, 2L, "Sourdough Bread", 5.25, 1)));
+            };
         }
 
         @Bean
         @Primary
-        ProductClient productClient() {
-            return productId -> new ProductSnapshot(productId, "product-" + productId, 9.99, true, 100, null);
+        static StubProductClient productClient() {
+            if (PRODUCT_CLIENT == null) {
+                PRODUCT_CLIENT = new StubProductClient();
+            }
+            return PRODUCT_CLIENT;
+        }
+    }
+
+    static class StubProductClient implements ProductClient {
+        private final Map<Long, Integer> stock = new ConcurrentHashMap<>();
+        private final Map<String, Reservation> reservations = new ConcurrentHashMap<>();
+
+        record Reservation(Long productId, int quantity) {
+        }
+
+        int stockOf(Long productId) {
+            return stock.getOrDefault(productId, 100);
+        }
+
+        void setStock(Long productId, int quantity) {
+            stock.put(productId, quantity);
+        }
+
+        @Override
+        public ProductSnapshot getProduct(Long productId) {
+            return new ProductSnapshot(productId, "product-" + productId, 9.99, true, stockOf(productId), null);
+        }
+
+        @Override
+        public StockReservationSnapshot reserve(Long productId, int quantity, String reservationKey,
+                                                String authorizationHeader) {
+            int available = stockOf(productId);
+            if (available < quantity) {
+                throw new InsufficientProductStockException(productId, quantity, available);
+            }
+            stock.put(productId, available - quantity);
+            reservations.put(reservationKey, new Reservation(productId, quantity));
+            return new StockReservationSnapshot(reservationKey, productId, quantity, "ACTIVE");
+        }
+
+        @Override
+        public void release(String reservationKey, String authorizationHeader) {
+            Reservation reservation = reservations.remove(reservationKey);
+            if (reservation != null) {
+                stock.put(reservation.productId(),
+                        stock.getOrDefault(reservation.productId(), 0) + reservation.quantity());
+            }
         }
     }
 }

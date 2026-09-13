@@ -8,15 +8,14 @@ import com.grocery.microservices.order.client.CartClient;
 import com.grocery.microservices.order.client.CartItemSnapshot;
 import com.grocery.microservices.order.client.CartSnapshot;
 import com.grocery.microservices.order.client.ProductClient;
-import com.grocery.microservices.order.client.ProductSnapshot;
 import com.grocery.microservices.order.exception.EmptyCartException;
-import com.grocery.microservices.order.exception.InsufficientProductStockException;
 import com.grocery.microservices.order.exception.InvalidOrderStateException;
 import com.grocery.microservices.order.exception.OrderNotFoundException;
-import com.grocery.microservices.order.exception.ProductUnavailableException;
 import com.grocery.microservices.order.repository.OrderRepository;
 import com.grocery.microservices.order.event.OrderCreatedEvent;
 import com.grocery.microservices.order.eventstore.OrderEventStore;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -24,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,13 +35,17 @@ public class OrderService {
     private final CartClient cartClient;
     private final ProductClient productClient;
     private final OrderEventStore orderEventStore;
+    private final Counter reservationsReserved;
+    private final Counter reservationsReleased;
 
     public OrderService(OrderRepository repo, CartClient cartClient, ProductClient productClient,
-                        OrderEventStore orderEventStore) {
+                        OrderEventStore orderEventStore, MeterRegistry meterRegistry) {
         this.repo = repo;
         this.cartClient = cartClient;
         this.productClient = productClient;
         this.orderEventStore = orderEventStore;
+        this.reservationsReserved = Counter.builder("checkout.reservations.reserved").register(meterRegistry);
+        this.reservationsReleased = Counter.builder("checkout.reservations.released").register(meterRegistry);
     }
 
     @Transactional
@@ -85,24 +89,40 @@ public class OrderService {
             throw new EmptyCartException(cartId);
         }
 
-        validateStockAvailability(cart.items());
-        // NOTE: This call is inside the @Transactional boundary above; the check is a
-        // read-only, advisory validation against product-service (no stock is reserved or
-        // decremented).  A concurrent checkout for the same product can still race between
-        // the read and the order commit; that is acceptable for advisory stock.  Hard
-        // oversell-prevention requires an idempotent reservation/decrement endpoint in
-        // product-service (see the MVP roadmap Stage 4 deferral).
+        // Reserve stock for every cart line. Reservations are idempotent by key
+        // (checkout key + product id), and any failure releases the lines that
+        // were already reserved so a retry does not leak stock.
+        List<ReservationHandle> reservations = new ArrayList<>();
+        try {
+            for (CartItemSnapshot item : cart.items()) {
+                String reservationKey = reservationKeyFor(resolvedKey, customer.customerId(), item.productId());
+                productClient.reserve(item.productId(), item.quantity(), reservationKey, authorizationHeader);
+                reservations.add(new ReservationHandle(reservationKey, item.productId()));
+                reservationsReserved.increment();
+                log.info("EVENT=ORDER_RESERVED PRODUCT_ID={} QUANTITY={} KEY={}",
+                        item.productId(), item.quantity(), reservationKey);
+            }
+        } catch (RuntimeException ex) {
+            releaseReservations(reservations, authorizationHeader);
+            throw ex;
+        }
 
-        List<OrderLine> orderLines = cart.items().stream()
-                .map(this::toOrderLine)
-                .toList();
-        Order order = new Order();
-        order.setCartId(cartId);
-        order.setUserId(customer.customerId());
-        order.setIdempotencyKey(resolvedKey);
-        order.setOrderLines(orderLines);
-        order.setTotal(orderLines.stream().mapToDouble(OrderLine::getLineTotal).sum());
-        return createOrder(order, correlationId);
+        try {
+            List<OrderLine> orderLines = cart.items().stream()
+                    .map(this::toOrderLine)
+                    .toList();
+            Order order = new Order();
+            order.setCartId(cartId);
+            order.setUserId(customer.customerId());
+            order.setIdempotencyKey(resolvedKey);
+            order.setOrderLines(orderLines);
+            order.setTotal(orderLines.stream().mapToDouble(OrderLine::getLineTotal).sum());
+            return createOrder(order, correlationId);
+        } catch (RuntimeException ex) {
+            // The order/event write failed; compensate so stock is not leaked.
+            releaseReservations(reservations, authorizationHeader);
+            throw ex;
+        }
     }
 
     public Order getOrder(Long id, AuthenticatedCustomer customer) {
@@ -148,16 +168,24 @@ public class OrderService {
         return trimmed;
     }
 
-    private void validateStockAvailability(List<CartItemSnapshot> items) {
-        for (CartItemSnapshot item : items) {
-            ProductSnapshot product = productClient.getProduct(item.productId());
-            if (!product.available()) {
-                throw new ProductUnavailableException(item.productId());
-            }
-            if (product.stockQuantity() < item.quantity()) {
-                throw new InsufficientProductStockException(item.productId(), item.quantity(),
-                        product.stockQuantity());
+    private void releaseReservations(List<ReservationHandle> reservations, String authorizationHeader) {
+        for (ReservationHandle reservation : reservations) {
+            try {
+                productClient.release(reservation.reservationKey(), authorizationHeader);
+                reservationsReleased.increment();
+                log.info("EVENT=ORDER_RESERVATION_RELEASED PRODUCT_ID={} KEY={}",
+                        reservation.productId(), reservation.reservationKey());
+            } catch (RuntimeException ex) {
+                log.error("EVENT=ORDER_RESERVATION_RELEASE_FAILED KEY={} REASON={}",
+                        reservation.reservationKey(), ex.getClass().getSimpleName());
             }
         }
+    }
+
+    private String reservationKeyFor(String checkoutKey, String customerId, Long productId) {
+        return "checkout:" + customerId + ":" + checkoutKey + ":" + productId;
+    }
+
+    private record ReservationHandle(String reservationKey, Long productId) {
     }
 }

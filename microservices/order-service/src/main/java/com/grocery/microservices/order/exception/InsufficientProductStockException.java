@@ -5,4 +5,8 @@ public class InsufficientProductStockException extends RuntimeException {
         super("Product with id " + productId + " has insufficient stock: requested " + requested
                 + " but only " + available + " available");
     }
+
+    public InsufficientProductStockException(Long productId, int requested, String detail) {
+        super("Insufficient stock for product " + productId + " (requested " + requested + "): " + detail);
+    }
 }

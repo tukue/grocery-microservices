@@ -127,8 +127,16 @@ pending or terminally failed events.
   `ddl-auto=validate` with Flyway enabled; dev/test keep Hibernate-managed H2.
 - **Stage 4 (Checkout Correctness):** implemented. Checkout accepts an
   `Idempotency-Key` header or body field, stores a unique `(user_id, idempotency_key)`,
-  and replays the original order for duplicates. Stock is validated (availability +
-  sufficient quantity) at checkout but remains advisory — no reservation/decrement.
+  and replays the original order for duplicates. Stock is now reserved (not advisory):
+  `product-service` exposes idempotent, pessimistic-lock guarded
+  `POST /products/{productId}/reservations` and `DELETE /products/reservations/{reservationKey}`
+  endpoints backed by a `stock_reservation` table; `order-service` reserves every cart
+  line before writing the order and compensates (releases) on any failure — a later
+  line failure, a persistence/event failure, or the generic error path. Retrying a
+  failed checkout re-activates the released reservation instead of double-decrementing.
+  Concurrency is handled by a `PESSIMISTIC_WRITE` lock on the product row plus a unique
+  reservation-key index as backstop; counters (`checkout.reservations.reserved|released`)
+  and e2e coverage (stock-exhaustion conflict + compensatory release) are included.
 - **Stage 5 (Observability):** implemented. Producer metrics added
   (`outbox.events.published|failed|terminal_failed`, `outbox.events.pending` gauge);
   `OrderCreatedEvent` now carries `correlationId` and `currency` while keeping the
