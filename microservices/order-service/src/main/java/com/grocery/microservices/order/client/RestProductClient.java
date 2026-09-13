@@ -105,6 +105,7 @@ public class RestProductClient implements ProductClient {
     @Override
     public void release(String reservationKey, String authorizationHeader) {
         try {
+            validateReservationKey(reservationKey);
             URI uri = UriComponentsBuilder.fromHttpUrl(productServiceBaseUrl)
                     .pathSegment("products", "reservations", reservationKey)
                     .build()
@@ -117,6 +118,13 @@ public class RestProductClient implements ProductClient {
             restTemplate.exchange(uri, HttpMethod.DELETE, new HttpEntity<>(headers), Void.class);
         } catch (RestClientException ex) {
             throw new ProductServiceUnavailableException();
+        }
+    }
+
+    private void validateReservationKey(String reservationKey) {
+        if (reservationKey == null || reservationKey.isBlank() || reservationKey.length() > 255
+                || !reservationKey.matches("[A-Za-z0-9:_\\-.]*")) {
+            throw new IllegalArgumentException("Invalid reservation key");
         }
     }
 

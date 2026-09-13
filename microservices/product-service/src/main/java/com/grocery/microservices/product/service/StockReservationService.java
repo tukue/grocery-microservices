@@ -29,6 +29,7 @@ import java.time.LocalDateTime;
 public class StockReservationService {
 
     private static final Logger log = LoggerFactory.getLogger(StockReservationService.class);
+    private static final int MAX_RESERVATION_QUANTITY = 10000;
 
     private final StockReservationRepository reservationRepository;
     private final ProductRepository productRepository;
@@ -50,19 +51,19 @@ public class StockReservationService {
         if (quantity <= 0) {
             throw new IllegalArgumentException("Reservation quantity must be positive");
         }
-
-        StockReservation existing = reservationRepository.findByReservationKey(reservationKey).orElse(null);
-        if (existing != null && existing.getStatus() == StockReservationStatus.ACTIVE) {
-            log.info("EVENT=STOCK_RESERVATION_REPLAY KEY={} PRODUCT_ID={}", reservationKey, productId);
-            return existing;
+        if (quantity > MAX_RESERVATION_QUANTITY) {
+            throw new IllegalArgumentException(
+                    "Reservation quantity exceeds maximum allowed (" + MAX_RESERVATION_QUANTITY + ")");
         }
 
         Product product = productRepository.findWithLockingById(productId)
                 .orElseThrow(() -> new ProductNotFoundException(productId));
 
-        StockReservation rechecked = reservationRepository.findByReservationKey(reservationKey).orElse(null);
-        if (rechecked != null && rechecked.getStatus() == StockReservationStatus.ACTIVE) {
-            return rechecked;
+        StockReservation existing = reservationRepository.findByReservationKeyWithLock(reservationKey)
+                .orElse(null);
+        if (existing != null && existing.getStatus() == StockReservationStatus.ACTIVE) {
+            log.info("EVENT=STOCK_RESERVATION_REPLAY KEY={} PRODUCT_ID={}", reservationKey, productId);
+            return existing;
         }
 
         if (!product.isAvailable()) {
@@ -76,13 +77,13 @@ public class StockReservationService {
         productRepository.save(product);
         productService.evictProductCache(productId);
 
-        StockReservation reservation = rechecked;
-        if (reservation == null) {
+        StockReservation reservation;
+        if (existing == null) {
             reservation = reservationRepository.save(new StockReservation(reservationKey, productId, quantity));
         } else {
-            reservation.setStatus(StockReservationStatus.ACTIVE);
-            reservation.setReleasedAt(null);
-            reservation = reservationRepository.save(reservation);
+            existing.setStatus(StockReservationStatus.ACTIVE);
+            existing.setReleasedAt(null);
+            reservation = reservationRepository.save(existing);
         }
         log.info("EVENT=STOCK_RESERVED KEY={} PRODUCT_ID={} QUANTITY={}", reservationKey, productId, quantity);
         return reservation;

@@ -76,6 +76,30 @@ class StockReservationControllerTest {
     }
 
     @Test
+    void reserveRejectsExcessiveQuantityWithoutCallingService() throws Exception {
+        mockMvc.perform(post("/products/1/reservations")
+                        .header(HttpHeaders.AUTHORIZATION, bearer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reservationKey\":\"key-over\",\"quantity\":10001}"))
+                .andExpect(status().isBadRequest());
+
+        verify(stockReservationService, org.mockito.Mockito.never())
+                .reserve(any(), anyInt(), anyString());
+    }
+
+    @Test
+    void reserveMapsServiceRejectedRequestToBadRequest() throws Exception {
+        when(stockReservationService.reserve(any(), anyInt(), anyString()))
+                .thenThrow(new IllegalArgumentException("Reservation key must not be blank"));
+
+        mockMvc.perform(post("/products/1/reservations")
+                        .header(HttpHeaders.AUTHORIZATION, bearer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reservationKey\":\"key\",\"quantity\":1}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void reserveRequiresAuthentication() throws Exception {
         mockMvc.perform(post("/products/1/reservations")
                         .contentType(MediaType.APPLICATION_JSON)

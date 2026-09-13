@@ -46,11 +46,11 @@ class StockReservationServiceTest {
         product.setAvailable(true);
         product.setStockQuantity(100);
         when(productRepository.findWithLockingById(1L)).thenReturn(Optional.of(product));
+        when(reservationRepository.findByReservationKeyWithLock("key-1")).thenReturn(Optional.empty());
     }
 
     @Test
     void reserveDecrementsStockAndPersistsReservation() {
-        when(reservationRepository.findByReservationKey("key-1")).thenReturn(Optional.empty());
         when(reservationRepository.save(any(StockReservation.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -67,7 +67,7 @@ class StockReservationServiceTest {
     void reserveReplaysExistingActiveReservationWithoutDoubleDecrement() {
         StockReservation existing = new StockReservation("key-1", 1L, 3);
         existing.setStatus(StockReservationStatus.ACTIVE);
-        when(reservationRepository.findByReservationKey("key-1")).thenReturn(Optional.of(existing));
+        when(reservationRepository.findByReservationKeyWithLock("key-1")).thenReturn(Optional.of(existing));
 
         StockReservation result = reservationService.reserve(1L, 3, "key-1");
 
@@ -80,7 +80,6 @@ class StockReservationServiceTest {
     @Test
     void reserveRejectsWhenStockInsufficient() {
         product.setStockQuantity(2);
-        when(reservationRepository.findByReservationKey("key-1")).thenReturn(Optional.empty());
 
         InsufficientStockException exception = assertThrows(InsufficientStockException.class,
                 () -> reservationService.reserve(1L, 5, "key-1"));
@@ -92,7 +91,6 @@ class StockReservationServiceTest {
     @Test
     void reserveRejectsWhenProductUnavailable() {
         product.setAvailable(false);
-        when(reservationRepository.findByReservationKey("key-1")).thenReturn(Optional.empty());
 
         assertThrows(ProductNotAvailableException.class,
                 () -> reservationService.reserve(1L, 1, "key-1"));
@@ -109,7 +107,7 @@ class StockReservationServiceTest {
     void reserveReactivatesReleasedReservationForRetry() {
         StockReservation released = new StockReservation("key-1", 1L, 3);
         released.setStatus(StockReservationStatus.RELEASED);
-        when(reservationRepository.findByReservationKey("key-1")).thenReturn(Optional.of(released));
+        when(reservationRepository.findByReservationKeyWithLock("key-1")).thenReturn(Optional.of(released));
         when(reservationRepository.save(any(StockReservation.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -162,5 +160,11 @@ class StockReservationServiceTest {
     @Test
     void reserveRejectsMissingKey() {
         assertThrows(IllegalArgumentException.class, () -> reservationService.reserve(1L, 1, "  "));
+    }
+
+    @Test
+    void reserveRejectsExcessiveQuantity() {
+        assertThrows(IllegalArgumentException.class,
+                () -> reservationService.reserve(1L, 10001, "key-overflow"));
     }
 }
