@@ -125,10 +125,10 @@ jobs:
         distribution: 'temurin'
         java-version: '21'
 
-    - name: Build e2e service dependencies
-      run: mvn -B install -DskipTests -pl microservices/order-service,microservices/summary-service -am
-      working-directory: ${{ github.workspace }}
-
     - name: Run order-to-summary e2e tests
-      run: mvn -B test -Dmaven.test.skip=false --file microservices/e2e-tests/pom.xml
+      # Keep e2e-tests and its service dependencies in the same Maven reactor.
+      # `install` repackages Spring Boot services as executable jars, whose
+      # application classes under BOOT-INF/classes are not compiler-visible to
+      # the standalone e2e module. `verify` also runs Failsafe for *IT tests.
+      run: mvn -B verify -Dmaven.test.skip=false -pl microservices/e2e-tests -am
       working-directory: ${{ github.workspace }}
