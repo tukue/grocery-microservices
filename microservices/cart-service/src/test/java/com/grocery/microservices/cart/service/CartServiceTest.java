@@ -217,6 +217,28 @@ class CartServiceTest {
     }
 
     @Test
+    void revertsCheckedOutCartBackToOpen() {
+        testCart.setStatus(CartStatus.CHECKED_OUT);
+        when(cartRepository.findByIdAndUserId(1L, "customer-1")).thenReturn(Optional.of(testCart));
+        when(cartRepository.save(Mockito.any(Cart.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var reopenedCart = cartService.markOpen(1L, CUSTOMER_1);
+
+        assertEquals("OPEN", reopenedCart.getStatus());
+        assertEquals(CartStatus.OPEN, testCart.getStatus());
+        verify(cartRepository).save(testCart);
+    }
+
+    @Test
+    void markOpenIsScopedToOwnedCart() {
+        when(cartRepository.findByIdAndUserId(1L, "customer-2")).thenReturn(Optional.empty());
+
+        assertThrows(CartNotFoundException.class, () -> cartService.markOpen(1L, new AuthenticatedCustomer("customer-2")));
+
+        verify(cartRepository, never()).save(Mockito.any(Cart.class));
+    }
+
+    @Test
     void rejectsMutationAfterCartIsCheckedOut() {
         testCart.setStatus(CartStatus.CHECKED_OUT);
         when(cartRepository.findByIdAndUserId(1L, "customer-1")).thenReturn(Optional.of(testCart));

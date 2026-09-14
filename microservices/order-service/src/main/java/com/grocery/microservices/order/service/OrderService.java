@@ -19,6 +19,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -121,9 +122,33 @@ public class OrderService {
             order.setIdempotencyKey(resolvedKey);
             order.setOrderLines(orderLines);
             order.setTotal(orderLines.stream().mapToDouble(OrderLine::getLineTotal).sum());
-            Order createdOrder = createOrder(order, correlationId);
+            // Atomically claim the cart BEFORE persisting the order. The cart
+            // service guards this with an optimistic lock, so a concurrent
+            // checkout that already claimed the cart fails here and never
+            // writes a second order for the same cart.
             cartClient.markCheckedOut(cartId, authorizationHeader);
-            return createdOrder;
+            try {
+                return createOrder(order, correlationId);
+            } catch (DataIntegrityViolationException ex) {
+                // Two requests raced with the same idempotency key past the
+                // replay check and the unique (user_id, idempotency_key) index
+                // rejected our insert. The winning order already owns stock for
+                // this key, so surface it as an idempotent replay instead of a 500.
+                log.info("EVENT=CHECKOUT_IDEMPOTENT_RACE_USER_ID={} KEY={}",
+                        customer.customerId(), resolvedKey);
+                return repo.findFirstByUserIdAndIdempotencyKey(customer.customerId(), resolvedKey)
+                        .orElseThrow(() -> ex);
+            } catch (RuntimeException ex) {
+                // Order/event write failed after the cart was claimed; reopen the
+                // cart so the customer can retry checkout instead of being stranded.
+                try {
+                    cartClient.markOpen(cartId, authorizationHeader);
+                } catch (RuntimeException revertEx) {
+                    log.error("EVENT=CART_REVERT_FAILED CART_ID={} REASON={}", cartId,
+                            revertEx.getClass().getSimpleName());
+                }
+                throw ex;
+            }
         } catch (RuntimeException ex) {
             // The order/event write failed; compensate so stock is not leaked.
             releaseReservations(reservations, authorizationHeader);

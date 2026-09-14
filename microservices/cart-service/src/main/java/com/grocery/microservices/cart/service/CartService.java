@@ -121,6 +121,15 @@ public class CartService {
         return toDTO(updatedCart);
     }
 
+    @Transactional
+    public CartDTO markOpen(Long cartId, AuthenticatedCustomer customer) {
+        Cart cart = findOwnedCart(cartId, customer);
+        cart.setStatus(CartStatus.OPEN);
+        Cart updatedCart = repo.save(cart);
+        log.info("EVENT=CART_REVERTED_TO_OPEN CART_ID={} CUSTOMER={}", cartId, customer.customerId());
+        return toDTO(updatedCart);
+    }
+
     private Cart findOwnedCart(Long cartId, AuthenticatedCustomer customer) {
         return repo.findByIdAndUserId(cartId, customer.customerId())
                 .orElseThrow(() -> new CartNotFoundException(cartId));

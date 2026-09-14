@@ -23,9 +23,11 @@ import com.grocery.microservices.order.eventstore.OrderEventStore;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.mockito.Mockito;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.ArgumentMatchers.any;
@@ -37,6 +39,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.Optional;
 import java.util.List;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 
 @ActiveProfiles("test")
@@ -125,6 +128,9 @@ class OrderServiceTest {
         verify(productClient).reserve(eq(102L), eq(1), anyString(), eq("Bearer token"));
         verify(cartClient).markCheckedOut(1L, "Bearer token");
         verify(orderRepository).save(createdOrder);
+        InOrder inOrder = inOrder(cartClient, orderRepository);
+        inOrder.verify(cartClient).markCheckedOut(1L, "Bearer token");
+        inOrder.verify(orderRepository).save(createdOrder);
     }
 
     @Test
@@ -237,6 +243,8 @@ class OrderServiceTest {
         assertThrows(IllegalStateException.class,
                 () -> orderService.checkout(1L, "idem-key-1", null, customer1, "Bearer token"));
 
+        verify(cartClient).markCheckedOut(1L, "Bearer token");
+        verify(cartClient).markOpen(1L, "Bearer token");
         verify(productClient).release(contains("101"), eq("Bearer token"));
     }
 
@@ -246,14 +254,71 @@ class OrderServiceTest {
                 new CartItemSnapshot(10L, 101L, "Apples", 2.50, 1)));
         when(cartClient.getCart(1L, "Bearer token")).thenReturn(cart);
         stubReserve(101L, 1);
-        when(orderRepository.save(Mockito.any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
         org.mockito.Mockito.doThrow(new CartServiceUnavailableException()).when(cartClient)
                 .markCheckedOut(1L, "Bearer token");
 
         assertThrows(CartServiceUnavailableException.class,
                 () -> orderService.checkout(1L, "idem-key-1", null, customer1, "Bearer token"));
 
+        verify(orderRepository, never()).save(Mockito.any(Order.class));
+        verify(cartClient, never()).markOpen(anyLong(), anyString());
         verify(productClient).release(contains("101"), eq("Bearer token"));
+    }
+
+    @Test
+    void checkoutDoesNotCreateDuplicateOrderWhenCartClaimedByConcurrentRequest() {
+        CartSnapshot cart = new CartSnapshot(1L, List.of(
+                new CartItemSnapshot(10L, 101L, "Apples", 2.50, 1)));
+        when(cartClient.getCart(1L, "Bearer token")).thenReturn(cart);
+        stubReserve(101L, 1);
+        org.mockito.Mockito.doThrow(new CheckoutCartAlreadyCheckedOutException(1L)).when(cartClient)
+                .markCheckedOut(1L, "Bearer token");
+
+        assertThrows(CheckoutCartAlreadyCheckedOutException.class,
+                () -> orderService.checkout(1L, "idem-key-1", null, customer1, "Bearer token"));
+
+        verify(orderRepository, never()).save(Mockito.any(Order.class));
+        verify(cartClient, never()).markOpen(anyLong(), anyString());
+        verify(productClient).release(contains("101"), eq("Bearer token"));
+    }
+
+    @Test
+    void checkoutRevertFailureDoesNotMaskOriginError() {
+        CartSnapshot cart = new CartSnapshot(1L, List.of(
+                new CartItemSnapshot(10L, 101L, "Apples", 2.50, 1)));
+        when(cartClient.getCart(1L, "Bearer token")).thenReturn(cart);
+        stubReserve(101L, 1);
+        when(orderRepository.save(Mockito.any(Order.class))).thenThrow(new IllegalStateException("db down"));
+        org.mockito.Mockito.doThrow(new CartServiceUnavailableException()).when(cartClient)
+                .markOpen(1L, "Bearer token");
+
+        assertThrows(IllegalStateException.class,
+                () -> orderService.checkout(1L, "idem-key-1", null, customer1, "Bearer token"));
+
+        verify(cartClient).markCheckedOut(1L, "Bearer token");
+        verify(cartClient).markOpen(1L, "Bearer token");
+        verify(productClient).release(contains("101"), eq("Bearer token"));
+    }
+
+    @Test
+    void checkoutReplaysExistingOrderWhenIdempotencyKeyRaces() {
+        CartSnapshot cart = new CartSnapshot(1L, List.of(
+                new CartItemSnapshot(10L, 101L, "Apples", 2.50, 1)));
+        when(cartClient.getCart(1L, "Bearer token")).thenReturn(cart);
+        stubReserve(101L, 1);
+        testOrder.setIdempotencyKey("idem-key-1");
+        when(orderRepository.findFirstByUserIdAndIdempotencyKey("customer-1", "idem-key-1"))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(testOrder));
+        when(orderRepository.save(Mockito.any(Order.class)))
+                .thenThrow(new DataIntegrityViolationException("uk_orders_user_idempotency"));
+
+        Order replayedOrder = orderService.checkout(1L, "idem-key-1", null, customer1, "Bearer token");
+
+        assertEquals(1L, replayedOrder.getId());
+        verify(cartClient).markCheckedOut(1L, "Bearer token");
+        verify(cartClient, never()).markOpen(anyLong(), anyString());
+        verify(productClient, never()).release(anyString(), anyString());
     }
 
     @Test

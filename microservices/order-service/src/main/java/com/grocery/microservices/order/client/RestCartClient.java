@@ -78,6 +78,25 @@ public class RestCartClient implements CartClient {
         }
     }
 
+    @Override
+    public void markOpen(Long cartId, String authorizationHeader) {
+        HttpHeaders headers = authorizationHeaders(authorizationHeader);
+        try {
+            restTemplate.exchange(
+                    cartServiceBaseUrl + "/api/customer/cart/{cartId}/open",
+                    HttpMethod.POST,
+                    new HttpEntity<>(headers),
+                    Void.class,
+                    cartId);
+        } catch (HttpClientErrorException.NotFound ex) {
+            throw new CheckoutCartNotFoundException(cartId);
+        } catch (HttpClientErrorException.Forbidden | HttpClientErrorException.Unauthorized ex) {
+            throw new CartAccessDeniedException();
+        } catch (RestClientException ex) {
+            throw new CartServiceUnavailableException();
+        }
+    }
+
     private HttpHeaders authorizationHeaders(String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             throw new CartAccessDeniedException();

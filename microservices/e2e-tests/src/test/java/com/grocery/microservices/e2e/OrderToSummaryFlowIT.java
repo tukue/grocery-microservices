@@ -10,6 +10,7 @@ import com.grocery.microservices.order.client.ProductClient;
 import com.grocery.microservices.order.client.ProductSnapshot;
 import com.grocery.microservices.order.client.StockReservationSnapshot;
 import com.grocery.microservices.order.exception.InsufficientProductStockException;
+import com.grocery.microservices.order.exception.CheckoutCartAlreadyCheckedOutException;
 import com.grocery.microservices.summary.SummaryServiceApplication;
 import com.grocery.microservices.summary.dto.CustomerSummaryDTO;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -383,6 +384,7 @@ class OrderToSummaryFlowIT {
     static class OrderSideStubs {
 
         private static StubProductClient PRODUCT_CLIENT;
+        private static final java.util.Set<Long> CHECKED_OUT_CARTS = ConcurrentHashMap.newKeySet();
 
         @Bean
         @Primary
@@ -390,14 +392,15 @@ class OrderToSummaryFlowIT {
             return new CartClient() {
                 @Override
                 public CartSnapshot getCart(Long cartId, String auth) {
+                    String status = CHECKED_OUT_CARTS.contains(cartId) ? "CHECKED_OUT" : "OPEN";
                     return switch (cartId.intValue()) {
-                        case 4001 -> new CartSnapshot(cartId, List.of(
+                        case 4001 -> new CartSnapshot(cartId, status, List.of(
                                 new CartItemSnapshot(201L, 11L, "Tea", 2.00, 2),
                                 new CartItemSnapshot(202L, 12L, "Coffee", 3.00, 1)));
-                        case 5001 -> new CartSnapshot(cartId, List.of(
+                        case 5001 -> new CartSnapshot(cartId, status, List.of(
                                 new CartItemSnapshot(203L, 21L, "Rice", 1.50, 2),
                                 new CartItemSnapshot(204L, 22L, "Salt", 0.75, 1)));
-                        default -> new CartSnapshot(cartId, List.of(
+                        default -> new CartSnapshot(cartId, status, List.of(
                                 new CartItemSnapshot(101L, 1L, "Organic Milk", 10.50, 2),
                                 new CartItemSnapshot(102L, 2L, "Sourdough Bread", 5.25, 1)));
                     };
@@ -405,7 +408,14 @@ class OrderToSummaryFlowIT {
 
                 @Override
                 public void markCheckedOut(Long cartId, String authorizationHeader) {
-                    // E2E cart data is an in-memory stub; checkout state is validated in cart-service tests.
+                    if (!CHECKED_OUT_CARTS.add(cartId)) {
+                        throw new CheckoutCartAlreadyCheckedOutException(cartId);
+                    }
+                }
+
+                @Override
+                public void markOpen(Long cartId, String authorizationHeader) {
+                    CHECKED_OUT_CARTS.remove(cartId);
                 }
             };
         }
