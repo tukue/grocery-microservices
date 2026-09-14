@@ -2,6 +2,7 @@ package com.grocery.microservices.order.client;
 
 import com.grocery.microservices.order.exception.CartServiceUnavailableException;
 import com.grocery.microservices.order.exception.CartAccessDeniedException;
+import com.grocery.microservices.order.exception.CheckoutCartAlreadyCheckedOutException;
 import com.grocery.microservices.order.exception.CheckoutCartNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -33,11 +34,7 @@ public class RestCartClient implements CartClient {
 
     @Override
     public CartSnapshot getCart(Long cartId, String authorizationHeader) {
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            throw new CartAccessDeniedException();
-        }
-        HttpHeaders headers = new HttpHeaders();
-        headers.set(HttpHeaders.AUTHORIZATION, authorizationHeader);
+        HttpHeaders headers = authorizationHeaders(authorizationHeader);
         try {
             ResponseEntity<CartSnapshot> response = restTemplate.exchange(
                     cartServiceBaseUrl + "/api/customer/carts/{cartId}",
@@ -51,10 +48,42 @@ public class RestCartClient implements CartClient {
             return response.getBody();
         } catch (HttpClientErrorException.NotFound ex) {
             throw new CheckoutCartNotFoundException(cartId);
+        } catch (HttpClientErrorException.Conflict ex) {
+            throw new CheckoutCartAlreadyCheckedOutException(cartId);
         } catch (HttpClientErrorException.Forbidden | HttpClientErrorException.Unauthorized ex) {
             throw new CartAccessDeniedException();
         } catch (RestClientException ex) {
             throw new CartServiceUnavailableException();
         }
+    }
+
+    @Override
+    public void markCheckedOut(Long cartId, String authorizationHeader) {
+        HttpHeaders headers = authorizationHeaders(authorizationHeader);
+        try {
+            restTemplate.exchange(
+                    cartServiceBaseUrl + "/api/customer/cart/{cartId}/checkout",
+                    HttpMethod.POST,
+                    new HttpEntity<>(headers),
+                    Void.class,
+                    cartId);
+        } catch (HttpClientErrorException.NotFound ex) {
+            throw new CheckoutCartNotFoundException(cartId);
+        } catch (HttpClientErrorException.Conflict ex) {
+            throw new CheckoutCartAlreadyCheckedOutException(cartId);
+        } catch (HttpClientErrorException.Forbidden | HttpClientErrorException.Unauthorized ex) {
+            throw new CartAccessDeniedException();
+        } catch (RestClientException ex) {
+            throw new CartServiceUnavailableException();
+        }
+    }
+
+    private HttpHeaders authorizationHeaders(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            throw new CartAccessDeniedException();
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION, authorizationHeader);
+        return headers;
     }
 }

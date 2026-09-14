@@ -144,6 +144,9 @@ pending or terminally failed events.
   (`microservices/e2e-tests`, PostgreSQL + Redpanda) validates happy-path relay,
   idempotent checkout replay, and duplicate delivery without double summaries;
   failed-letter replay operator docs remain outstanding (P2).
+- **Mutable Aggregate Locking:** implemented for cart and order aggregates. Both now
+  use JPA optimistic locking and map stale-write failures to `409 Conflict` responses
+  so concurrent updates fail explicitly instead of silently overwriting each other.
 
 ## Deliberate Deferrals
 

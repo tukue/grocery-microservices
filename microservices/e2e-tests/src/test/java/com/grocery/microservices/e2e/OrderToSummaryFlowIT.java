@@ -387,16 +387,26 @@ class OrderToSummaryFlowIT {
         @Bean
         @Primary
         CartClient cartClient() {
-            return (cartId, auth) -> switch (cartId.intValue()) {
-                case 4001 -> new CartSnapshot(cartId, List.of(
-                        new CartItemSnapshot(201L, 11L, "Tea", 2.00, 2),
-                        new CartItemSnapshot(202L, 12L, "Coffee", 3.00, 1)));
-                case 5001 -> new CartSnapshot(cartId, List.of(
-                        new CartItemSnapshot(203L, 21L, "Rice", 1.50, 2),
-                        new CartItemSnapshot(204L, 22L, "Salt", 0.75, 1)));
-                default -> new CartSnapshot(cartId, List.of(
-                        new CartItemSnapshot(101L, 1L, "Organic Milk", 10.50, 2),
-                        new CartItemSnapshot(102L, 2L, "Sourdough Bread", 5.25, 1)));
+            return new CartClient() {
+                @Override
+                public CartSnapshot getCart(Long cartId, String auth) {
+                    return switch (cartId.intValue()) {
+                        case 4001 -> new CartSnapshot(cartId, List.of(
+                                new CartItemSnapshot(201L, 11L, "Tea", 2.00, 2),
+                                new CartItemSnapshot(202L, 12L, "Coffee", 3.00, 1)));
+                        case 5001 -> new CartSnapshot(cartId, List.of(
+                                new CartItemSnapshot(203L, 21L, "Rice", 1.50, 2),
+                                new CartItemSnapshot(204L, 22L, "Salt", 0.75, 1)));
+                        default -> new CartSnapshot(cartId, List.of(
+                                new CartItemSnapshot(101L, 1L, "Organic Milk", 10.50, 2),
+                                new CartItemSnapshot(102L, 2L, "Sourdough Bread", 5.25, 1)));
+                    };
+                }
+
+                @Override
+                public void markCheckedOut(Long cartId, String authorizationHeader) {
+                    // E2E cart data is an in-memory stub; checkout state is validated in cart-service tests.
+                }
             };
         }
 

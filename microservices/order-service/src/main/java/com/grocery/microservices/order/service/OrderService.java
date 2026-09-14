@@ -9,6 +9,7 @@ import com.grocery.microservices.order.client.CartItemSnapshot;
 import com.grocery.microservices.order.client.CartSnapshot;
 import com.grocery.microservices.order.client.ProductClient;
 import com.grocery.microservices.order.exception.EmptyCartException;
+import com.grocery.microservices.order.exception.CheckoutCartAlreadyCheckedOutException;
 import com.grocery.microservices.order.exception.InvalidOrderStateException;
 import com.grocery.microservices.order.exception.OrderNotFoundException;
 import com.grocery.microservices.order.repository.OrderRepository;
@@ -85,6 +86,9 @@ public class OrderService {
         }
 
         CartSnapshot cart = cartClient.getCart(cartId, authorizationHeader);
+        if (!cart.isOpen()) {
+            throw new CheckoutCartAlreadyCheckedOutException(cartId);
+        }
         if (cart.items() == null || cart.items().isEmpty()) {
             throw new EmptyCartException(cartId);
         }
@@ -117,7 +121,9 @@ public class OrderService {
             order.setIdempotencyKey(resolvedKey);
             order.setOrderLines(orderLines);
             order.setTotal(orderLines.stream().mapToDouble(OrderLine::getLineTotal).sum());
-            return createOrder(order, correlationId);
+            Order createdOrder = createOrder(order, correlationId);
+            cartClient.markCheckedOut(cartId, authorizationHeader);
+            return createdOrder;
         } catch (RuntimeException ex) {
             // The order/event write failed; compensate so stock is not leaked.
             releaseReservations(reservations, authorizationHeader);

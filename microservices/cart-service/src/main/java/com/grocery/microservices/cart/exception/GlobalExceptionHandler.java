@@ -4,6 +4,7 @@ import com.grocery.microservices.cart.dto.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -41,6 +42,12 @@ public class GlobalExceptionHandler {
         return createErrorResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(CartAlreadyCheckedOutException.class)
+    public ResponseEntity<ErrorResponse> handleCartAlreadyCheckedOut(CartAlreadyCheckedOutException ex,
+                                                                     HttpServletRequest request) {
+        return createErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
     @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleScopeDenied(org.springframework.security.access.AccessDeniedException ex,
                                                            HttpServletRequest request) {
@@ -66,6 +73,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleProductCatalogUnavailableException(
             ProductCatalogUnavailableException ex, HttpServletRequest request) {
         return createErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(
+            ObjectOptimisticLockingFailureException ex, HttpServletRequest request) {
+        return createErrorResponse(HttpStatus.CONFLICT,
+                "Cart was modified by another request. Reload the cart and retry.", request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

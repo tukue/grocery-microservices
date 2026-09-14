@@ -9,6 +9,8 @@ import com.grocery.microservices.order.client.CartSnapshot;
 import com.grocery.microservices.order.client.ProductClient;
 import com.grocery.microservices.order.client.StockReservationSnapshot;
 import com.grocery.microservices.order.exception.EmptyCartException;
+import com.grocery.microservices.order.exception.CartServiceUnavailableException;
+import com.grocery.microservices.order.exception.CheckoutCartAlreadyCheckedOutException;
 import com.grocery.microservices.order.exception.CheckoutCartNotFoundException;
 import com.grocery.microservices.order.exception.InsufficientProductStockException;
 import com.grocery.microservices.order.exception.InvalidOrderStateException;
@@ -121,6 +123,7 @@ class OrderServiceTest {
         assertEquals(OrderStatus.PENDING, createdOrder.getStatus());
         verify(productClient).reserve(eq(101L), eq(2), anyString(), eq("Bearer token"));
         verify(productClient).reserve(eq(102L), eq(1), anyString(), eq("Bearer token"));
+        verify(cartClient).markCheckedOut(1L, "Bearer token");
         verify(orderRepository).save(createdOrder);
     }
 
@@ -149,6 +152,7 @@ class OrderServiceTest {
         verify(orderRepository, never()).save(Mockito.any(Order.class));
         verify(orderEventStore, never()).enqueue(Mockito.any(OrderCreatedEvent.class));
         verify(cartClient, never()).getCart(Mockito.anyLong(), Mockito.anyString());
+        verify(cartClient, never()).markCheckedOut(Mockito.anyLong(), Mockito.anyString());
         verify(productClient, never()).reserve(anyLong(), anyInt(), anyString(), anyString());
     }
 
@@ -160,6 +164,20 @@ class OrderServiceTest {
 
         verify(orderRepository, never()).save(Mockito.any(Order.class));
         verify(productClient, never()).reserve(anyLong(), anyInt(), anyString(), anyString());
+    }
+
+    @Test
+    void checkoutRejectsAlreadyCheckedOutCartBeforeReservingStock() {
+        CartSnapshot cart = new CartSnapshot(1L, "CHECKED_OUT", List.of(
+                new CartItemSnapshot(10L, 101L, "Apples", 2.50, 1)));
+        when(cartClient.getCart(1L, "Bearer token")).thenReturn(cart);
+
+        assertThrows(CheckoutCartAlreadyCheckedOutException.class,
+                () -> orderService.checkout(1L, "idem-key-1", null, customer1, "Bearer token"));
+
+        verify(productClient, never()).reserve(anyLong(), anyInt(), anyString(), anyString());
+        verify(orderRepository, never()).save(Mockito.any(Order.class));
+        verify(cartClient, never()).markCheckedOut(anyLong(), anyString());
     }
 
     @Test
@@ -217,6 +235,22 @@ class OrderServiceTest {
         when(orderRepository.save(Mockito.any(Order.class))).thenThrow(new IllegalStateException("db down"));
 
         assertThrows(IllegalStateException.class,
+                () -> orderService.checkout(1L, "idem-key-1", null, customer1, "Bearer token"));
+
+        verify(productClient).release(contains("101"), eq("Bearer token"));
+    }
+
+    @Test
+    void checkoutReleasesReservationsWhenCartCheckoutMarkerFails() {
+        CartSnapshot cart = new CartSnapshot(1L, List.of(
+                new CartItemSnapshot(10L, 101L, "Apples", 2.50, 1)));
+        when(cartClient.getCart(1L, "Bearer token")).thenReturn(cart);
+        stubReserve(101L, 1);
+        when(orderRepository.save(Mockito.any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        org.mockito.Mockito.doThrow(new CartServiceUnavailableException()).when(cartClient)
+                .markCheckedOut(1L, "Bearer token");
+
+        assertThrows(CartServiceUnavailableException.class,
                 () -> orderService.checkout(1L, "idem-key-1", null, customer1, "Bearer token"));
 
         verify(productClient).release(contains("101"), eq("Bearer token"));

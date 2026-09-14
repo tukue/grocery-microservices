@@ -31,7 +31,7 @@ This document outlines the high-value, low-complexity improvements planned for e
 
 - [x] **Trusted Checkout**: Added `POST /orders/checkout`, which reads cart snapshots through an explicit cart client, derives the authenticated customer and total server-side, and persists immutable order lines. Missing carts return `404`, empty carts `409`, and cart-service outages `503`. (Covered by `OrderServiceTest` and `OrderControllerTest`.)
 
-Remaining related MVP work: add cart ownership and checkout cart-state handling after authenticated customer identity is persisted in carts (Phase 3).
+- [x] **Cart Ownership and Checkout State**: Carts are owned by the authenticated customer, expose an explicit `OPEN`/`CHECKED_OUT` state, reject item mutations after checkout, and order checkout marks the cart as checked out only after the order/event intent succeeds. Reusing a checked-out cart is rejected before stock reservation. (Covered by cart and order service tests.)
 
 ## 4. Product Service
 *Focus: Performance and Data Quality.*

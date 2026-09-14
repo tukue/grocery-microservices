@@ -7,8 +7,10 @@ import com.grocery.microservices.cart.exception.ProductCatalogUnavailableExcepti
 import com.grocery.microservices.cart.exception.ProductNotFoundException;
 import com.grocery.microservices.cart.exception.ProductUnavailableException;
 import com.grocery.microservices.cart.exception.InsufficientProductStockException;
+import com.grocery.microservices.cart.exception.CartAlreadyCheckedOutException;
 import com.grocery.microservices.cart.model.Cart;
 import com.grocery.microservices.cart.model.CartItem;
+import com.grocery.microservices.cart.model.CartStatus;
 import com.grocery.microservices.cart.exception.CartItemNotFoundException;
 import com.grocery.microservices.cart.exception.CartNotFoundException;
 import com.grocery.microservices.cart.repository.CartRepository;
@@ -74,17 +76,19 @@ class CartServiceTest {
 
     @Test
     void getCurrentCartReturnsTheMostRecentlyCreatedCartForTheAuthenticatedCustomer() {
-        when(cartRepository.findFirstByUserIdOrderByIdDesc("customer-1")).thenReturn(Optional.of(testCart));
+        when(cartRepository.findFirstByUserIdAndStatusOrderByIdDesc("customer-1", CartStatus.OPEN))
+                .thenReturn(Optional.of(testCart));
 
         var foundCartDTO = cartService.getCurrentCart(CUSTOMER_1);
 
         assertEquals(1L, foundCartDTO.getId());
-        verify(cartRepository).findFirstByUserIdOrderByIdDesc("customer-1");
+        verify(cartRepository).findFirstByUserIdAndStatusOrderByIdDesc("customer-1", CartStatus.OPEN);
     }
 
     @Test
     void getCurrentCartRejectsAnAuthenticatedCustomerWithoutACart() {
-        when(cartRepository.findFirstByUserIdOrderByIdDesc("customer-1")).thenReturn(Optional.empty());
+        when(cartRepository.findFirstByUserIdAndStatusOrderByIdDesc("customer-1", CartStatus.OPEN))
+                .thenReturn(Optional.empty());
 
         assertThrows(CartNotFoundException.class, () -> cartService.getCurrentCart(CUSTOMER_1));
     }
@@ -197,6 +201,30 @@ class CartServiceTest {
 
         assertThrows(CartItemNotFoundException.class, () -> cartService.updateItemQuantity(1L, 99L, 3, CUSTOMER_1));
 
+        verify(cartRepository, never()).save(Mockito.any(Cart.class));
+    }
+
+    @Test
+    void marksOwnedCartAsCheckedOut() {
+        when(cartRepository.findByIdAndUserId(1L, "customer-1")).thenReturn(Optional.of(testCart));
+        when(cartRepository.save(Mockito.any(Cart.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var checkedOutCart = cartService.markCheckedOut(1L, CUSTOMER_1);
+
+        assertEquals("CHECKED_OUT", checkedOutCart.getStatus());
+        assertEquals(CartStatus.CHECKED_OUT, testCart.getStatus());
+        verify(cartRepository).save(testCart);
+    }
+
+    @Test
+    void rejectsMutationAfterCartIsCheckedOut() {
+        testCart.setStatus(CartStatus.CHECKED_OUT);
+        when(cartRepository.findByIdAndUserId(1L, "customer-1")).thenReturn(Optional.of(testCart));
+
+        assertThrows(CartAlreadyCheckedOutException.class,
+                () -> cartService.addItem(1L, 10L, 1, CUSTOMER_1));
+
+        verify(productCatalogClient, never()).getProduct(Mockito.anyLong());
         verify(cartRepository, never()).save(Mockito.any(Cart.class));
     }
 
