@@ -7,10 +7,12 @@ import com.grocery.microservices.cart.dto.CartDTO;
 import com.grocery.microservices.cart.dto.CartItemDTO;
 import com.grocery.microservices.cart.exception.CartItemNotFoundException;
 import com.grocery.microservices.cart.exception.CartNotFoundException;
+import com.grocery.microservices.cart.exception.CartAlreadyCheckedOutException;
 import com.grocery.microservices.cart.exception.ProductUnavailableException;
 import com.grocery.microservices.cart.exception.InsufficientProductStockException;
 import com.grocery.microservices.cart.model.Cart;
 import com.grocery.microservices.cart.model.CartItem;
+import com.grocery.microservices.cart.model.CartStatus;
 import com.grocery.microservices.cart.repository.CartRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,8 +54,8 @@ public class CartService {
 
     @Transactional(readOnly = true)
     public CartDTO getCurrentCart(AuthenticatedCustomer customer) {
-        Cart cart = repo.findFirstByUserIdOrderByIdDesc(customer.customerId())
-                .orElseThrow(() -> new CartNotFoundException("No cart found for the authenticated customer"));
+        Cart cart = repo.findFirstByUserIdAndStatusOrderByIdDesc(customer.customerId(), CartStatus.OPEN)
+                .orElseThrow(() -> new CartNotFoundException("No open cart found for the authenticated customer"));
         return toDTO(cart);
     }
 
@@ -61,6 +63,7 @@ public class CartService {
     @Retryable(retryFor = { SQLException.class }, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     public CartDTO addItem(Long cartId, Long productId, int quantity, AuthenticatedCustomer customer) {
         Cart cart = findOwnedCart(cartId, customer);
+        assertOpen(cart);
         CatalogProduct product = productCatalogClient.getProduct(productId);
         if (!product.available()) {
             throw new ProductUnavailableException(productId);
@@ -88,6 +91,7 @@ public class CartService {
     @Retryable(retryFor = { SQLException.class }, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     public CartDTO removeItem(Long cartId, Long itemId, AuthenticatedCustomer customer) {
         Cart cart = findOwnedCart(cartId, customer);
+        assertOpen(cart);
         CartItem item = getCartItem(cart, cartId, itemId);
         cart.getItems().remove(item);
         Cart updatedCart = repo.save(cart);
@@ -99,10 +103,30 @@ public class CartService {
     @Retryable(retryFor = { SQLException.class }, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     public CartDTO updateItemQuantity(Long cartId, Long itemId, int quantity, AuthenticatedCustomer customer) {
         Cart cart = findOwnedCart(cartId, customer);
+        assertOpen(cart);
         CartItem item = getCartItem(cart, cartId, itemId);
         item.setQuantity(quantity);
         Cart updatedCart = repo.save(cart);
         log.info("EVENT=CART_ITEM_QUANTITY_UPDATED CART_ID={} ITEM_ID={} QUANTITY={}", cartId, itemId, quantity);
+        return toDTO(updatedCart);
+    }
+
+    @Transactional
+    public CartDTO markCheckedOut(Long cartId, AuthenticatedCustomer customer) {
+        Cart cart = findOwnedCart(cartId, customer);
+        assertOpen(cart);
+        cart.setStatus(CartStatus.CHECKED_OUT);
+        Cart updatedCart = repo.save(cart);
+        log.info("EVENT=CART_CHECKED_OUT CART_ID={} CUSTOMER={}", cartId, customer.customerId());
+        return toDTO(updatedCart);
+    }
+
+    @Transactional
+    public CartDTO markOpen(Long cartId, AuthenticatedCustomer customer) {
+        Cart cart = findOwnedCart(cartId, customer);
+        cart.setStatus(CartStatus.OPEN);
+        Cart updatedCart = repo.save(cart);
+        log.info("EVENT=CART_REVERTED_TO_OPEN CART_ID={} CUSTOMER={}", cartId, customer.customerId());
         return toDTO(updatedCart);
     }
 
@@ -114,6 +138,7 @@ public class CartService {
     private CartDTO toDTO(Cart cart) {
         CartDTO dto = new CartDTO();
         dto.setId(cart.getId());
+        dto.setStatus(cart.getStatus().name());
         if (cart.getItems() != null) {
             dto.setItems(cart.getItems().stream().map(this::toDTO).collect(Collectors.toList()));
         }
@@ -135,6 +160,12 @@ public class CartService {
                 .filter(item -> itemId.equals(item.getId()))
                 .findFirst()
                 .orElseThrow(() -> new CartItemNotFoundException(cartId, itemId));
+    }
+
+    private void assertOpen(Cart cart) {
+        if (cart.getStatus() == CartStatus.CHECKED_OUT) {
+            throw new CartAlreadyCheckedOutException(cart.getId());
+        }
     }
 
     @Transactional

@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -60,6 +61,12 @@ public class GlobalExceptionHandler {
         return createErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(CheckoutCartAlreadyCheckedOutException.class)
+    public ResponseEntity<ErrorResponse> handleCheckoutCartAlreadyCheckedOut(CheckoutCartAlreadyCheckedOutException ex,
+                                                                            HttpServletRequest request) {
+        return createErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
     @ExceptionHandler(ProductUnavailableException.class)
     public ResponseEntity<ErrorResponse> handleProductUnavailable(ProductUnavailableException ex, HttpServletRequest request) {
         return createErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
@@ -83,6 +90,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CartAccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleCartAccessDenied(CartAccessDeniedException ex, HttpServletRequest request) {
         return createErrorResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(
+            ObjectOptimisticLockingFailureException ex, HttpServletRequest request) {
+        return createErrorResponse(HttpStatus.CONFLICT,
+                "Order was modified by another request. Reload the order and retry.", request);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

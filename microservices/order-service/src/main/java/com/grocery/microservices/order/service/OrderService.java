@@ -9,6 +9,7 @@ import com.grocery.microservices.order.client.CartItemSnapshot;
 import com.grocery.microservices.order.client.CartSnapshot;
 import com.grocery.microservices.order.client.ProductClient;
 import com.grocery.microservices.order.exception.EmptyCartException;
+import com.grocery.microservices.order.exception.CheckoutCartAlreadyCheckedOutException;
 import com.grocery.microservices.order.exception.InvalidOrderStateException;
 import com.grocery.microservices.order.exception.OrderNotFoundException;
 import com.grocery.microservices.order.repository.OrderRepository;
@@ -18,6 +19,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -77,15 +79,18 @@ public class OrderService {
     public Order checkout(Long cartId, String idempotencyKey, String correlationId,
                           AuthenticatedCustomer customer, String authorizationHeader) {
         String resolvedKey = resolveIdempotencyKey(idempotencyKey);
-        Optional<Order> existing = repo.findFirstByUserIdAndIdempotencyKey(customer.customerId(), resolvedKey);
-        if (existing.isPresent()) {
+        Optional<Order> existingOrder = findOrderFor(customer, resolvedKey);
+        if (existingOrder.isPresent()) {
             log.info("EVENT=CHECKOUT_IDEMPOTENT_REPLAY ORDER_ID={} USER_ID={} KEY={}",
-                    existing.get().getId(), customer.customerId(), resolvedKey);
-            return existing.get();
+                    existingOrder.get().getId(), customer.customerId(), resolvedKey);
+            return existingOrder.get();
         }
 
-        CartSnapshot cart = cartClient.getCart(cartId, authorizationHeader);
-        if (cart.items() == null || cart.items().isEmpty()) {
+        CartSnapshot cartSnapshot = cartClient.getCart(cartId, authorizationHeader);
+        if (!cartSnapshot.isOpen()) {
+            throw new CheckoutCartAlreadyCheckedOutException(cartId);
+        }
+        if (cartSnapshot.items() == null || cartSnapshot.items().isEmpty()) {
             throw new EmptyCartException(cartId);
         }
 
@@ -94,7 +99,7 @@ public class OrderService {
         // were already reserved so a retry does not leak stock.
         List<ReservationHandle> reservations = new ArrayList<>();
         try {
-            for (CartItemSnapshot item : cart.items()) {
+            for (CartItemSnapshot item : cartSnapshot.items()) {
                 String reservationKey = reservationKeyFor(resolvedKey, customer.customerId(), item.productId());
                 productClient.reserve(item.productId(), item.quantity(), reservationKey, authorizationHeader);
                 reservations.add(new ReservationHandle(reservationKey, item.productId()));
@@ -108,7 +113,7 @@ public class OrderService {
         }
 
         try {
-            List<OrderLine> orderLines = cart.items().stream()
+            List<OrderLine> orderLines = cartSnapshot.items().stream()
                     .map(this::toOrderLine)
                     .toList();
             Order order = new Order();
@@ -117,7 +122,33 @@ public class OrderService {
             order.setIdempotencyKey(resolvedKey);
             order.setOrderLines(orderLines);
             order.setTotal(orderLines.stream().mapToDouble(OrderLine::getLineTotal).sum());
-            return createOrder(order, correlationId);
+            // Atomically claim the cart BEFORE persisting the order. The cart
+            // service guards this with an optimistic lock, so a concurrent
+            // checkout that already claimed the cart fails here and never
+            // writes a second order for the same cart.
+            cartClient.markCheckedOut(cartId, authorizationHeader);
+            try {
+                return createOrder(order, correlationId);
+            } catch (DataIntegrityViolationException ex) {
+                // Two requests raced with the same idempotency key past the
+                // replay check and the unique (user_id, idempotency_key) index
+                // rejected our insert. The winning order already owns stock for
+                // this key, so surface it as an idempotent replay instead of a 500.
+                log.info("EVENT=CHECKOUT_IDEMPOTENT_RACE_USER_ID={} KEY={}",
+                        customer.customerId(), resolvedKey);
+                return findOrderFor(customer, resolvedKey)
+                        .orElseThrow(() -> ex);
+            } catch (RuntimeException ex) {
+                // Order/event write failed after the cart was claimed; reopen the
+                // cart so the customer can retry checkout instead of being stranded.
+                try {
+                    cartClient.markOpen(cartId, authorizationHeader);
+                } catch (RuntimeException revertFailure) {
+                    log.error("EVENT=CART_REVERT_FAILED CART_ID={} REASON={}", cartId,
+                            revertFailure.getClass().getSimpleName());
+                }
+                throw ex;
+            }
         } catch (RuntimeException ex) {
             // The order/event write failed; compensate so stock is not leaked.
             releaseReservations(reservations, authorizationHeader);
@@ -155,6 +186,10 @@ public class OrderService {
 
     private OrderLine toOrderLine(CartItemSnapshot item) {
         return new OrderLine(item.productId(), item.productName(), item.price(), item.quantity());
+    }
+
+    private Optional<Order> findOrderFor(AuthenticatedCustomer customer, String resolvedKey) {
+        return repo.findFirstByUserIdAndIdempotencyKey(customer.customerId(), resolvedKey);
     }
 
     private String resolveIdempotencyKey(String idempotencyKey) {

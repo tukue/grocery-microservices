@@ -144,6 +144,22 @@ pending or terminally failed events.
   (`microservices/e2e-tests`, PostgreSQL + Redpanda) validates happy-path relay,
   idempotent checkout replay, and duplicate delivery without double summaries;
   failed-letter replay operator docs remain outstanding (P2).
+- **Mutable Aggregate Locking:** implemented for cart and order aggregates. Both now
+  use JPA optimistic locking and map stale-write failures to `409 Conflict` responses
+  so concurrent updates fail explicitly instead of silently overwriting each other.
+- **Cart Checkout Lifecycle (claim-first + compensation):** implemented. `OrderService`
+  claims the cart (`markCheckedOut`, `@Version` gate) *before* persisting the order, so
+  the optimistic-locked cart is the atomic single-winner that makes a second order for
+  the same cart impossible; stock is reserved first and every failure is compensated
+  (reservations released, and on order/event write failure the cart is reopened via the
+  new `markOpen` + `POST /cart/{cartId}/open`, `SCOPE_cart:write`). A same-key race past
+  the replay check is resolved by the existing `(user_id, idempotency_key)` unique index:
+  `DataIntegrityViolationException` is re-queried and the winner's order is returned as an
+  idempotent replay instead of a 500. The guarantee is backstopped at the database by
+  `order-service V3__one_order_per_cart.sql` (`uk_orders_cart_id` unique index). Covered
+  by in-order unit tests (claim before save, revert-failure does not mask the origin
+  error) and a stateful e2e cart stub that throws `CheckoutCartAlreadyCheckedOutException`
+  on a second claim, so the guard executes against real Postgres + Redpanda.
 
 ## Deliberate Deferrals
 

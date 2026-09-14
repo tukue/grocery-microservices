@@ -1,6 +1,7 @@
 package com.grocery.microservices.cart.repository;
 
 import com.grocery.microservices.cart.model.Cart;
+import com.grocery.microservices.cart.model.CartStatus;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -16,4 +17,7 @@ public interface CartRepository extends JpaRepository<Cart, Long> {
 
     @EntityGraph(attributePaths = "items")
     Optional<Cart> findFirstByUserIdOrderByIdDesc(String userId);
+
+    @EntityGraph(attributePaths = "items")
+    Optional<Cart> findFirstByUserIdAndStatusOrderByIdDesc(String userId, CartStatus status);
 }

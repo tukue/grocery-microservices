@@ -237,4 +237,32 @@ public class CartControllerTest {
 
         verifyNoInteractions(cartService);
     }
+
+    @Test
+    public void marksCartCheckedOut() throws Exception {
+        CartDTO checkedOutCart = new CartDTO();
+        checkedOutCart.setId(1L);
+        checkedOutCart.setStatus("CHECKED_OUT");
+        when(cartService.markCheckedOut(1L, new AuthenticatedCustomer("customer-1"))).thenReturn(checkedOutCart);
+
+        mockMvc.perform(post("/api/customer/cart/1/checkout")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.status").value("CHECKED_OUT"));
+    }
+
+    @Test
+    public void marksCartOpenForRetryAfterFailedOrderCreation() throws Exception {
+        CartDTO openCart = new CartDTO();
+        openCart.setId(1L);
+        openCart.setStatus("OPEN");
+        when(cartService.markOpen(1L, new AuthenticatedCustomer("customer-1"))).thenReturn(openCart);
+
+        mockMvc.perform(post("/api/customer/cart/1/open")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.status").value("OPEN"));
+    }
 }

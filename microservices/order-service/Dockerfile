@@ -14,7 +14,7 @@ RUN mvn clean install -DskipTests
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 RUN addgroup --system app && adduser --system --ingroup app app
-COPY --from=build --chown=app:app /workspace/microservices/order-service/target/*.jar /app/app.jar
+COPY --from=build --chown=app:app /workspace/microservices/order-service/target/*-exec.jar /app/app.jar
 USER app
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

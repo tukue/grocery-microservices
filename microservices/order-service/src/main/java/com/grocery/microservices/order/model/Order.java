@@ -10,6 +10,9 @@ import jakarta.persistence.*;
 public class Order {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Version
+    @Column(nullable = false)
+    private long version;
     @Column(name = "user_id")
     private String userId;
     @Column(name = "cart_id")
@@ -30,6 +33,8 @@ public class Order {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+    public long getVersion() { return version; }
+    public void setVersion(long version) { this.version = version; }
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
     public Long getCartId() { return cartId; }

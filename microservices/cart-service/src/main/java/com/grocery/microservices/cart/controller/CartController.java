@@ -72,4 +72,18 @@ public class CartController {
                                                       @AuthenticationPrincipal AuthenticatedCustomer customer) {
         return ResponseEntity.ok(cartService.removeItem(cartId, itemId, customer));
     }
+
+    @PostMapping("/cart/{cartId}/checkout")
+    @PreAuthorize("hasAuthority('SCOPE_cart:write')")
+    public ResponseEntity<CartDTO> markCartCheckedOut(@PathVariable Long cartId,
+                                                       @AuthenticationPrincipal AuthenticatedCustomer customer) {
+        return ResponseEntity.ok(cartService.markCheckedOut(cartId, customer));
+    }
+
+    @PostMapping("/cart/{cartId}/open")
+    @PreAuthorize("hasAuthority('SCOPE_cart:write')")
+    public ResponseEntity<CartDTO> markCartOpen(@PathVariable Long cartId,
+                                                @AuthenticationPrincipal AuthenticatedCustomer customer) {
+        return ResponseEntity.ok(cartService.markOpen(cartId, customer));
+    }
 }
