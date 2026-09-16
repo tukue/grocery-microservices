@@ -3,7 +3,8 @@ package com.grocery.microservices.summary;
 import com.grocery.microservices.summary.config.TestSecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.resttestclient.TestRestTemplate;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         })
 @ActiveProfiles("test")
 @Import(TestSecurityConfig.class)
+@AutoConfigureTestRestTemplate
 class SwaggerUiAvailabilityTest {
     @LocalServerPort
     private int port;

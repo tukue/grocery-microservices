@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.5</version>
+        <version>4.1.1</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -22,21 +22,31 @@
         <module>microservices/e2e-tests</module>
     </modules>
     <properties>
-        <java.version>21</java.version>
+        <!-- Java 25 is the newest Long-Term Support release (GA 2025-09) and is fully
+             supported by Spring Boot 4.1 (Java 17-26) across every module in this reactor.
+             JDK 26 is non-LTS with permissive updates ending September 2026, so it is not
+             selected for production stability. -->
+        <java.version>25</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <springdoc.version>2.5.0</springdoc.version>
+        <!-- springdoc v3 is the only line compatible with Spring Boot 4.x. Boot does not
+             manage springdoc, so its version is pinned here. -->
+        <springdoc.version>3.1.1</springdoc.version>
+        <!-- The postgresql and spring-retry versions are managed by the Spring Boot BOM
+             (42.7.13 / 2.0.10+); no overrides are necessary. -->
     </properties>
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>org.postgresql</groupId>
-                <artifactId>postgresql</artifactId>
-                <version>42.7.3</version>
-            </dependency>
-            <dependency>
                 <groupId>org.springdoc</groupId>
                 <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
                 <version>${springdoc.version}</version>
+            </dependency>
+            <!-- The Spring Boot 4.1 BOM no longer manages spring-retry, so its
+                 version is pinned here. -->
+            <dependency>
+                <groupId>org.springframework.retry</groupId>
+                <artifactId>spring-retry</artifactId>
+                <version>2.0.13</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

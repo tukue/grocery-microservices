@@ -1,6 +1,6 @@
 package com.grocery.microservices.order.eventstore;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.grocery.microservices.order.event.OrderCreatedEvent;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
