@@ -1,6 +1,7 @@
 package com.example.product.service;
 
 import com.example.product.model.Product;
+import com.example.product.exception.ProductNotFoundException;
 import com.example.product.repository.ProductRepository;
 import org.springframework.stereotype.Service;
 
@@ -20,7 +21,7 @@ public class ProductService {
     }
 
     public Product getProductById(Long id) {
-        return productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
+        return productRepository.findById(id).orElseThrow(() -> new ProductNotFoundException(id));
     }
 
     public Product saveProduct(Product product) {
@@ -28,7 +29,7 @@ public class ProductService {
     }
 
     public void deleteProduct(Long id) {
-        productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
+        productRepository.findById(id).orElseThrow(() -> new ProductNotFoundException(id));
         productRepository.deleteById(id);
     }
-} 
+}

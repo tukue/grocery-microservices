@@ -1,6 +1,7 @@
 package com.example.product.controller;
 
 import com.example.product.dto.ProductDTO;
+import com.example.product.exception.ProductNotFoundException;
 import com.example.product.model.Product;
 import com.example.product.service.ProductService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -75,6 +76,17 @@ public class ProductControllerTest {
                 .andExpect(jsonPath("$.name").value("New Product"));
     }
 
+    @Test
+    public void returnsStandardErrorWhenProductIsMissing() throws Exception {
+        when(productService.getProductById(99L)).thenThrow(new ProductNotFoundException(99L));
+
+        mockMvc.perform(get("/products/99"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Product not found with id: 99"))
+                .andExpect(jsonPath("$.errors").isEmpty());
+    }
+
     @TestConfiguration
     @Profile("test")
     static class TestSecurityConfig {
@@ -88,4 +100,4 @@ public class ProductControllerTest {
             return new com.example.product.config.JwtUtil();
         }
     }
-} 
+}

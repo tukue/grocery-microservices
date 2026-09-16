@@ -1,6 +1,7 @@
 package com.example.order.service;
 
 import com.example.order.model.Order;
+import com.example.order.exception.OrderNotFoundException;
 import com.example.order.repository.OrderRepository;
 import org.springframework.stereotype.Service;
 
@@ -10,5 +11,5 @@ public class OrderService {
     public OrderService(OrderRepository repo) { this.repo = repo; }
 
     public Order createOrder(Order order) { return repo.save(order); }
-    public Order getOrder(Long id) { return repo.findById(id).orElseThrow(); }
-} 
+    public Order getOrder(Long id) { return repo.findById(id).orElseThrow(() -> new OrderNotFoundException(id)); }
+}

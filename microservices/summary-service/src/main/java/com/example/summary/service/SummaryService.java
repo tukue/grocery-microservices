@@ -1,6 +1,7 @@
 package com.example.summary.service;
 
 import com.example.summary.model.Summary;
+import com.example.summary.exception.SummaryNotFoundException;
 import com.example.summary.repository.SummaryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,11 +18,11 @@ public class SummaryService {
     }
 
     public Summary getSummary(Long id) {
-        return summaryRepository.findById(id).orElse(null);
+        return summaryRepository.findById(id).orElseThrow(() -> new SummaryNotFoundException(id));
     }
 
     public Summary getSummaryById(Long id) {
-        return summaryRepository.findById(id).orElseThrow(() -> new RuntimeException("Summary not found"));
+        return summaryRepository.findById(id).orElseThrow(() -> new SummaryNotFoundException(id));
     }
 
     public List<Summary> getSummariesByUserId(String userId) {
@@ -51,4 +52,4 @@ public class SummaryService {
     public void setSummaryRepository(SummaryRepository summaryRepository) {
         this.summaryRepository = summaryRepository;
     }
-} 
+}

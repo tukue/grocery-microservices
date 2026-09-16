@@ -2,6 +2,7 @@ package com.example.order.controller;
 
 import com.example.order.config.SecurityConfig;
 import com.example.order.dto.OrderDTO;
+import com.example.order.exception.OrderNotFoundException;
 import com.example.order.model.Order;
 import com.example.order.service.OrderService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,6 +23,7 @@ import org.springframework.test.context.ActiveProfiles;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -57,6 +59,17 @@ public class OrderControllerTest {
                 .andExpect(jsonPath("$.id").value(1L));
     }
 
+    @Test
+    public void returnsStandardErrorWhenOrderIsMissing() throws Exception {
+        when(orderService.getOrder(99L)).thenThrow(new OrderNotFoundException(99L));
+
+        mockMvc.perform(get("/orders/99"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Order not found with id: 99"))
+                .andExpect(jsonPath("$.errors").isEmpty());
+    }
+
     @TestConfiguration
     @Profile("test")
     static class TestSecurityConfig {
@@ -70,4 +83,4 @@ public class OrderControllerTest {
             return new com.example.order.config.JwtUtil();
         }
     }
-} 
+}

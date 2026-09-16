@@ -2,6 +2,7 @@ package com.example.cart.controller;
 
 import com.example.cart.config.SecurityConfig;
 import com.example.cart.dto.CartDTO;
+import com.example.cart.exception.CartNotFoundException;
 import com.example.cart.model.Cart;
 import com.example.cart.service.CartService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -81,4 +82,15 @@ public class CartControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L));
     }
-} 
+
+    @Test
+    public void returnsStandardErrorWhenCartIsMissing() throws Exception {
+        when(cartService.getCartById(99L)).thenThrow(new CartNotFoundException(99L));
+
+        mockMvc.perform(get("/carts/99"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Cart not found with id: 99"))
+                .andExpect(jsonPath("$.errors").isEmpty());
+    }
+}
