@@ -1,6 +1,6 @@
 package com.grocery.microservices.order.eventstore;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.grocery.microservices.order.event.OrderCreatedEvent;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -32,7 +32,7 @@ class OrderEventStoreTest {
         verify(repository).save(record.capture());
         assertEquals(event.eventId(), record.getValue().getId());
         assertEquals(StoredOrderEventStatus.PENDING, record.getValue().getStatus());
-        assertEquals(event.orderId(), new ObjectMapper().findAndRegisterModules()
+        assertEquals(event.orderId(), new ObjectMapper()
                 .readValue(record.getValue().getPayload(), OrderCreatedEvent.class).orderId());
     }
 
@@ -68,7 +68,7 @@ class OrderEventStoreTest {
     }
 
     private OrderEventStore newEventStore(StoredOrderEventRepository repository) {
-        return new OrderEventStore(repository, new ObjectMapper().findAndRegisterModules(),
+        return new OrderEventStore(repository, new ObjectMapper(),
                 100, 10, Duration.ofSeconds(30), Duration.ofSeconds(5));
     }
 }

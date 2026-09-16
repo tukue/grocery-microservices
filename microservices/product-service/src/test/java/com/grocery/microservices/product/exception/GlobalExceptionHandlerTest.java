@@ -4,6 +4,7 @@ import com.grocery.microservices.product.dto.ErrorResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpInputMessage;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.mock.web.MockHttpServletRequest;
 
@@ -17,7 +18,7 @@ class GlobalExceptionHandlerTest {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/customer/products");
 
         ResponseEntity<ErrorResponse> response = handler.handleUnreadableRequest(
-                new HttpMessageNotReadableException("Malformed JSON"), request);
+                new HttpMessageNotReadableException("Malformed JSON", null, (HttpInputMessage) null), request);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("Malformed request body", response.getBody().getMessage());

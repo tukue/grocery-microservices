@@ -1,7 +1,7 @@
 package com.grocery.microservices.order.eventstore;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.grocery.microservices.order.event.OrderCreatedEvent;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
@@ -39,7 +39,7 @@ public class OrderEventStore {
         try {
             repository.save(new StoredOrderEvent(
                     event.eventId(), event.eventType(), event.orderId(), objectMapper.writeValueAsString(event)));
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalStateException("Unable to serialize order event for storage", exception);
         }
     }

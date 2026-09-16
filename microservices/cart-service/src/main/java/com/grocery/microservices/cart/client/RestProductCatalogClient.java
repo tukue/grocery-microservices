@@ -3,7 +3,7 @@ package com.grocery.microservices.cart.client;
 import com.grocery.microservices.cart.exception.ProductCatalogUnavailableException;
 import com.grocery.microservices.cart.exception.ProductNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
@@ -24,8 +24,8 @@ public class RestProductCatalogClient implements ProductCatalogClient {
             @Value("${services.product.read-timeout:2s}") Duration readTimeout) {
         this.restTemplate = builder
                 .rootUri(productServiceBaseUrl)
-                .setConnectTimeout(connectTimeout)
-                .setReadTimeout(readTimeout)
+                .connectTimeout(connectTimeout)
+                .readTimeout(readTimeout)
                 .build();
     }
 

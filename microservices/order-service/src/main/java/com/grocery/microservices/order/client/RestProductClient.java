@@ -3,8 +3,8 @@ package com.grocery.microservices.order.client;
 import com.grocery.microservices.order.exception.InsufficientProductStockException;
 import com.grocery.microservices.order.exception.ProductServiceUnavailableException;
 import com.grocery.microservices.order.exception.ProductUnavailableException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -44,7 +44,7 @@ public class RestProductClient implements ProductClient {
     @Override
     public ProductSnapshot getProduct(Long productId) {
         try {
-            URI uri = UriComponentsBuilder.fromHttpUrl(productServiceBaseUrl)
+            URI uri = UriComponentsBuilder.fromUriString(productServiceBaseUrl)
                     .pathSegment("products", String.valueOf(productId))
                     .build()
                     .encode()
@@ -66,7 +66,7 @@ public class RestProductClient implements ProductClient {
     public StockReservationSnapshot reserve(Long productId, int quantity, String reservationKey,
                                             String authorizationHeader) {
         try {
-            URI uri = UriComponentsBuilder.fromHttpUrl(productServiceBaseUrl)
+            URI uri = UriComponentsBuilder.fromUriString(productServiceBaseUrl)
                     .pathSegment("products", String.valueOf(productId), "reservations")
                     .build()
                     .encode()
@@ -106,7 +106,7 @@ public class RestProductClient implements ProductClient {
     public void release(String reservationKey, String authorizationHeader) {
         try {
             validateReservationKey(reservationKey);
-            URI uri = UriComponentsBuilder.fromHttpUrl(productServiceBaseUrl)
+            URI uri = UriComponentsBuilder.fromUriString(productServiceBaseUrl)
                     .pathSegment("products", "reservations", reservationKey)
                     .build()
                     .encode()

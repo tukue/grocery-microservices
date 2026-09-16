@@ -2,7 +2,7 @@
 
 ## Service Does Not Start
 
-- Check Java version: `java -version` should report Java 21.
+- Check Java version: `java -version` should report Java 25.
 - Check the active profile: `SPRING_PROFILES_ACTIVE`.
 - Check database URL, username, password, and container health.
 

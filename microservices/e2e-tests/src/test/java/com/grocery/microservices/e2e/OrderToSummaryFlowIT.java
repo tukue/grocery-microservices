@@ -1,7 +1,7 @@
 package com.grocery.microservices.e2e;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.grocery.microservices.order.OrderServiceApplication;
 import com.grocery.microservices.order.client.CartClient;
 import com.grocery.microservices.order.client.CartItemSnapshot;
@@ -38,7 +38,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.web.client.RestTemplate;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.redpanda.RedpandaContainer;
 import org.testcontainers.utility.DockerImageName;
@@ -70,8 +70,8 @@ class OrderToSummaryFlowIT {
     private static final String KAFKA_TOPIC = "order.created.v1";
     private static final String DLT_TOPIC = "order.created.v1.failed";
 
-    private static PostgreSQLContainer<?> orderDb;
-    private static PostgreSQLContainer<?> summaryDb;
+    private static PostgreSQLContainer orderDb;
+    private static PostgreSQLContainer summaryDb;
     private static RedpandaContainer kafka;
 
     private static ConfigurableApplicationContext orderCtx;
@@ -95,11 +95,11 @@ class OrderToSummaryFlowIT {
     static void startInfrastructureAndServices() throws Exception {
         Slf4jLogConsumer logConsumer = new Slf4jLogConsumer(org.slf4j.LoggerFactory.getLogger("docker"));
 
-        orderDb = new PostgreSQLContainer<>(POSTGRES_IMAGE)
+        orderDb = new PostgreSQLContainer(POSTGRES_IMAGE)
                 .withDatabaseName("grocery")
                 .withUsername("grocellery")
                 .withPassword("grocellery");
-        summaryDb = new PostgreSQLContainer<>(POSTGRES_IMAGE)
+        summaryDb = new PostgreSQLContainer(POSTGRES_IMAGE)
                 .withDatabaseName("grocery")
                 .withUsername("grocellery")
                 .withPassword("grocellery");

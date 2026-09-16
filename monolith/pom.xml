@@ -6,10 +6,12 @@
     <artifactId>monolith</artifactId>
     <version>1.0-SNAPSHOT</version>
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <!-- Java 25 (LTS) - matches the Spring Boot 4.1 service modules. -->
+        <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <junit.jupiter.version>5.9.3</junit.jupiter.version>
+        <!-- JUnit 6.0.3 matches the version managed by Spring Boot 4.1.1's BOM so the
+             monolith and microservices share one test framework line. -->
+        <junit.jupiter.version>6.0.3</junit.jupiter.version>
     </properties>
     <dependencies>
         <dependency>
@@ -21,7 +23,7 @@
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>2.5.0</version>
+            <version>3.1.1</version>
         </dependency>
     </dependencies>
     <build>
@@ -29,16 +31,16 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
+                <version>3.15.0</version>
                 <configuration>
-                    <source>${maven.compiler.source}</source>
-                    <target>${maven.compiler.target}</target>
+                    <release>${maven.compiler.release}</release>
+                    <parameters>true</parameters>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.22.2</version>
+                <version>3.5.6</version>
             </plugin>
         </plugins>
     </build>

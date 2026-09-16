@@ -1,6 +1,6 @@
 package com.grocery.microservices.order.eventstore;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.grocery.microservices.order.event.OrderCreatedEvent;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
@@ -27,12 +27,12 @@ class StoredOrderEventPublisherTest {
         KafkaTemplate<String, OrderCreatedEvent> kafkaTemplate = mock(KafkaTemplate.class);
         OrderCreatedEvent event = event();
         StoredOrderEventDelivery delivery = new StoredOrderEventDelivery(event.eventId(),
-                new ObjectMapper().findAndRegisterModules().writeValueAsString(event));
+                new ObjectMapper().writeValueAsString(event));
         when(eventStore.claimProcessableEvents()).thenReturn(List.of(delivery));
         CompletableFuture<SendResult<String, OrderCreatedEvent>> result = CompletableFuture.completedFuture(null);
         when(kafkaTemplate.send(eq("order.created.v1"), eq("42"), any(OrderCreatedEvent.class))).thenReturn(result);
 
-        new StoredOrderEventPublisher(eventStore, new ObjectMapper().findAndRegisterModules(), kafkaTemplate,
+        new StoredOrderEventPublisher(eventStore, new ObjectMapper(), kafkaTemplate,
                 new SimpleMeterRegistry(), "order.created.v1", Duration.ofSeconds(1)).publishPendingEvents();
 
         verify(eventStore).markPublished(event.eventId());
@@ -44,13 +44,13 @@ class StoredOrderEventPublisherTest {
         KafkaTemplate<String, OrderCreatedEvent> kafkaTemplate = mock(KafkaTemplate.class);
         OrderCreatedEvent event = event();
         StoredOrderEventDelivery delivery = new StoredOrderEventDelivery(event.eventId(),
-                new ObjectMapper().findAndRegisterModules().writeValueAsString(event));
+                new ObjectMapper().writeValueAsString(event));
         when(eventStore.claimProcessableEvents()).thenReturn(List.of(delivery));
         CompletableFuture<SendResult<String, OrderCreatedEvent>> result =
                 CompletableFuture.failedFuture(new IllegalStateException("Kafka unavailable"));
         when(kafkaTemplate.send(eq("order.created.v1"), eq("42"), any(OrderCreatedEvent.class))).thenReturn(result);
 
-        new StoredOrderEventPublisher(eventStore, new ObjectMapper().findAndRegisterModules(), kafkaTemplate,
+        new StoredOrderEventPublisher(eventStore, new ObjectMapper(), kafkaTemplate,
                 new SimpleMeterRegistry(), "order.created.v1", Duration.ofSeconds(1)).publishPendingEvents();
 
         verify(eventStore).recordDeliveryFailure(eq(event.eventId()), any(Throwable.class));
@@ -62,12 +62,12 @@ class StoredOrderEventPublisherTest {
         KafkaTemplate<String, OrderCreatedEvent> kafkaTemplate = mock(KafkaTemplate.class);
         OrderCreatedEvent event = event();
         StoredOrderEventDelivery delivery = new StoredOrderEventDelivery(event.eventId(),
-                new ObjectMapper().findAndRegisterModules().writeValueAsString(event));
+                new ObjectMapper().writeValueAsString(event));
         when(eventStore.claimProcessableEvents()).thenReturn(List.of(delivery));
         when(kafkaTemplate.send(eq("order.created.v1"), eq("42"), any(OrderCreatedEvent.class)))
                 .thenReturn(new CompletableFuture<>());
 
-        new StoredOrderEventPublisher(eventStore, new ObjectMapper().findAndRegisterModules(), kafkaTemplate,
+        new StoredOrderEventPublisher(eventStore, new ObjectMapper(), kafkaTemplate,
                 new SimpleMeterRegistry(), "order.created.v1", Duration.ZERO).publishPendingEvents();
 
         verify(eventStore).recordDeliveryFailure(eq(event.eventId()), any(Throwable.class));

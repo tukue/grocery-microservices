@@ -6,14 +6,15 @@ import com.grocery.microservices.product.dto.StockReservationDTO;
 import com.grocery.microservices.product.exception.InsufficientStockException;
 import com.grocery.microservices.product.model.StockReservation;
 import com.grocery.microservices.product.service.StockReservationService;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.cache.CacheManager;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -39,8 +40,11 @@ class StockReservationControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private StockReservationService stockReservationService;
+
+    @MockitoBean
+    private CacheManager cacheManager;
 
     private static String bearer() {
         return "Bearer " + TestJwtSupport.validToken("customer-1");

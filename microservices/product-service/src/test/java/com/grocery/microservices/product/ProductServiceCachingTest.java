@@ -7,7 +7,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.test.context.ActiveProfiles;
@@ -27,7 +27,7 @@ class ProductServiceCachingTest {
     private static final String PRODUCT_LIST_CACHE = "productList";
     private static final String PRODUCT_BY_ID_CACHE = "productById";
 
-    @MockBean
+    @MockitoBean
     private ProductRepository productRepository;
 
     @Autowired
