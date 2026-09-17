@@ -36,6 +36,9 @@ jobs:
         run: npm ci
 
       - name: Test frontend
+        run: npm run lint && npm run type-check
+
+      - name: Run unit tests
         run: npm test
 
       - name: Build frontend
