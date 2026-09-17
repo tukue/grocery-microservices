@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { z } from "zod";
 
-import { parseServerEnv } from "./server-env.schema";
+import { loadServerEnv } from "./server-env.schema";
 
-describe("parseServerEnv", () => {
+describe("loadServerEnv", () => {
   it("accepts valid server service URLs", () => {
     expect(
-      parseServerEnv({
+      loadServerEnv({
         CART_SERVICE_URL: "http://localhost:8080",
         ORDER_SERVICE_URL: "http://localhost:8081",
         PRODUCT_SERVICE_URL: "http://localhost:8083",
@@ -18,12 +17,14 @@ describe("parseServerEnv", () => {
     });
   });
 
-  it("rejects missing configuration", () => {
+  it("reports missing configuration by variable name", () => {
     expect(() =>
-      parseServerEnv({
+      loadServerEnv({
         CART_SERVICE_URL: "http://localhost:8080",
         PRODUCT_SERVICE_URL: "http://localhost:8083",
       }),
-    ).toThrow(z.ZodError);
+    ).toThrow(
+      "Invalid server environment configuration. Set valid URL values for: ORDER_SERVICE_URL.",
+    );
   });
 });
