@@ -43,3 +43,7 @@ jobs:
 
       - name: Build frontend
         run: npm run build
+        env:
+          CART_SERVICE_URL: http://cart-service.invalid
+          ORDER_SERVICE_URL: http://order-service.invalid
+          PRODUCT_SERVICE_URL: http://product-service.invalid
