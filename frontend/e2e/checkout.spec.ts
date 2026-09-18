@@ -32,7 +32,9 @@ test("customer can complete a controlled checkout journey", async ({
   await page.goto("/");
   await page.getByRole("button", { name: "Add Apples to cart" }).click();
   await page.getByRole("button", { name: /Open cart/ }).click();
-  await page.getByLabel("Quantity").fill("2");
+  const quantityInput = page.getByRole("spinbutton", { name: "Quantity" });
+  await expect(quantityInput).toBeVisible();
+  await quantityInput.fill("2");
   await page.getByRole("button", { name: "Checkout" }).click();
   await expect(page.getByText("Cart total: 59.80")).toBeVisible();
   await page.getByRole("button", { name: "Submit order" }).click();
