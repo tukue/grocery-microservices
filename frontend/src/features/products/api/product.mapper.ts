@@ -6,6 +6,8 @@ export function toProduct(response: unknown): Product {
 
   return {
     available: product.available,
+    currency: product.currency,
+    description: product.description,
     id: product.id,
     imageUrl: product.imageUrl ?? undefined,
     name: product.name,

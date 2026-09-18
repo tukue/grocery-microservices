@@ -4,6 +4,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 public class ProductDTO {
     private Long id;
@@ -11,8 +13,16 @@ public class ProductDTO {
     @NotBlank(message = "Product name must not be blank")
     private String name;
 
+    @NotBlank(message = "Product description must not be blank")
+    @Size(max = 2000, message = "Product description must not exceed 2000 characters")
+    private String description;
+
     @Positive(message = "Product price must be positive")
     private double price;
+
+    @NotBlank(message = "Product currency must not be blank")
+    @Pattern(regexp = "[A-Z]{3}", message = "Product currency must be a three-letter ISO 4217 code")
+    private String currency;
 
     @NotNull(message = "Product availability must be specified")
     private Boolean available = true;
@@ -39,12 +49,28 @@ public class ProductDTO {
         this.name = name;
     }
 
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
     public double getPrice() {
         return price;
     }
 
     public void setPrice(double price) {
         this.price = price;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = currency;
     }
 
     public Boolean getAvailable() {

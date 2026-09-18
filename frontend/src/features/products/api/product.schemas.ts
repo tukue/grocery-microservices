@@ -5,6 +5,8 @@ export const productResponseSchema = z.object({
   name: z.string().trim().min(1),
   price: z.number().finite().positive(),
   available: z.boolean(),
+  currency: z.string().regex(/^[A-Z]{3}$/),
+  description: z.string().trim().min(1),
   imageUrl: z.string().url().nullable().optional(),
 });
 

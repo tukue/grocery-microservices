@@ -2,11 +2,10 @@ import type { Product } from "../domain/product";
 import { Price } from "./price";
 
 type ProductCardProps = Readonly<{
-  currency?: string;
   product: Product;
 }>;
 
-export function ProductCard({ currency = "SEK", product }: ProductCardProps) {
+export function ProductCard({ product }: ProductCardProps) {
   return (
     <article className="flex min-h-72 flex-col gap-3 border border-zinc-200 bg-white p-4 shadow-sm">
       {product.imageUrl ? (
@@ -28,9 +27,9 @@ export function ProductCard({ currency = "SEK", product }: ProductCardProps) {
       )}
       <div className="flex flex-1 flex-col gap-2">
         <h2 className="text-lg font-semibold text-zinc-950">{product.name}</h2>
-        <p className="text-sm text-zinc-600">Description not provided.</p>
+        <p className="text-sm text-zinc-600">{product.description}</p>
         <div className="mt-auto flex items-center justify-between gap-3">
-          <Price amount={product.price} currency={currency} />
+          <Price amount={product.price} currency={product.currency} />
           <span className={product.available ? "text-emerald-700" : "text-rose-700"}>
             {product.available ? "Available" : "Unavailable"}
           </span>

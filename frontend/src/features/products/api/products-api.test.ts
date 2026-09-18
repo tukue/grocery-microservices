@@ -12,17 +12,17 @@ function httpReturning(value: unknown): ServerHttpClient {
 describe("ProductsApi", () => {
   it("returns product domain models from a successful response", async () => {
     const products = await createProductsApi(
-      httpReturning([{ available: true, id: 1, name: "Apples", price: 29.9 }]),
+      httpReturning([{ available: true, currency: "SEK", description: "Crisp apples.", id: 1, name: "Apples", price: 29.9 }]),
     ).list();
 
     expect(products).toEqual([
-      { available: true, id: 1, imageUrl: undefined, name: "Apples", price: 29.9 },
+      { available: true, currency: "SEK", description: "Crisp apples.", id: 1, imageUrl: undefined, name: "Apples", price: 29.9 },
     ]);
   });
 
   it("rejects an invalid transport response", async () => {
     await expect(
-      createProductsApi(httpReturning([{ available: true, id: 1, name: "Apples", price: -1 }])).list(),
+      createProductsApi(httpReturning([{ available: true, currency: "SEK", description: "Crisp apples.", id: 1, name: "Apples", price: -1 }])).list(),
     ).rejects.toThrow();
   });
 
