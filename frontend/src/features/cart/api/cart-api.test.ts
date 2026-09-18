@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createApplicationError } from "@/shared/errors/application-error";
-import type { ServerHttpClient } from "@/shared/http/server-http-client";
+import type { ServerHttpClient, ServerHttpRequest } from "@/shared/http/server-http-client";
 import { createCartApi } from "./cart-api";
 
 const context = { authorization: "Bearer test-token" };
@@ -14,7 +14,7 @@ describe("CartApi", () => {
 
   it("adds a valid quantity to the current cart", async () => {
     const requests: unknown[] = [];
-    const http: ServerHttpClient = { request: async <TResponse>(request) => { requests.push(request); return cart as TResponse; } };
+    const http: ServerHttpClient = { request: async <TResponse>(request: ServerHttpRequest) => { requests.push(request); return cart as TResponse; } };
     await expect(createCartApi(http).addProduct(12, 2, context)).resolves.toEqual(cart);
     expect(requests).toHaveLength(2);
   });

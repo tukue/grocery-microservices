@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import type { Product } from "../domain/product";
 import { Price } from "./price";
 
@@ -9,12 +11,12 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <article className="flex min-h-72 flex-col gap-3 border border-zinc-200 bg-white p-4 shadow-sm">
       {product.imageUrl ? (
-        // Product images originate from the catalogue, so a native image avoids
-        // requiring Next image-host allowlisting for every catalogue provider.
-        <img
+        <Image
           alt={product.name}
           className="h-40 w-full object-cover"
+          height={160}
           src={product.imageUrl}
+          width={320}
         />
       ) : (
         <div

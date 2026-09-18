@@ -1,4 +1,4 @@
-import { ApplicationError, createApplicationError } from "@/shared/errors/application-error";
+import { ApplicationError } from "@/shared/errors/application-error";
 import type { ServerHttpClient } from "@/shared/http/server-http-client";
 
 import type { Cart } from "../domain/cart";
