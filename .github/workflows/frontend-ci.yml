@@ -18,6 +18,10 @@ permissions:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
+    env:
+      CART_SERVICE_URL: http://127.0.0.1:8080
+      ORDER_SERVICE_URL: http://127.0.0.1:8081
+      PRODUCT_SERVICE_URL: http://127.0.0.1:8083
     defaults:
       run:
         working-directory: frontend

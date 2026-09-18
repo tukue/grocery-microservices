@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { Storefront } from "@/features/orders";
 
 export default function Home() {
-  redirect("/products");
+  return <Storefront />;
 }
