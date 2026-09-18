@@ -26,20 +26,22 @@ public class ProductServiceApplication {
         return args -> {
             if (repository.count() == 0) {
                 repository.saveAll(List.of(
-                        product("Apple", 0.99),
-                        product("Banana", 0.59),
-                        product("Carrot", 0.39),
-                        product("Dairy Milk", 1.49),
-                        product("Eggs", 2.99)
+                        product("Apple", "Crisp apples for snacks and baking.", 0.99),
+                        product("Banana", "Ripe bananas for everyday meals.", 0.59),
+                        product("Carrot", "Fresh carrots for cooking and salads.", 0.39),
+                        product("Dairy Milk", "Creamy milk chocolate bar.", 1.49),
+                        product("Eggs", "Free-range eggs for your kitchen.", 2.99)
                 ));
             }
         };
     }
 
-    private Product product(String name, double price) {
+    private Product product(String name, String description, double price) {
         Product product = new Product();
         product.setName(name);
+        product.setDescription(description);
         product.setPrice(price);
+        product.setCurrency("SEK");
         return product;
     }
 }

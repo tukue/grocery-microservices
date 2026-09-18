@@ -16,7 +16,11 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String name;
+    @Column(nullable = false, length = 2000)
+    private String description;
     private double price;
+    @Column(nullable = false, length = 3)
+    private String currency;
     @Column(nullable = false, columnDefinition = "boolean default true")
     private boolean available = true;
     @Column(name = "stock_quantity", nullable = false)
@@ -41,12 +45,28 @@ public class Product {
         this.name = name;
     }
 
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
     public double getPrice() {
         return price;
     }
 
     public void setPrice(double price) {
         this.price = price;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = currency;
     }
 
     public boolean isAvailable() {
