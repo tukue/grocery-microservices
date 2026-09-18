@@ -3,11 +3,11 @@ import { describe, expect, it } from "vitest";
 import Home from "./page";
 
 describe("Home", () => {
-  it("renders the default getting started heading", () => {
+  it("renders the products entry point", () => {
     render(<Home />);
 
     expect(
-      screen.getByRole("heading", { name: /to get started, edit the/i }),
+      screen.getByRole("heading", { name: "Products" }),
     ).toBeInTheDocument();
   });
 });
