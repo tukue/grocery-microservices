@@ -1,9 +1,11 @@
 import { z } from "zod";
 
 export const productResponseSchema = z.object({
-  id: z.number().int(),
-  name: z.string(),
-  price: z.number(),
+  id: z.number().int().positive(),
+  name: z.string().trim().min(1),
+  price: z.number().finite().positive(),
+  available: z.boolean(),
+  imageUrl: z.string().url().nullable().optional(),
 });
 
 export const productListResponseSchema = z.array(productResponseSchema);
