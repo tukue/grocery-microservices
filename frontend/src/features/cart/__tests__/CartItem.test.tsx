@@ -23,7 +23,6 @@ describe('CartItem', () => {
   });
 
   it('renders product name, quantity, and unit price', () => {
-    const adapter = createMockAdapter();
     render(<CartItem productName="Apple" quantity={3} unitPrice={2.5} />);
     expect(screen.getByText('Apple')).toBeInTheDocument();
     expect(screen.getByText('Qty: 3')).toBeInTheDocument();

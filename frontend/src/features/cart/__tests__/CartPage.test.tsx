@@ -34,7 +34,7 @@ describe('CartPage', () => {
   });
 
   it('shows loading state', () => {
-    const adapter = createMockAdapter({ getCurrentCart: vi.fn(() => new Promise(() => {})) });
+    const adapter = createMockAdapter({ getCurrentCart: vi.fn(() => new Promise<CartDTO | null>(() => {})) });
     renderWithRouter(<CartPage adapter={adapter} />);
     expect(screen.getByRole('status')).toHaveTextContent(/loading cart/i);
   });
