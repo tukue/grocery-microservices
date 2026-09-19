@@ -96,3 +96,120 @@ And the receipt becomes available through the documented order-to-summary contra
 - **Backend team:** OpenAPI contracts, authorization, trusted calculations, stable error codes, CORS configuration, and the order-to-summary lookup contract.
 - **Platform team:** frontend hosting, CDN/TLS, environment runtime configuration, secrets, observability, and release promotion.
 - **Product team:** acceptance criteria, allowed order status actions, and receipt availability expectation.
+
+## Integration Best Practices
+
+### Contract First
+
+- Backend publishes OpenAPI docs before frontend implements.
+- Frontend generates types from the contract, not hand-writes them.
+- Both sides agree on error shapes before coding.
+
+### One Error Shape
+
+Backend returns consistent JSON for all errors:
+
+```json
+{
+  "timestamp": "...",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Validation Failed",
+  "path": "/products",
+  "validationErrors": { "name": "Must not be blank" }
+}
+```
+
+Frontend has one error adapter that maps status codes to user messages (see Error and State Model above).
+
+### Server is Authoritative
+
+- Never calculate totals, stock, or prices client-side.
+- Use the response the backend returns.
+- Optimistic updates are OK only if they revert on failure.
+
+### Auth Token Pattern
+
+```
+Frontend stores token (httpOnly cookie or memory)
+  → Attaches Authorization: Bearer <token> to every request
+  → Backend validates JWT, extracts customer from sub claim
+  → Backend forwards token to downstream services
+```
+
+Never hardcode tokens. Never expose signing keys in frontend builds.
+
+### Idempotency for Mutations
+
+- Checkout uses `Idempotency-Key` header or body field.
+- Duplicate clicks return the same order, not a new one.
+- Backend deduplicates by user + key.
+
+### CORS Configuration
+
+- Never use `*` in production.
+- Allow only your exact frontend origin.
+- Allow only necessary methods and headers.
+
+### Response Handling
+
+- Always read the response body on success, not just on error.
+- Use the returned data, don't assume what you sent is what was stored.
+- Backend may add fields (id, timestamps, calculated totals).
+
+### Loading and Error States
+
+Every data-fetching component must handle:
+
+```
+loading  → spinner or skeleton
+success  → render data
+error    → user-friendly message + retry option
+empty    → empty state with call to action
+```
+
+### Request Validation
+
+- Frontend validates form input before sending (Zod, react-hook-form).
+- Backend validates everything again (never trust the client).
+- Both sides use the same validation rules.
+
+### Race Conditions
+
+- Disable submit buttons while request is in flight.
+- Use refs to prevent concurrent requests.
+- Cancel stale requests when component unmounts.
+
+### Cache and Freshness
+
+- Product catalog: can be cached briefly.
+- Cart: always fetch fresh from backend.
+- Orders: always fetch fresh from backend.
+- Receipt: poll with bounded retries (async projection).
+
+### API Versioning
+
+- Backend versions APIs in the URL path or header.
+- Frontend pins to a specific version.
+- Never make breaking changes without a new version.
+
+### Logging and Correlation
+
+- Frontend sends `X-Correlation-Id` header on every request.
+- Backend logs correlation ID across all service calls.
+- Enables tracing a request through microservices.
+
+### Timeout and Retry
+
+- Frontend sets fetch timeout (10–30 seconds).
+- Backend sets connect/read timeouts on downstream calls.
+- Retry only idempotent operations (GET, PATCH, DELETE with same params).
+- Never retry non-idempotent operations (POST checkout) without idempotency key.
+
+### Security Checklist
+
+- No secrets in frontend build output.
+- Token stored securely (httpOnly cookie > memory > localStorage).
+- HTTPS everywhere in production.
+- Backend validates JWT signature, issuer, audience, expiry.
+- Backend enforces scope-based authorization per endpoint.
