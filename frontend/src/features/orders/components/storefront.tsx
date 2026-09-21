@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import type { CartSummary, Order, OrderLine } from "../domain/order";
 import { submitOrderFromClient } from "../api/client-order-submission";
@@ -23,10 +24,10 @@ function toCartLine(quantity: number): OrderLine {
 }
 
 export function Storefront() {
+  const navigate = useNavigate();
   const [cartItems, setCartItems] = useState<readonly OrderLine[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [confirmedOrder, setConfirmedOrder] = useState<Order>();
   const cart = useMemo<CartSummary>(
     () => ({
       id: 42,
@@ -38,7 +39,6 @@ export function Storefront() {
 
   function addProduct(): void {
     setCartItems((items) => [toCartLine((items[0]?.quantity ?? 0) + 1)]);
-    setConfirmedOrder(undefined);
   }
 
   function updateQuantity(value: string): void {
@@ -50,9 +50,9 @@ export function Storefront() {
   }
 
   function confirmOrder(order: Order): void {
-    setConfirmedOrder(order);
     setCartItems([]);
     setCheckoutOpen(false);
+    navigate(`/confirmation/${order.id}`);
   }
 
   return (
@@ -101,10 +101,6 @@ export function Storefront() {
           onConfirmed={confirmOrder}
           submitOrder={submitOrderFromClient}
         />
-      )}
-
-      {confirmedOrder && (
-        <p role="status">Order #{confirmedOrder.id} confirmed</p>
       )}
     </main>
   );
