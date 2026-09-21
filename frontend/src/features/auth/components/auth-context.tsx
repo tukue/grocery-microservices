@@ -7,7 +7,11 @@ import {
 } from "react";
 
 import type { Session } from "../domain/session";
-import { getSession, login as apiLogin, logout as apiLogout } from "../api/auth-api";
+import {
+  getSession,
+  login as apiLogin,
+  logout as apiLogout,
+} from "../api/auth-api";
 
 type AuthContextValue = {
   readonly session: Session;
