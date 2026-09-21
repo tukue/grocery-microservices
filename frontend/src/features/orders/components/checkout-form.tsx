@@ -10,11 +10,10 @@ import {
 } from "@/shared/errors/application-error";
 
 import type { CartSummary, Order } from "../domain/order";
-import { checkoutRequestSchema } from "../api/order.schemas";
-
-type CheckoutFormValues = {
-  idempotencyKey?: string;
-};
+import {
+  checkoutFormSchema,
+  type CheckoutFormValues,
+} from "../api/checkout-form-schema";
 
 type CheckoutFormProps = Readonly<{
   cart: CartSummary;
@@ -35,7 +34,7 @@ export function CheckoutForm({
   const form = useForm<CheckoutFormValues>({
     defaultValues: { idempotencyKey: "" },
     mode: "onChange",
-    resolver: zodResolver(checkoutRequestSchema.omit({ cartId: true })),
+    resolver: zodResolver(checkoutFormSchema),
   });
 
   async function onSubmit(values: CheckoutFormValues): Promise<void> {
