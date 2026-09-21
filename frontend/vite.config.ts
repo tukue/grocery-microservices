@@ -2,13 +2,12 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
+import { bffPlugin } from './server/vite-bff-plugin.js'
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), bffPlugin()],
   server: {
-    proxy: {
-      '/products': 'http://localhost:8083',
-      '/api': 'http://localhost:8081',
-    },
+    port: 5173,
   },
   test: {
     environment: 'jsdom',
