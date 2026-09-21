@@ -1,8 +1,8 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ProductCard } from '../components/ProductCard';
-import type { CartAdapter, CartDTO } from '../../cart/api/cart-adapter';
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { ProductCard } from "../components/ProductCard";
+import type { CartAdapter, CartDTO } from "../../cart/api/cart-adapter";
 
 function createMockAdapter(overrides: Partial<CartAdapter> = {}): CartAdapter {
   return {
@@ -15,40 +15,82 @@ function createMockAdapter(overrides: Partial<CartAdapter> = {}): CartAdapter {
   } as unknown as CartAdapter;
 }
 
-const mockCart: CartDTO = { id: 1, status: 'OPEN', items: [] };
-const mockCartWithItem: CartDTO = { id: 1, status: 'OPEN', items: [{ id: 10, productId: 42, productName: 'Apple', price: 2.5, quantity: 1 }] };
+const mockCart: CartDTO = { id: 1, status: "OPEN", items: [] };
+const mockCartWithItem: CartDTO = {
+  id: 1,
+  status: "OPEN",
+  items: [
+    { id: 10, productId: 42, productName: "Apple", price: 2.5, quantity: 1 },
+  ],
+};
 
-describe('ProductCard', () => {
+describe("ProductCard", () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
   });
 
-  it('renders product name and price', () => {
+  it("renders product name and price", () => {
     const adapter = createMockAdapter();
-    render(<ProductCard id={42} name="Apple" price={2.5} available={true} adapter={adapter} />);
-    expect(screen.getByText('Apple')).toBeInTheDocument();
-    expect(screen.getByText('$2.50')).toBeInTheDocument();
+    render(
+      <ProductCard
+        id={42}
+        name="Apple"
+        price={2.5}
+        available={true}
+        adapter={adapter}
+      />,
+    );
+    expect(screen.getByText("Apple")).toBeInTheDocument();
+    expect(screen.getByText("$2.50")).toBeInTheDocument();
   });
 
-  it('renders image when imageUrl is provided', () => {
+  it("renders image when imageUrl is provided", () => {
     const adapter = createMockAdapter();
-    render(<ProductCard id={42} name="Apple" price={2.5} available={true} imageUrl="/apple.jpg" adapter={adapter} />);
-    expect(screen.getByRole('img', { name: 'Apple' })).toHaveAttribute('src', '/apple.jpg');
+    render(
+      <ProductCard
+        id={42}
+        name="Apple"
+        price={2.5}
+        available={true}
+        imageUrl="/apple.jpg"
+        adapter={adapter}
+      />,
+    );
+    expect(screen.getByRole("img", { name: "Apple" })).toHaveAttribute(
+      "src",
+      "/apple.jpg",
+    );
   });
 
-  it('does not render image when imageUrl is absent', () => {
+  it("does not render image when imageUrl is absent", () => {
     const adapter = createMockAdapter();
-    render(<ProductCard id={42} name="Apple" price={2.5} available={true} adapter={adapter} />);
-    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    render(
+      <ProductCard
+        id={42}
+        name="Apple"
+        price={2.5}
+        available={true}
+        adapter={adapter}
+      />,
+    );
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 
-  it('passes only id and availability to AddToCartButton', () => {
+  it("passes only id and availability to AddToCartButton", () => {
     const adapter = createMockAdapter();
-    render(<ProductCard id={42} name="Apple" price={2.5} available={false} adapter={adapter} />);
-    expect(screen.getByRole('button', { name: /unavailable/i })).toBeDisabled();
+    render(
+      <ProductCard
+        id={42}
+        name="Apple"
+        price={2.5}
+        available={false}
+        adapter={adapter}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /unavailable/i })).toBeDisabled();
   });
 
-  it('does not place API logic in ProductCard', async () => {
+  it("does not place API logic in ProductCard", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const adapter = createMockAdapter({
       getCurrentCart: vi.fn().mockResolvedValue(mockCart),
@@ -56,8 +98,17 @@ describe('ProductCard', () => {
     });
     const onCartUpdated = vi.fn();
 
-    render(<ProductCard id={42} name="Apple" price={2.5} available={true} adapter={adapter} onCartUpdated={onCartUpdated} />);
-    await user.click(screen.getByRole('button', { name: /add to cart/i }));
+    render(
+      <ProductCard
+        id={42}
+        name="Apple"
+        price={2.5}
+        available={true}
+        adapter={adapter}
+        onCartUpdated={onCartUpdated}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /add to cart/i }));
 
     await waitFor(() => {
       expect(adapter.getCurrentCart).toHaveBeenCalledOnce();

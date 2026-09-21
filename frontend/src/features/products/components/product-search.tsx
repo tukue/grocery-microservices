@@ -5,7 +5,9 @@ import { FormEvent, useState } from "react";
 
 export function productsSearchPath(search: string): string {
   const normalized = search.trim();
-  return normalized ? `/products?search=${encodeURIComponent(normalized)}` : "/products";
+  return normalized
+    ? `/products?search=${encodeURIComponent(normalized)}`
+    : "/products";
 }
 
 export function ProductSearch() {
@@ -26,7 +28,9 @@ export function ProductSearch() {
 
   return (
     <form className="flex flex-wrap gap-2" onSubmit={submit} role="search">
-      <label className="sr-only" htmlFor="product-search">Search products</label>
+      <label className="sr-only" htmlFor="product-search">
+        Search products
+      </label>
       <input
         className="min-w-0 flex-1 border border-zinc-300 px-3 py-2"
         id="product-search"
@@ -36,9 +40,15 @@ export function ProductSearch() {
         type="search"
         value={search}
       />
-      <button className="bg-zinc-900 px-4 py-2 text-white" type="submit">Search</button>
+      <button className="bg-zinc-900 px-4 py-2 text-white" type="submit">
+        Search
+      </button>
       {initialSearch ? (
-        <button className="border border-zinc-300 px-4 py-2" onClick={clearSearch} type="button">
+        <button
+          className="border border-zinc-300 px-4 py-2"
+          onClick={clearSearch}
+          type="button"
+        >
           Clear search
         </button>
       ) : null}

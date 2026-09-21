@@ -6,7 +6,7 @@ export interface OrderLine {
   lineTotal: number;
 }
 
-export type OrderStatus = 'PENDING' | 'COMPLETED' | 'CANCELLED';
+export type OrderStatus = "PENDING" | "COMPLETED" | "CANCELLED";
 
 export interface Order {
   id: number;

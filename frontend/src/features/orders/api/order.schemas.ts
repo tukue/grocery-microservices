@@ -26,5 +26,11 @@ export const orderResponseSchema = z.object({
   userId: z.string(),
 });
 
+export const orderStatusSchema = z.enum(["PENDING", "COMPLETED", "CANCELLED"]);
+export type OrderStatus = z.infer<typeof orderStatusSchema>;
+
+export const ordersListResponseSchema = z.array(orderResponseSchema);
+export type OrdersListResponse = z.infer<typeof ordersListResponseSchema>;
+
 export type CheckoutRequestDto = z.infer<typeof checkoutRequestSchema>;
 export type OrderResponseDto = z.infer<typeof orderResponseSchema>;

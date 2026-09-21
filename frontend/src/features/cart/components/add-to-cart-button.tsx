@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 
-import { addToCartAction, type AddToCartResult } from "../api/add-to-cart.action";
+import {
+  addToCartAction,
+  type AddToCartResult,
+} from "../api/add-to-cart.action";
 
 type AddToCartButtonProps = Readonly<{
   addItem?: (productId: number, quantity?: number) => Promise<AddToCartResult>;
@@ -10,7 +13,11 @@ type AddToCartButtonProps = Readonly<{
   productId: number;
 }>;
 
-export function AddToCartButton({ addItem = addToCartAction, available, productId }: AddToCartButtonProps) {
+export function AddToCartButton({
+  addItem = addToCartAction,
+  available,
+  productId,
+}: AddToCartButtonProps) {
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<AddToCartResult | undefined>();
 
@@ -37,7 +44,9 @@ export function AddToCartButton({ addItem = addToCartAction, available, productI
         {pending ? "Adding..." : available ? "Add to cart" : "Unavailable"}
       </button>
       {result ? (
-        <p id="add-to-cart-feedback" role="status">{result.message}</p>
+        <p id="add-to-cart-feedback" role="status">
+          {result.message}
+        </p>
       ) : null}
     </div>
   );

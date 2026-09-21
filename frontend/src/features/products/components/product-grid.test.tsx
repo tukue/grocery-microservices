@@ -5,15 +5,32 @@ import { ProductGrid } from "./product-grid";
 
 describe("ProductGrid", () => {
   it("renders a product collection", () => {
-    render(<ProductGrid products={[{ available: true, currency: "SEK", description: "Crisp apples.", id: 1, name: "Apples", price: 29.9 }]} />);
+    render(
+      <ProductGrid
+        products={[
+          {
+            available: true,
+            currency: "SEK",
+            description: "Crisp apples.",
+            id: 1,
+            name: "Apples",
+            price: 29.9,
+          },
+        ]}
+      />,
+    );
 
-    expect(screen.getByRole("region", { name: "Products" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "Products" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Apples" })).toBeInTheDocument();
   });
 
   it("renders a clear empty state", () => {
     render(<ProductGrid products={[]} />);
 
-    expect(screen.getByRole("status")).toHaveTextContent("No products match your search.");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "No products match your search.",
+    );
   });
 });

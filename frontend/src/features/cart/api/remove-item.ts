@@ -1,4 +1,4 @@
-import type { CartAdapter, CartDTO } from './cart-adapter';
+import type { CartAdapter, CartDTO } from "./cart-adapter";
 
 export async function removeCartItem(
   adapter: CartAdapter,

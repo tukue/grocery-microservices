@@ -2,9 +2,9 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { createApplicationError } from "@/shared/errors/application-error";
+import { createApplicationError } from "../../../shared/errors/application-error";
 
-import { CheckoutForm } from "./checkout-form";
+import { CheckoutForm } from "../components/checkout-form";
 
 const cart = {
   id: 42,
@@ -29,6 +29,17 @@ const order = {
 };
 
 describe("CheckoutForm", () => {
+  it("renders cart summary with items and total", () => {
+    render(
+      <CheckoutForm cart={cart} onConfirmed={vi.fn()} submitOrder={vi.fn()} />,
+    );
+    expect(screen.getByText("Checkout")).toBeInTheDocument();
+    expect(screen.getByText("Cart total: 29.90")).toBeInTheDocument();
+    expect(screen.getByLabelText("Cart summary")).toHaveTextContent(
+      "Apples x 1",
+    );
+  });
+
   it("shows accessible validation errors for unsupported idempotency key length", async () => {
     const user = userEvent.setup();
     render(
