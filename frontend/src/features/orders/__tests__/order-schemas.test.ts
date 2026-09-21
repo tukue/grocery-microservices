@@ -1,55 +1,55 @@
 import { describe, it, expect } from 'vitest';
 import {
-  CheckoutRequestSchema,
-  OrderResponseSchema,
-  OrdersListResponseSchema,
-  OrderStatusSchema,
-} from '../api/order-schemas';
+  checkoutRequestSchema,
+  orderResponseSchema,
+  ordersListResponseSchema,
+  orderStatusSchema,
+} from '../api/order.schemas';
 
 describe('order schemas', () => {
-  describe('CheckoutRequestSchema', () => {
+  describe('checkoutRequestSchema', () => {
     it('accepts valid checkout request', () => {
-      const result = CheckoutRequestSchema.safeParse({ cartId: 1 });
+      const result = checkoutRequestSchema.safeParse({ cartId: 1 });
       expect(result.success).toBe(true);
     });
 
     it('accepts checkout request with idempotency key', () => {
-      const result = CheckoutRequestSchema.safeParse({ cartId: 1, idempotencyKey: 'abc-123' });
+      const result = checkoutRequestSchema.safeParse({ cartId: 1, idempotencyKey: 'abc-123' });
       expect(result.success).toBe(true);
       if (result.success) expect(result.data.idempotencyKey).toBe('abc-123');
     });
 
     it('rejects missing cartId', () => {
-      expect(CheckoutRequestSchema.safeParse({}).success).toBe(false);
+      expect(checkoutRequestSchema.safeParse({}).success).toBe(false);
     });
 
     it('rejects zero cartId', () => {
-      expect(CheckoutRequestSchema.safeParse({ cartId: 0 }).success).toBe(false);
+      expect(checkoutRequestSchema.safeParse({ cartId: 0 }).success).toBe(false);
     });
 
     it('rejects negative cartId', () => {
-      expect(CheckoutRequestSchema.safeParse({ cartId: -1 }).success).toBe(false);
+      expect(checkoutRequestSchema.safeParse({ cartId: -1 }).success).toBe(false);
     });
 
     it('rejects idempotency key over 64 chars', () => {
       const longKey = 'a'.repeat(65);
-      expect(CheckoutRequestSchema.safeParse({ cartId: 1, idempotencyKey: longKey }).success).toBe(false);
+      expect(checkoutRequestSchema.safeParse({ cartId: 1, idempotencyKey: longKey }).success).toBe(false);
     });
   });
 
-  describe('OrderStatusSchema', () => {
+  describe('orderStatusSchema', () => {
     it('accepts valid statuses', () => {
-      expect(OrderStatusSchema.safeParse('PENDING').success).toBe(true);
-      expect(OrderStatusSchema.safeParse('COMPLETED').success).toBe(true);
-      expect(OrderStatusSchema.safeParse('CANCELLED').success).toBe(true);
+      expect(orderStatusSchema.safeParse('PENDING').success).toBe(true);
+      expect(orderStatusSchema.safeParse('COMPLETED').success).toBe(true);
+      expect(orderStatusSchema.safeParse('CANCELLED').success).toBe(true);
     });
 
     it('rejects invalid status', () => {
-      expect(OrderStatusSchema.safeParse('SHIPPED').success).toBe(false);
+      expect(orderStatusSchema.safeParse('SHIPPED').success).toBe(false);
     });
   });
 
-  describe('OrderResponseSchema', () => {
+  describe('orderResponseSchema', () => {
     const validOrder = {
       id: 1,
       userId: 'user-1',
@@ -63,29 +63,29 @@ describe('order schemas', () => {
     };
 
     it('accepts valid order response', () => {
-      expect(OrderResponseSchema.safeParse(validOrder).success).toBe(true);
+      expect(orderResponseSchema.safeParse(validOrder).success).toBe(true);
     });
 
     it('accepts order with empty order lines', () => {
-      expect(OrderResponseSchema.safeParse({ ...validOrder, orderLines: [] }).success).toBe(true);
+      expect(orderResponseSchema.safeParse({ ...validOrder, orderLines: [] }).success).toBe(true);
     });
 
     it('rejects missing required fields', () => {
-      expect(OrderResponseSchema.safeParse({ id: 1 }).success).toBe(false);
+      expect(orderResponseSchema.safeParse({ id: 1 }).success).toBe(false);
     });
   });
 
-  describe('OrdersListResponseSchema', () => {
+  describe('ordersListResponseSchema', () => {
     it('accepts array of orders', () => {
       const orders = [
         { id: 1, userId: 'u', status: 'PENDING', orderDate: '2026-01-15T10:30:00', total: 10, cartId: 1, orderLines: [] },
         { id: 2, userId: 'u', status: 'COMPLETED', orderDate: '2026-01-16T10:30:00', total: 20, cartId: 2, orderLines: [] },
       ];
-      expect(OrdersListResponseSchema.safeParse(orders).success).toBe(true);
+      expect(ordersListResponseSchema.safeParse(orders).success).toBe(true);
     });
 
     it('accepts empty array', () => {
-      expect(OrdersListResponseSchema.safeParse([]).success).toBe(true);
+      expect(ordersListResponseSchema.safeParse([]).success).toBe(true);
     });
   });
 });

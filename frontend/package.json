@@ -13,8 +13,10 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.9.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-hook-form": "^7.88.0",
     "react-router-dom": "^7.18.4",
     "zod": "^4.6.5"
   },

@@ -1,4 +1,4 @@
-import { OrderResponseSchema, type CheckoutRequest, type OrderResponse } from './order-schemas';
+import { orderResponseSchema, type CheckoutRequestDto, type OrderResponseDto } from './order.schemas';
 import type { OrderConfirmation } from '../types/order';
 
 const ORDER_BASE = '/api/customer';
@@ -14,7 +14,7 @@ export class OrderError extends Error {
 
 export async function submitOrder(
   token: string,
-  request: CheckoutRequest,
+  request: CheckoutRequestDto,
 ): Promise<OrderConfirmation> {
   const response = await fetch(`${ORDER_BASE}/checkout`, {
     method: 'POST',
@@ -30,8 +30,8 @@ export async function submitOrder(
     throw new OrderError(response.status, body?.message ?? `Checkout failed with status ${response.status}`);
   }
 
-  const data: OrderResponse = await response.json();
-  const parsed = OrderResponseSchema.safeParse(data);
+  const data: OrderResponseDto = await response.json();
+  const parsed = orderResponseSchema.safeParse(data);
   if (!parsed.success) {
     throw new OrderError(502, 'Invalid response from server');
   }
