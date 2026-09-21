@@ -1,6 +1,6 @@
 export const SERVICE_URLS = {
-  cart: process.env.CART_SERVICE_URL || "http://localhost:8080",
-  order: process.env.ORDER_SERVICE_URL || "http://localhost:8081",
+  cart: process.env.CART_SERVICE_URL || "http://localhost:8081",
+  order: process.env.ORDER_SERVICE_URL || "http://localhost:8082",
   product: process.env.PRODUCT_SERVICE_URL || "http://localhost:8083",
 } as const;
 
