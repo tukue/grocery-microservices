@@ -1,322 +1,750 @@
-# Grocery Microservices: Pending Frontend/Backend Integration Specification
+# Grocery Microservices: Frontend/Backend Integration Specification
 
 Reviewed: 21 September 2026
 Baseline: PR #59, "Feature/frontend cart", merged into main.
-Commit reviewed: `8dd66f6583a837af67571d1f0d92047b66dcc5ca`
+Commit: `8dd66f6583a837af67571d1f0d92047b66dcc5ca`
 PR: https://github.com/tukue/grocery-microservices/pull/59
 
 ---
 
-## Goal and Review Limits
+## Goal
 
 Deliver a real authenticated customer journey:
 
 > Browse products -> Add items -> Edit cart -> Submit order -> Reload persisted confirmation -> View order history.
 
-This specification is based on the PR metadata, changed files and selected patches, and the merged frontend, backend controllers, DTOs, checkout service, configuration and tests. Main pointed to the PR merge commit at review time. Findings are static code observations; no application, build or tests were run. "Pending" means missing or disconnected in the reviewed paths, not that all related code is absent. Recheck the baseline before implementation.
+---
+
+## Architecture Decision
+
+**Runtime:** Vite + React Router (SPA) with a lightweight Express/Node BFF for session handling and service routing.
+
+**Why not Next.js:** The `package.json` lacks `next` as a dependency. The `src/app/` directory contains Next.js patterns but the build system is Vite. Commit to Vite + React Router; remove Next.js artifacts in a later cleanup task.
+
+**Session model:** HttpOnly cookie holding a session ID. BFF maps session to JWT. Tokens never reach the browser.
 
 ---
 
-## Current Implementation and Confirmed Gaps
+## API Contract
 
-| Area | Existing Foundation | Remaining Integration |
-|------|--------------------|-----------------------|
-| **Runtime** | React, TypeScript, Vite scripts and React Router dependency | `main.tsx` renders the starter `App.tsx`. Shopping routes are not mounted. Next.js app routes, server actions and server-only modules coexist with a package manifest that lacks Next.js. |
-| **Product catalogue** | Product controller supports list, detail, search and paginated list; frontend adapters/components exist | Mount the catalogue and connect it to real data. Avoid assuming array and page responses are interchangeable. |
-| **Cart** | Backend supports current/create/add/update/remove; frontend `CartAdapter` and components exist | `CartPage` renders `CartItem` without mutation callbacks. Connect quantity/removal and shared cart state across screens. |
-| **API routing** | Vite proxies `/products` to 8083 and all `/api` requests to 8081 | Compose exposes cart on 8081 and order on 8082. Checkout/order requests need separate routing. `/products` is also a desired UI route, so document a distinct browser API namespace. |
-| **Authentication** | Backend scope/ownership enforcement and an existing cookie-based cart server-action approach | Production session flow is explicitly pending in `docs/frontend-backlog.md`. Other adapters accept browser bearer tokens; checkout server code only forwards an incoming `Authorization` header. Select one consistent approach. |
-| **Checkout** | Backend already reserves stock, creates order snapshots, claims carts, supports idempotent replay and compensation attempts | Storefront uses hard-coded product 12/cart 42 and local state. Checkout paths and error models differ across adapters. Generate retry keys internally. |
-| **Confirmation** | A React Router confirmation component exists | It prints the route ID and "Order Confirmed" without retrieving an owned order. |
-| **Quality gates** | Frontend CI runs format/lint/type-check/unit tests/build | Vitest selects only `__tests__` files; colocated API/shared/app tests are excluded. TypeScript uses an explicit include list. Playwright is absent from package dependencies/scripts and CI; its config expects port 3000 while Vite has no explicit matching port. |
+| Operation | Browser Route | BFF proxies to | Service |
+|-----------|--------------|----------------|---------|
+| Catalogue | `GET /api/catalog/products` | `GET /products` | product-service |
+| Search | `GET /api/catalog/products/search?name=` | `GET /products/search?name=` | product-service |
+| Product detail | `GET /api/catalog/products/:id` | `GET /products/:id` | product-service |
+| Current cart | `GET /api/customer/cart` | Same | cart-service |
+| Create cart | `POST /api/customer/cart` | Same | cart-service |
+| Add line | `POST /api/customer/cart/:cartId/items` | Same | cart-service |
+| Update qty | `PATCH /api/customer/cart/:cartId/items/:itemId` | Same | cart-service |
+| Remove line | `DELETE /api/customer/cart/:cartId/items/:itemId` | Same | cart-service |
+| Checkout | `POST /api/customer/checkout` | Same | order-service |
+| Order list | `GET /api/customer/orders` | Same | order-service |
+| Order detail | `GET /api/customer/orders/:id` | Same | order-service |
+| Sign in | `POST /api/auth/login` | `POST /auth/login` | cart-service (demo) |
+| Sign out | `POST /api/auth/logout` | Clears cookie | BFF |
+| Session | `GET /api/auth/me` | Validates cookie, returns user | BFF |
 
----
+### Payload Rules
 
-## Implementation Constraints
+- Add: `{productId, quantity}`
+- Update: `{quantity}`
+- Checkout: `{cartId, idempotencyKey}` (key max 64 chars, generated internally)
+- Never send client-computed prices or customer IDs
 
-1. **Reuse existing endpoints.** Do not rebuild cart CRUD, checkout, stock reservation or order ownership from scratch.
+### Port Map (Docker Compose)
 
-2. **Retain React and strict TypeScript.** Keep feature UI, API transport, schema validation and domain mapping separate.
-
-3. **Proposed architecture:** Complete the active Vite + React Router frontend, backed by a same-origin backend-for-frontend (BFF) for session handling and service routing. If Next.js is the intended target, replace the first task with an explicit migration; do not maintain two production application entry paths.
-
-4. **Tokens remain server-side** behind an HttpOnly session cookie in the proposed BFF design. Never embed credentials in frontend environment variables.
-
-5. **Reuse validated response schemas.** Preserve one canonical DTO-to-domain mapping per resource. Components must not make ad hoc service requests.
-
-6. **Cart/customer identity, prices, totals and order status remain server-authoritative.** The current cart DTO has no total: a client display estimate may be derived from returned item prices; the saved order total is authoritative.
-
-7. **Keep existing compatible service contracts.** Introduce database migrations only for required backend changes.
-
-8. **Out of scope:** No payment provider, shipping/address workflow, promotions, admin interface or infrastructure migration in this integration milestone.
-
-9. **Reviewability.** Each task is a small reviewable PR with focused verification. Do not hide live application code from checks to obtain a passing build.
-
----
-
-## API Contract to Preserve
-
-Browser-facing BFF routes below are proposed; service routes are verified existing routes. Separate the UI `/products` route from JSON traffic.
-
-| Operation | Proposed Browser Route | Existing Service Route | Target |
-|-----------|----------------------|----------------------|--------|
-| Catalogue | `GET /api/catalog/products` | `GET /products` | Product |
-| Search | `GET /api/catalog/products/search?name=...` | `GET /products/search?name=...` | Product |
-| Product detail | `GET /api/catalog/products/{id}` | `GET /products/{id}` | Product |
-| Current cart | `GET /api/customer/cart` | Same | Cart |
-| Create cart | `POST /api/customer/cart` | Same | Cart |
-| Add line | `POST /api/customer/cart/{cartId}/items` | Same | Cart |
-| Update quantity | `PATCH /api/customer/cart/{cartId}/items/{itemId}` | Same | Cart |
-| Remove line | `DELETE /api/customer/cart/{cartId}/items/{itemId}` | Same | Cart |
-| Checkout | `POST /api/customer/checkout` | Same | Order |
-| Order list/detail | `GET /api/customer/orders[/{id}]` | Same | Order |
-
-### Payload Contracts
-
-- **Add payload:** `{productId, quantity}`
-- **Update payload:** `{quantity}`
-- **Checkout payload:** `{cartId, idempotencyKey}`; key maximum 64 characters.
-- Never send client-computed prices or a customer ID to establish ownership.
-
-### Response Contracts
-
-- **Cart response:** `{id, status, items: [{id, productId, productName, price, quantity}]}`
-- **Order response:** `{id, userId, cartId, status, orderDate, total, orderLines: [{productId, productName, unitPrice, quantity, lineTotal}]}`
-- **Order status:** `PENDING`, `COMPLETED` or `CANCELLED`. Do not confuse successful submission with payment or fulfilment completion.
-
-### Port Mapping
-
-Use `cart`/`cart` and `order`/`order` as appropriate. Public catalogue behaviour must match Product security configuration. In Compose, host ports are product 8083, cart 8081, order 8082; container service ports are 8080. Do not mix these with standalone service defaults.
+| Service | Host port | Container port |
+|---------|-----------|---------------|
+| product-service | 8083 | 8080 |
+| cart-service | 8081 | 8080 |
+| order-service | 8082 | 8080 |
+| summary-service | 8084 | 8080 |
+| BFF (new) | 3000 | 3000 |
 
 ---
 
-## P0: Tasks Required for a Working Journey
+## Implementation Tasks
 
-### INT-01: Activate One Application Runtime and Route Tree
-
-**Ownership:** Frontend
-**Dependencies:** None
-
-Implement `/products`, `/cart`, `/checkout`, `/confirmation/` and `/orders`; redirect `/` to `/products`. Mount the router and shared layout from the actual entry point. Consolidate duplicate component families and migrate reusable Next.js-dependent logic into the selected runtime before removing obsolete paths. Align runtime aliases, scripts and deployment fallback.
-
-**Acceptance:**
-
-- [ ] Starting the documented dev command displays the catalogue shell instead of the starter screen.
-- [ ] Direct navigation and reload work on all routes, including confirmation.
-- [ ] Production serving returns the application for UI routes and preserves JSON API routes.
-- [ ] Live source is type-checked and bundled without unresolved `next/*` or `server-only` dependencies in the browser.
-- [ ] Document the runtime choice and one start/build procedure.
+Each task is one commit. Run `npm test`, `npm run type-check`, and `npm run build` after each.
 
 ---
 
-### INT-02: Implement Service Routing and a Canonical API Boundary
+### Phase 1: Runtime and Routing
 
-**Ownership:** BFF/backend integration + frontend
-**Dependencies:** INT-01 architecture decision
+#### INT-01: Add React Router to Vite entry point
 
-Create explicit product/cart/order routing and update feature adapters. Preserve status codes, validation errors, correlation headers and idempotency keys. Validate response JSON at the boundary; map DTOs once. Configure service URLs per environment.
+**Goal:** Replace the starter `App.tsx` with a routed shell.
 
-**Acceptance:**
+**Read:**
+- `frontend/src/App.tsx` (current starter)
+- `frontend/src/main.tsx` (entry)
+- `frontend/package.json` (check react-router-dom)
 
-- [ ] A route smoke test proves catalogue, cart and checkout reach the intended services.
-- [ ] `/products` renders HTML; `/api/catalog/products` returns JSON.
-- [ ] One checkout path is used by the application; obsolete `/api/orders/checkout` callers are removed or deliberately mapped.
-- [ ] 204 responses are handled without JSON parsing; malformed successful responses become controlled errors.
-- [ ] A returned order is validated as a service DTO before mapping. If a BFF returns a domain object, its client schema matches that object rather than requiring stripped `userId`.
-- [ ] Production requests work independently of Vite's development-only proxy.
+**Do:**
+1. Install `react-router-dom` if missing.
+2. Create `frontend/src/routes.tsx` with a `createBrowserRouter`:
+   - `/` redirects to `/products`
+   - `/products` renders `<ProductList />`
+   - `/products/:id` renders `<ProductDetail />`
+   - `/cart` renders `<CartPage />`
+   - `/checkout` renders `<CheckoutPage />`
+   - `/confirmation/:orderId` renders `<ConfirmationPage />`
+   - `/orders` renders `<OrderHistory />`
+   - `*` renders a 404 page
+3. Create placeholder components for each route (just headings).
+4. Update `App.tsx` to render `<RouterProvider>`.
 
----
+**Verify:** `npm run dev` shows a routed shell. Navigate all routes. `npm run type-check` passes.
 
-### INT-03: Complete Customer Authentication and Session Lifecycle
-
-**Ownership:** BFF/backend + frontend
-**Dependencies:** INT-02
-
-Implement provider-based sign-in, sign-out and session retrieval. Use the existing backend JWT validation rather than building another identity database. Choose and document the provider configuration. The BFF resolves the session and forwards the correct bearer token to cart and order services.
-
-**Acceptance:**
-
-- [ ] A signed-in customer can read/write their cart and submit/read orders.
-- [ ] Missing/expired sessions produce a sign-in action; refreshing or signing out clears customer-specific frontend caches.
-- [ ] Cookies have `HttpOnly`, production `Secure` and an appropriate `SameSite` policy; mutation endpoints enforce CSRF/origin protection for the deployment.
-- [ ] Expiry/refresh failure returns a controlled 401 without retry loops.
-- [ ] Two-customer tests deny cross-customer cart and order access.
-- [ ] Browser code, logs and localStorage contain no access/refresh tokens.
-- [ ] Local demo identity remains explicitly local/test-only; production startup does not silently enable it.
+**Commit:** `feat(routing): add React Router with route shell`
 
 ---
 
-### INT-04: Connect Catalogue and Add-to-Cart
+#### INT-02: Remove Next.js artifacts from Vite build
 
-**Ownership:** Frontend
-**Dependencies:** INT-02, INT-03 for mutations
+**Goal:** Eliminate `next/*` and `server-only` imports that break the Vite build.
 
-Mount real product list/search and use the existing add-cart operation. Remove sample product/cart IDs from the customer flow. Use existing pagination or clearly scoped list behaviour; do not silently discard page metadata.
+**Read:**
+- `frontend/tsconfig.app.json` (include list)
+- `frontend/src/app/` directory
+- `frontend/src/features/products/components/product-card.tsx` (uses `next/image`)
+- `frontend/src/features/products/components/product-search.tsx` (uses `next/navigation`)
+- `frontend/src/features/cart/api/add-to-cart.action.ts` (uses `"use server"`)
 
-**Acceptance:**
+**Do:**
+1. Move `src/app/` directory content to `src/app-backup/` (do not delete yet).
+2. Replace `next/image` imports with plain `<img>` in `product-card.tsx`.
+3. Replace `next/navigation` imports with `react-router-dom` in `product-search.tsx`.
+4. Remove `"use server"` directive from `add-to-cart.action.ts` (convert to client function).
+5. Remove `import "server-only"` statements.
+6. Update `tsconfig.app.json` include list to cover all `src/` files.
 
-- [ ] Backend seed changes are reflected in catalogue names, prices and availability.
-- [ ] Search displays loading, empty, error and retry states; stale responses cannot overwrite newer searches.
-- [ ] Add-to-cart retrieves the current cart and creates one only for the expected not-found case.
-- [ ] Unavailable products cannot be added from the UI; server rejection remains authoritative.
-- [ ] Successful add updates the shared cart count; failure does not show a false success.
-- [ ] Public browsing, where permitted, remains usable before sign-in.
+**Verify:** `npm run type-check` passes. `npm run build` succeeds. No `next/*` imports remain in `src/`.
 
----
-
-### INT-05: Complete Persistent Cart Editing
-
-**Ownership:** Frontend; backend only if verified integration defects arise
-**Dependencies:** INT-04
-
-Wire existing quantity/removal components and helpers into `CartPage`. Use a shared cart store or query cache consumed by the header, cart and checkout. Apply returned server cart state after each mutation.
-
-**Acceptance:**
-
-- [ ] Add, change quantity and remove persist after reload.
-- [ ] Quantity must be a positive integer; invalid input makes no mutation request.
-- [ ] Requests use cart item IDs for update/removal, not product IDs.
-- [ ] Pending controls prevent duplicate operations on the same line.
-- [ ] Failed changes retain or restore the last confirmed state and display an actionable error.
-- [ ] A 409 refreshes the authoritative cart and asks the customer to review; it does not silently repeat a mutation.
-- [ ] Empty cart disables checkout. Signing out or switching customers clears the previous cart view.
+**Commit:** `chore(cleanup): remove Next.js artifacts from Vite build`
 
 ---
 
-### INT-06: Connect Reliable Checkout
+#### INT-03: Create Express BFF with session cookie
 
-**Ownership:** Frontend + order integration
-**Dependencies:** INT-03, INT-05
+**Goal:** Add a BFF server that handles auth and proxies to microservices.
 
-Submit the real current cart through the canonical checkout adapter. Replace the visible "Order reference" idempotency input with an internally generated key. Keep one key per logical submission, including retries after an ambiguous timeout.
+**Read:**
+- `frontend/vite.config.ts` (current proxy)
+- `frontend/package.json` (scripts)
+- `microservices/cart-service/` (demo identity provider at `POST /auth/login`)
 
-**Acceptance:**
+**Do:**
+1. Install `express`, `cookie-parser`, `http-proxy-middleware` as devDependencies.
+2. Create `frontend/server/bff.ts`:
+   - `POST /api/auth/login` proxies to cart-service `/auth/login`, sets HttpOnly cookie with session JWT.
+   - `POST /api/auth/logout` clears cookie.
+   - `GET /api/auth/me` decodes cookie JWT, returns `{userId, email}`.
+   - All `/api/customer/*` requests forward `Authorization: Bearer <cookie-jwt>` to the correct service.
+   - `/api/catalog/*` proxies to product-service (public, no auth).
+3. Create `frontend/server/proxy.ts` with route-to-service mapping.
+4. Add `"dev:server": "tsx server/bff.ts"` and `"dev:client": "vite"` scripts.
+5. Add `"dev": "concurrently \"npm run dev:server\" \"npm run dev:client\""` script.
+6. Install `tsx` and `concurrently`.
 
-- [ ] Empty or already checked-out carts cannot be submitted as new orders.
-- [ ] Double-clicking produces one logical checkout; retries with the same key resolve to the same persisted order.
-- [ ] The retry key survives navigation/reload while the attempt is unresolved; a changed cart starts a new reviewed attempt.
-- [ ] Disable submit while pending, but release the UI lock on a handled failure.
-- [ ] Handle 400/422 field validation, 401 session expiry, 403 permission denial, 404 missing cart, 409 cart/stock conflicts and 503 dependency outage distinctly.
-- [ ] On timeout, offer recovery with the same key; do not clear the cart or report definitive failure/success without evidence.
-- [ ] Navigate only after a validated success response. Refresh cart state from the backend after success.
-- [ ] Display persisted order lines/total and `PENDING` status without implying payment completion.
+**Verify:** `npm run dev:server` starts on port 3000. `curl http://localhost:3000/api/catalog/products` returns product list.
 
----
-
-### INT-07: Retrieve Real Order Confirmation
-
-**Ownership:** Frontend
-**Dependencies:** INT-06
-
-Fetch `GET /api/customer/orders/{id}` for confirmation, including direct URL visits. Add a read-order adapter using the canonical session and error handling.
-
-**Acceptance:**
-
-- [ ] Confirmation shows stored order ID, date, status, lines and total.
-- [ ] Reloading and opening the URL in a new tab reproduce the persisted order.
-- [ ] Unknown, malformed or unowned IDs never render a success message.
-- [ ] Loading, session expiry and retry states are accessible.
-- [ ] Confirmation uses the order snapshot even if the catalogue or current cart changes.
+**Commit:** `feat(bff): add Express BFF with session cookie and service proxy`
 
 ---
 
-### INT-08: Make Integration Verification Representative
+#### INT-04: Update Vite proxy to route through BFF
 
-**Ownership:** Frontend + backend test/CI
-**Dependencies:** Implement alongside INT-01 through INT-07; release gate after INT-07
+**Goal:** All frontend API calls go to the BFF on port 3000.
 
-Unify Vitest discovery, type-check inclusion and fixtures. Restore Playwright dependency/scripts and align its server URL/port with the chosen runtime. Keep fast mocked tests and add a separate real-service journey.
+**Read:**
+- `frontend/vite.config.ts`
+- `frontend/server/bff.ts`
 
-**Acceptance:**
+**Do:**
+1. Update `vite.config.ts` proxy to forward `/api` to `http://localhost:3000`.
+2. Remove direct service proxy entries (`/products` -> 8083, `/api` -> 8081).
+3. Add `server: { port: 5173 }` to vite config for dev client.
 
-- [ ] CI runs `npm ci`, format, lint, complete application type-check, unit/component tests and build.
-- [ ] Colocated cart/product/order/shared tests are discovered, or intentionally migrated with documented replacements.
-- [ ] Repair the existing checkout browser test so its assertions match the actual confirmation flow.
-- [ ] A real-service test signs in, lists seeded products, adds two lines, updates one, removes one, checks out and reloads confirmation.
-- [ ] A second customer cannot access the first customer's order.
-- [ ] A stock conflict and a timed-out response/retry are covered without duplicate orders or false success.
-- [ ] The real-service test does not intercept checkout with a fake success response.
-- [ ] CI retains failure traces and uses isolated/resettable test data.
+**Verify:** `npm run dev` (both server and client). Browser requests to `/api/catalog/products` reach product-service through BFF.
 
----
-
-## P1: Follow-Up Features
-
-### INT-09: Order History and Customer Cancellation
-
-**Dependencies:** INT-07
-
-Reuse `GET /api/customer/orders`; show newest first, empty/error states and links to detail.
-
-Cancellation is a backend extension before enabling its UI: the reviewed `updateOrderStatus` method updates status but does not call stock-release logic. It also permits an owning customer with order to select `COMPLETED`; define whether completion is an operational action and enforce that policy server-side.
-
-**Acceptance:**
-
-- [ ] Order history contains only the signed-in customer's orders and survives reload.
-- [ ] Only eligible `PENDING` orders expose cancellation.
-- [ ] Cancellation changes status and restores reserved stock exactly once, including retries and concurrent requests.
-- [ ] Failed compensation is durably retryable/reconcilable, not only logged.
-- [ ] Customers cannot mark orders `COMPLETED` if completion is reserved for an operational role.
+**Commit:** `feat(proxy): route all API calls through BFF`
 
 ---
 
-### INT-10: Catalogue Detail, Pagination and Sorting
+### Phase 2: Authentication
 
-**Dependencies:** INT-04
+#### INT-05: Create auth context and provider
 
-Connect existing `GET /products/{id}` and paginated `GET /products?page=&size=&sort=&direction=`.
+**Goal:** React context that holds session state.
 
-**Acceptance:**
+**Read:**
+- `frontend/src/shared/errors/application-error.ts`
+- `frontend/src/features/orders/components/checkout-form.tsx` (pattern for context)
 
-- [ ] Detail pages work on direct load with clear missing/unavailable states.
-- [ ] Page, sort and search state are reflected in the URL and restored by browser navigation.
-- [ ] UI handles array search results separately from paginated list results.
-- [ ] Combined paginated search is a separate backend contract extension if needed; do not assume the existing search endpoint supports it.
-- [ ] Changes to search reset paging and do not render stale results.
+**Do:**
+1. Create `frontend/src/features/auth/domain/session.ts`:
+   ```ts
+   type Session = { userId: string; email: string } | null;
+   ```
+2. Create `frontend/src/features/auth/api/auth-api.ts`:
+   - `login(email, password): Promise<Session>` -> `POST /api/auth/login`
+   - `logout(): Promise<void>` -> `POST /api/auth/logout`
+   - `getSession(): Promise<Session>` -> `GET /api/auth/me`
+3. Create `frontend/src/features/auth/components/auth-context.tsx`:
+   - `AuthProvider` wraps app, calls `getSession()` on mount.
+   - `useSession()` hook returns `{session, login, logout, loading}`.
+4. Wrap `<App>` with `<AuthProvider>` in `main.tsx`.
 
----
+**Verify:** `npm run type-check` passes. Auth context renders without errors.
 
-### INT-11: Checkout Concurrency and Recovery Hardening
-
-**Dependencies:** INT-06
-
-Extend and verify existing reservation/compensation code rather than replacing it.
-
-**Acceptance:**
-
-- [ ] Concurrent same-cart checkout yields one successful logical order.
-- [ ] Reusing a key for a different cart/payload is rejected with a defined conflict, rather than returning an unrelated prior order.
-- [ ] A transaction-commit failure after remote cart/stock operations is tested; recovery restores a consistent state.
-- [ ] Failed stock release/cart reopening has a durable recovery mechanism and correlation ID.
-- [ ] Reservation ownership is respected: a losing concurrent attempt cannot release the winning order's reservation.
-
-These are follow-up verification/hardening requirements, not a claim that all concurrency failure modes have been reproduced.
+**Commit:** `feat(auth): add session context and provider`
 
 ---
 
-## Delivery Order and Completion Criteria
+#### INT-06: Create sign-in page
+
+**Goal:** Login form that calls BFF and stores session.
+
+**Read:**
+- `frontend/src/features/auth/components/auth-context.tsx`
+- `frontend/src/features/auth/api/auth-api.ts`
+- Backend `POST /auth/login` request/response shape
+
+**Do:**
+1. Create `frontend/src/features/auth/components/login-page.tsx`:
+   - Email + password form.
+   - Calls `login()` from auth context.
+   - On success, navigates to `/products`.
+   - On failure, shows error message.
+2. Add `/login` route to `routes.tsx`.
+3. Protect `/cart`, `/checkout`, `/orders` routes (redirect to `/login` if no session).
+
+**Verify:** `npm run dev`. Navigate to `/cart` -> redirects to `/login`. Log in -> redirects to `/products`. `npm test` passes.
+
+**Commit:** `feat(auth): add sign-in page with route protection`
+
+---
+
+### Phase 3: Product Catalogue
+
+#### INT-07: Connect product list to real API
+
+**Goal:** Fetch and display products from product-service.
+
+**Read:**
+- `frontend/src/features/products/api/product-adapter.ts` (existing adapter)
+- `frontend/src/features/products/api/products-api.ts` (server adapter)
+- `frontend/src/features/products/components/ProductCard.tsx`
+- Backend `GET /products` response shape
+
+**Do:**
+1. Create `frontend/src/features/products/api/product-client.ts`:
+   - `fetchProducts(): Promise<Product[]>` -> `GET /api/catalog/products`
+   - `searchProducts(name: string): Promise<Product[]>` -> `GET /api/catalog/products/search?name=`
+2. Create Zod schema in `frontend/src/features/products/api/product-schemas.ts` for the response.
+3. Create `frontend/src/features/products/components/product-list.tsx`:
+   - Calls `fetchProducts()` on mount.
+   - Renders loading, error, empty states.
+   - Maps each product to `<ProductCard>`.
+4. Replace placeholder in `routes.tsx` with `<ProductList />`.
+
+**Verify:** `npm run dev`. Product list renders real data. Loading/error states work. `npm test` passes.
+
+**Commit:** `feat(products): connect product list to real API`
+
+---
+
+#### INT-08: Connect product search
+
+**Goal:** Search bar that queries product-service.
+
+**Read:**
+- `frontend/src/features/products/api/product-client.ts`
+- Backend `GET /products/search?name=` response
+
+**Do:**
+1. Create `frontend/src/features/products/components/search-bar.tsx`:
+   - Input with debounce (300ms).
+   - Calls `searchProducts(value)`.
+   - Displays results below input.
+   - Shows loading, empty, error states.
+2. Add `<SearchBar />` above `<ProductList />` in the product list page.
+3. URL state: update `?q=` query param on search.
+
+**Verify:** Type in search bar -> results update after debounce. URL reflects search. Clear search -> shows all products.
+
+**Commit:** `feat(products): add search bar with debounce`
+
+---
+
+#### INT-09: Create product detail page
+
+**Goal:** Individual product page with add-to-cart.
+
+**Read:**
+- `frontend/src/features/products/api/product-client.ts`
+- `frontend/src/features/products/components/ProductCard.tsx`
+- Backend `GET /products/:id` response
+
+**Do:**
+1. Add `fetchProduct(id: number)` to `product-client.ts`.
+2. Create `frontend/src/features/products/components/product-detail.tsx`:
+   - Fetches product by ID from URL param.
+   - Shows image, name, price, availability.
+   - "Add to Cart" button (disabled if unavailable or not logged in).
+3. Replace placeholder in `routes.tsx`.
+
+**Verify:** Click product card -> navigates to detail page. Direct URL works. "Add to Cart" disabled when not logged in.
+
+**Commit:** `feat(products): add product detail page`
+
+---
+
+### Phase 4: Cart
+
+#### INT-10: Create cart API client
+
+**Goal:** Client-side functions for all cart operations.
+
+**Read:**
+- `frontend/src/features/cart/api/cart-adapter.ts` (existing)
+- `frontend/src/features/cart/api/cart-api.ts` (server adapter)
+- Backend cart endpoints and response shapes
+
+**Do:**
+1. Create `frontend/src/features/cart/api/cart-client.ts`:
+   - `getCart(): Promise<Cart>` -> `GET /api/customer/cart`
+   - `createCart(): Promise<Cart>` -> `POST /api/customer/cart`
+   - `addItem(cartId, productId, quantity): Promise<Cart>` -> `POST /api/customer/cart/:cartId/items`
+   - `updateItem(cartId, itemId, quantity): Promise<Cart>` -> `PATCH /api/customer/cart/:cartId/items/:itemId`
+   - `removeItem(cartId, itemId): Promise<Cart>` -> `DELETE /api/customer/cart/:cartId/items/:itemId`
+2. Create Zod schemas in `frontend/src/features/cart/api/cart-schemas.ts`.
+
+**Verify:** `npm run type-check` passes. Unit tests for each function.
+
+**Commit:** `feat(cart): add cart API client with Zod schemas`
+
+---
+
+#### INT-11: Create cart context with optimistic updates
+
+**Goal:** Shared cart state consumed by header, cart page, and checkout.
+
+**Read:**
+- `frontend/src/features/cart/api/cart-client.ts`
+- `frontend/src/features/auth/components/auth-context.tsx` (pattern)
+
+**Do:**
+1. Create `frontend/src/features/cart/components/cart-context.tsx`:
+   - `CartProvider` fetches cart on mount (if logged in).
+   - `useCart()` hook returns `{cart, addItem, updateItem, removeItem, loading, error}`.
+   - Optimistic updates: apply locally, revert on server error.
+   - Refetch cart after each mutation for server-authoritative state.
+2. Wrap `<App>` with `<CartProvider>` inside `<AuthProvider>`.
+
+**Verify:** Log in -> cart loads. Add item -> cart updates immediately. Refresh page -> cart persists.
+
+**Commit:** `feat(cart): add cart context with optimistic updates`
+
+---
+
+#### INT-12: Connect product detail "Add to Cart"
+
+**Goal:** Product detail page adds items to real cart.
+
+**Read:**
+- `frontend/src/features/products/components/product-detail.tsx`
+- `frontend/src/features/cart/components/cart-context.tsx`
+
+**Do:**
+1. Import `useCart()` in `product-detail.tsx`.
+2. Wire "Add to Cart" button to call `addItem(cart.id, product.id, 1)`.
+3. Show success toast or navigate to `/cart`.
+4. Disable button while adding. Re-enable on error.
+
+**Verify:** Click "Add to Cart" -> cart count updates in header. Button disables during request. Error shows feedback.
+
+**Commit:** `feat(cart): connect product detail add-to-cart`
+
+---
+
+#### INT-13: Create cart page with quantity editing
+
+**Goal:** Full cart page with line item management.
+
+**Read:**
+- `frontend/src/features/cart/components/CartPage.tsx` (existing)
+- `frontend/src/features/cart/components/CartItem.tsx` (existing)
+- `frontend/src/features/cart/components/QuantityControl.tsx` (existing)
+- `frontend/src/features/cart/components/cart-context.tsx`
+
+**Do:**
+1. Rewrite `CartPage.tsx` to use `useCart()` context.
+2. Wire `CartItem` remove button to `removeItem()`.
+3. Wire `QuantityControl` +/- buttons to `updateItem()`.
+4. Show empty cart state when no items.
+5. Show cart total (derived from item prices).
+6. "Proceed to Checkout" button (disabled if cart empty or not logged in).
+
+**Verify:** Change quantity -> persists. Remove item -> cart updates. Empty cart -> checkout disabled. Refresh -> state persists.
+
+**Commit:** `feat(cart): connect cart page with quantity editing`
+
+---
+
+### Phase 5: Checkout
+
+#### INT-14: Generate idempotency keys internally
+
+**Goal:** Replace the visible idempotency key input with internal generation.
+
+**Read:**
+- `frontend/src/features/orders/components/checkout-form.tsx`
+- `frontend/src/features/orders/api/checkout-form-schema.ts`
+
+**Do:**
+1. Create `frontend/src/shared/utils/idempotency.ts`:
+   - `generateIdempotencyKey(): string` -> crypto.randomUUID().
+2. Update `checkout-form.tsx` to remove the idempotency key input.
+3. Generate key in `onSubmit` handler.
+4. Store key in `sessionStorage` for retry scenarios.
+
+**Verify:** Checkout form no longer shows idempotency input. Key is generated and sent in request body.
+
+**Commit:** `feat(checkout): generate idempotency keys internally`
+
+---
+
+#### INT-15: Connect checkout to real cart
+
+**Goal:** Submit the actual cart through the canonical adapter.
+
+**Read:**
+- `frontend/src/features/orders/api/client-order-submission.ts`
+- `frontend/src/features/orders/components/checkout-form.tsx`
+- `frontend/src/features/cart/components/cart-context.tsx`
+
+**Do:**
+1. Update `checkout-form.tsx` to receive cart from `useCart()` context.
+2. Remove hardcoded `cartId: 42`.
+3. Pass real `cart.id` to `submitOrder()`.
+4. On success, clear cart and navigate to `/confirmation/:orderId`.
+5. On error, show distinct messages for 400/401/403/404/409/503.
+
+**Verify:** Submit real cart -> order created. Cart clears. Navigate to confirmation. Error states display correctly.
+
+**Commit:** `feat(checkout): connect checkout to real cart`
+
+---
+
+#### INT-16: Add checkout error handling
+
+**Goal:** Handle all error codes distinctly.
+
+**Read:**
+- `frontend/src/features/orders/components/checkout-form.tsx`
+- `frontend/src/shared/errors/application-error.ts`
+
+**Do:**
+1. Create `frontend/src/shared/errors/checkout-errors.ts`:
+   - Map HTTP status to user-friendly messages.
+   - 400/422: "Please check your cart items."
+   - 401: "Session expired. Please sign in again."
+   - 403: "You don't have permission for this cart."
+   - 404: "Cart not found."
+   - 409: "Cart was modified. Please review and try again."
+   - 503: "Service temporarily unavailable. Please try again."
+2. Update `checkout-form.tsx` to use these messages.
+
+**Verify:** Each error code shows correct message. 409 refreshes cart. 401 redirects to login.
+
+**Commit:** `feat(checkout): add distinct error handling for all status codes`
+
+---
+
+### Phase 6: Confirmation
+
+#### INT-17: Create order read adapter
+
+**Goal:** Fetch order details for confirmation page.
+
+**Read:**
+- `frontend/src/features/orders/api/order.schemas.ts`
+- Backend `GET /api/customer/orders/:id` response
+
+**Do:**
+1. Create `frontend/src/features/orders/api/order-client.ts`:
+   - `fetchOrder(id: number): Promise<Order>` -> `GET /api/customer/orders/:id`
+   - `fetchOrders(): Promise<Order[]>` -> `GET /api/customer/orders`
+2. Validate response with existing `orderResponseSchema`.
+
+**Verify:** `npm run type-check` passes. Unit test with mock data.
+
+**Commit:** `feat(orders): add order read adapter`
+
+---
+
+#### INT-18: Connect confirmation page to real order
+
+**Goal:** Confirmation page fetches and displays the actual order.
+
+**Read:**
+- `frontend/src/features/orders/components/confirmation-page.tsx`
+- `frontend/src/features/orders/api/order-client.ts`
+
+**Do:**
+1. Update `confirmation-page.tsx` to:
+   - Extract `orderId` from URL params.
+   - Call `fetchOrder(orderId)` on mount.
+   - Show loading state.
+   - Display order ID, date, status, line items, total.
+   - Show error if order not found or not owned.
+2. Remove `react-router-dom` `useParams` (use Vite's `react-router-dom` hook).
+
+**Verify:** After checkout, confirmation shows real order data. Direct URL reload works. Unknown ID shows error.
+
+**Commit:** `feat(confirmation): connect to real order data`
+
+---
+
+#### INT-19: Create order history page
+
+**Goal:** List all orders for the signed-in customer.
+
+**Read:**
+- `frontend/src/features/orders/api/order-client.ts`
+- Backend `GET /api/customer/orders` response
+
+**Do:**
+1. Create `frontend/src/features/orders/components/order-history.tsx`:
+   - Calls `fetchOrders()` on mount.
+   - Renders table with columns: ID, Date, Status, Total.
+   - Click row -> navigates to `/confirmation/:id`.
+   - Show empty state if no orders.
+2. Add `/orders` route to `routes.tsx`.
+
+**Verify:** After placing orders, history shows them. Click row -> confirmation page. Empty state works.
+
+**Commit:** `feat(orders): add order history page`
+
+---
+
+### Phase 7: Quality Gates
+
+#### INT-20: Fix vitest to discover all test files
+
+**Goal:** All colocated tests are discovered.
+
+**Read:**
+- `frontend/vitest.config.mts`
+- `frontend/tsconfig.app.json`
+
+**Do:**
+1. Update `vitest.config.mts` include to `src/**/*.{test,spec}.{ts,tsx}`.
+2. Exclude `src/app-backup/` and `**/node_modules/**`.
+3. Update `tsconfig.app.json` include to cover all `src/` files.
+
+**Verify:** `npm test` discovers and runs all test files. No test files are skipped.
+
+**Commit:** `test(config): update vitest to discover all colocated tests`
+
+---
+
+#### INT-21: Add integration tests for API clients
+
+**Goal:** Unit tests for cart, product, and order API clients.
+
+**Read:**
+- `frontend/src/features/cart/api/cart-client.ts`
+- `frontend/src/features/products/api/product-client.ts`
+- `frontend/src/features/orders/api/order-client.ts`
+
+**Do:**
+1. Create `frontend/src/features/cart/api/__tests__/cart-client.test.ts`:
+   - Mock fetch for each function.
+   - Test success and error paths.
+2. Create `frontend/src/features/products/api/__tests__/product-client.test.ts`.
+3. Create `frontend/src/features/orders/api/__tests__/order-client.test.ts`.
+
+**Verify:** `npm test` passes all new tests.
+
+**Commit:** `test(api): add unit tests for API clients`
+
+---
+
+#### INT-22: Add integration tests for auth and cart contexts
+
+**Goal:** Test auth and cart context behavior.
+
+**Read:**
+- `frontend/src/features/auth/components/auth-context.tsx`
+- `frontend/src/features/cart/components/cart-context.tsx`
+
+**Do:**
+1. Create `frontend/src/features/auth/components/__tests__/auth-context.test.tsx`:
+   - Test login/logout/session flow.
+   - Test route protection.
+2. Create `frontend/src/features/cart/components/__tests__/cart-context.test.tsx`:
+   - Test optimistic updates.
+   - Test error rollback.
+   - Test empty cart state.
+
+**Verify:** `npm test` passes all new tests.
+
+**Commit:** `test(contexts): add tests for auth and cart contexts`
+
+---
+
+#### INT-23: Add e2e smoke test with Playwright
+
+**Goal:** End-to-end test for the happy path.
+
+**Read:**
+- `frontend/playwright.config.ts`
+- `frontend/e2e/checkout.spec.ts`
+
+**Do:**
+1. Install `@playwright/test` if missing.
+2. Update `playwright.config.ts` to use port 3000.
+3. Create `frontend/e2e/smoke.spec.ts`:
+   - Sign in.
+   - Browse products.
+   - Add item to cart.
+   - Update quantity.
+   - Remove item.
+   - Add different item.
+   - Checkout.
+   - Verify confirmation page shows order details.
+   - Reload confirmation page.
+4. Add `"test:e2e": "playwright test"` script.
+
+**Verify:** `npm run test:e2e` passes.
+
+**Commit:** `test(e2e): add Playwright smoke test for happy path`
+
+---
+
+### Phase 8: Cleanup
+
+#### INT-24: Remove duplicate Vite-era components
+
+**Goal:** Remove PascalCase duplicates now that kebab-case components are connected.
+
+**Read:**
+- `frontend/src/features/cart/components/AddToCartButton.tsx` (duplicate)
+- `frontend/src/features/cart/components/add-to-cart-button.tsx` (canonical)
+- `frontend/src/features/products/components/ProductCard.tsx` (duplicate)
+- `frontend/src/features/products/components/product-card.tsx` (canonical)
+
+**Do:**
+1. Check imports of each PascalCase file.
+2. Update any remaining imports to use kebab-case versions.
+3. Delete PascalCase duplicates: `AddToCartButton.tsx`, `ProductCard.tsx`.
+4. Remove `src/app-backup/` directory.
+
+**Verify:** `npm run type-check` passes. `npm test` passes. No broken imports.
+
+**Commit:** `chore(cleanup): remove duplicate Vite-era components`
+
+---
+
+#### INT-25: Remove Vite starter App.tsx content
+
+**Goal:** App.tsx renders only the router, not the starter screen.
+
+**Read:**
+- `frontend/src/App.tsx`
+- `frontend/src/App.css`
+
+**Do:**
+1. Update `App.tsx` to render only `<RouterProvider>` (already done in INT-01, verify).
+2. Delete `App.css` if unused.
+3. Clean up any unused starter assets.
+
+**Verify:** `npm run dev` shows the app, not the starter. `npm run build` succeeds.
+
+**Commit:** `chore(cleanup): remove Vite starter content`
+
+---
+
+#### INT-26: Update CI workflow for full stack
+
+**Goal:** CI runs format, lint, type-check, unit tests, build, and e2e.
+
+**Read:**
+- `.github/workflows/frontend-ci.yml`
+- `frontend/package.json` scripts
+
+**Do:**
+1. Update CI workflow to:
+   - Install dependencies.
+   - Run `npm run format`.
+   - Run `npm run lint`.
+   - Run `npm run type-check`.
+   - Run `npm test`.
+   - Run `npm run build`.
+   - Start BFF + Vite dev server.
+   - Run `npm run test:e2e`.
+   - Tear down.
+2. Add service startup to CI (docker-compose or direct).
+
+**Verify:** Push to branch -> CI runs all checks. PR merges only when green.
+
+**Commit:** `ci(frontend): update CI for full stack verification`
+
+---
+
+## Dependency Graph
 
 ```
-INT-01 -> INT-02 -> INT-03 -> INT-04 -> INT-05 -> INT-06 -> INT-07
+INT-01 (router)
+  └─> INT-02 (remove Next.js)
+       └─> INT-03 (BFF)
+            └─> INT-04 (proxy)
+                 └─> INT-05 (auth context)
+                      ├─> INT-06 (login page)
+                      └─> INT-07 (product list)
+                           ├─> INT-08 (search)
+                           └─> INT-09 (product detail)
+                                └─> INT-10 (cart API)
+                                     └─> INT-11 (cart context)
+                                          ├─> INT-12 (add to cart)
+                                          └─> INT-13 (cart page)
+                                               └─> INT-14 (idempotency)
+                                                    └─> INT-15 (checkout connect)
+                                                         └─> INT-16 (error handling)
+                                                              └─> INT-17 (order read)
+                                                                   ├─> INT-18 (confirmation)
+                                                                   └─> INT-19 (order history)
+
+INT-20 (vitest config) ─── independent
+INT-21 (API tests) ─── after INT-10
+INT-22 (context tests) ─── after INT-11
+INT-23 (e2e) ─── after INT-18
+INT-24 (cleanup) ─── after INT-13
+INT-25 (starter cleanup) ─── after INT-01
+INT-26 (CI) ─── after INT-23
 ```
 
-Apply INT-08 checks throughout and complete its real-service gate before release.
-Then deliver INT-09/10; prioritize INT-11 before exposing checkout to production traffic.
+---
+
+## Completion Criteria
 
 A milestone is complete when:
 
-1. A fresh checkout of the repository can start the documented stack.
-2. A user can sign in, complete the real journey and reload persisted results.
+1. `npm run dev` starts the full stack (BFF + Vite).
+2. A user can sign in, browse products, manage cart, checkout, and reload confirmation.
 3. Failures preserve accurate customer state.
-4. CI verifies the same active application.
+4. `npm test` and `npm run test:e2e` pass.
+5. `npm run build` succeeds.
+6. CI verifies the same.
 
-Update `docs/frontend-backlog.md` and frontend integration/API docs to reflect the chosen runtime and completed tasks.
+Update `docs/frontend-backlog.md` and `docs/frontend-order-api.md` after each phase.
 
 ---
 
 ## Sources
-
-All source links are pinned to the reviewed commit.
 
 - `frontend/src/main.tsx`
 - `frontend/src/App.tsx`
