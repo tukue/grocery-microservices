@@ -1,7 +1,3 @@
-"use server";
-
-import { cookies } from "next/headers";
-
 import { ApplicationError } from "@/shared/errors/application-error";
 
 import { addCartItemRequestSchema } from "./cart.schemas";
@@ -15,10 +11,10 @@ export type AddToCartResult =
 export async function addToCartAction(
   productId: number,
   quantity = 1,
+  token?: string,
 ): Promise<AddToCartResult> {
   try {
     const request = addCartItemRequestSchema.parse({ productId, quantity });
-    const token = (await cookies()).get("access_token")?.value;
     const authorization = toBearerAuthorization(token);
     if (!authorization)
       return {

@@ -1,6 +1,4 @@
-"use client";
-
-import { useRouter, useSearchParams } from "next/navigation";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { FormEvent, useState } from "react";
 
 export function productsSearchPath(search: string): string {
@@ -11,19 +9,19 @@ export function productsSearchPath(search: string): string {
 }
 
 export function ProductSearch() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const initialSearch = searchParams.get("search") ?? "";
   const [search, setSearch] = useState(initialSearch);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    router.push(productsSearchPath(search));
+    navigate(productsSearchPath(search));
   }
 
   function clearSearch() {
     setSearch("");
-    router.push("/products");
+    navigate("/products");
   }
 
   return (
