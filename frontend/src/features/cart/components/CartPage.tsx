@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import type { CartAdapter, CartDTO } from '../api/cart-adapter';
-import { CartItem } from '../components/CartItem';
-import { CartSummary } from '../components/CartSummary';
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import type { CartAdapter, CartDTO } from "../api/cart-adapter";
+import { CartItem } from "../components/CartItem";
+import { CartSummary } from "../components/CartSummary";
 
 export interface CartPageProps {
   adapter: CartAdapter;
@@ -25,11 +25,13 @@ export function CartPage({ adapter }: CartPageProps) {
       })
       .catch(() => {
         if (!cancelled) {
-          setError('Failed to load cart');
+          setError("Failed to load cart");
           setLoading(false);
         }
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [adapter]);
 
   if (loading) {
@@ -58,7 +60,7 @@ export function CartPage({ adapter }: CartPageProps) {
   return (
     <div>
       <h1>Your Cart</h1>
-      <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px' }}>
+      <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px" }}>
         {cart.items.map((item) => (
           <CartItem
             key={item.id}
@@ -69,7 +71,7 @@ export function CartPage({ adapter }: CartPageProps) {
         ))}
       </ul>
       <CartSummary items={cart.items} />
-      <div style={{ marginTop: '16px' }}>
+      <div style={{ marginTop: "16px" }}>
         <Link to="/products">Continue shopping</Link>
       </div>
     </div>

@@ -11,6 +11,8 @@ describe("ProductErrorState", () => {
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
 
     expect(retry).toHaveBeenCalledOnce();
-    expect(screen.getByText("We could not load the catalogue. Please try again.")).toBeInTheDocument();
+    expect(
+      screen.getByText("We could not load the catalogue. Please try again."),
+    ).toBeInTheDocument();
   });
 });

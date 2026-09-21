@@ -1,4 +1,4 @@
-const API_BASE = '/api/customer';
+const API_BASE = "/api/customer";
 
 export interface CartItemDTO {
   id: number;
@@ -30,11 +30,14 @@ export class CartAdapter {
     this.token = token;
   }
 
-  private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  private async request<T>(
+    path: string,
+    options: RequestInit = {},
+  ): Promise<T> {
     const response = await fetch(`${API_BASE}${path}`, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${this.token}`,
         ...options.headers,
       },
@@ -57,7 +60,7 @@ export class CartAdapter {
 
   async getCurrentCart(): Promise<CartDTO | null> {
     try {
-      return await this.request<CartDTO>('/cart');
+      return await this.request<CartDTO>("/cart");
     } catch (err) {
       if ((err as ApiError).status === 404) return null;
       throw err;
@@ -65,26 +68,34 @@ export class CartAdapter {
   }
 
   async createCart(): Promise<CartDTO> {
-    return this.request<CartDTO>('/cart', { method: 'POST' });
+    return this.request<CartDTO>("/cart", { method: "POST" });
   }
 
-  async addItem(cartId: number, productId: number, quantity: number): Promise<CartDTO> {
+  async addItem(
+    cartId: number,
+    productId: number,
+    quantity: number,
+  ): Promise<CartDTO> {
     return this.request<CartDTO>(`/cart/${cartId}/items`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({ productId, quantity }),
     });
   }
 
-  async updateItemQuantity(cartId: number, itemId: number, quantity: number): Promise<CartDTO> {
+  async updateItemQuantity(
+    cartId: number,
+    itemId: number,
+    quantity: number,
+  ): Promise<CartDTO> {
     return this.request<CartDTO>(`/cart/${cartId}/items/${itemId}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify({ quantity }),
     });
   }
 
   async removeItem(cartId: number, itemId: number): Promise<CartDTO> {
     return this.request<CartDTO>(`/cart/${cartId}/items/${itemId}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 }

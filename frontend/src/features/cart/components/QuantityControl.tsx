@@ -1,6 +1,9 @@
-import { useState, useRef } from 'react';
-import { updateQuantity, QuantityValidationError } from '../api/update-quantity';
-import type { CartAdapter, CartDTO } from '../api/cart-adapter';
+import { useState, useRef } from "react";
+import {
+  updateQuantity,
+  QuantityValidationError,
+} from "../api/update-quantity";
+import type { CartAdapter, CartDTO } from "../api/cart-adapter";
 
 export interface QuantityControlProps {
   cartId: number;
@@ -10,7 +13,13 @@ export interface QuantityControlProps {
   onCartUpdated?: (cart: CartDTO) => void;
 }
 
-export function QuantityControl({ cartId, itemId, initialQuantity, adapter, onCartUpdated }: QuantityControlProps) {
+export function QuantityControl({
+  cartId,
+  itemId,
+  initialQuantity,
+  adapter,
+  onCartUpdated,
+}: QuantityControlProps) {
   const [quantity, setQuantity] = useState(initialQuantity);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,9 +42,9 @@ export function QuantityControl({ cartId, itemId, initialQuantity, adapter, onCa
       } else {
         const apiErr = err as { status?: number };
         if (apiErr.status === 409) {
-          setError('Item no longer available');
+          setError("Item no longer available");
         } else {
-          setError('Failed to update quantity');
+          setError("Failed to update quantity");
         }
       }
     } finally {
@@ -53,19 +62,23 @@ export function QuantityControl({ cartId, itemId, initialQuantity, adapter, onCa
   };
 
   return (
-    <div role="group" aria-label={`Quantity for item`} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+    <div
+      role="group"
+      aria-label={`Quantity for item`}
+      style={{ display: "flex", alignItems: "center", gap: "4px" }}
+    >
       <button
         type="button"
         onClick={handleDecrement}
         disabled={saving || quantity <= 1}
         aria-label="Decrease quantity"
         style={{
-          width: '28px',
-          height: '28px',
-          borderRadius: '6px',
-          border: '1px solid #d1d5db',
-          background: '#fff',
-          cursor: saving || quantity <= 1 ? 'not-allowed' : 'pointer',
+          width: "28px",
+          height: "28px",
+          borderRadius: "6px",
+          border: "1px solid #d1d5db",
+          background: "#fff",
+          cursor: saving || quantity <= 1 ? "not-allowed" : "pointer",
           fontWeight: 700,
         }}
       >
@@ -73,7 +86,7 @@ export function QuantityControl({ cartId, itemId, initialQuantity, adapter, onCa
       </button>
       <span
         aria-label={`Quantity: ${quantity}`}
-        style={{ minWidth: '24px', textAlign: 'center', fontWeight: 600 }}
+        style={{ minWidth: "24px", textAlign: "center", fontWeight: 600 }}
       >
         {quantity}
       </span>
@@ -83,19 +96,22 @@ export function QuantityControl({ cartId, itemId, initialQuantity, adapter, onCa
         disabled={saving}
         aria-label="Increase quantity"
         style={{
-          width: '28px',
-          height: '28px',
-          borderRadius: '6px',
-          border: '1px solid #d1d5db',
-          background: '#fff',
-          cursor: saving ? 'not-allowed' : 'pointer',
+          width: "28px",
+          height: "28px",
+          borderRadius: "6px",
+          border: "1px solid #d1d5db",
+          background: "#fff",
+          cursor: saving ? "not-allowed" : "pointer",
           fontWeight: 700,
         }}
       >
         +
       </button>
       {error && (
-        <span role="alert" style={{ marginLeft: 8, color: '#dc2626', fontSize: 13 }}>
+        <span
+          role="alert"
+          style={{ marginLeft: 8, color: "#dc2626", fontSize: 13 }}
+        >
           {error}
         </span>
       )}

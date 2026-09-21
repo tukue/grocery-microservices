@@ -17,7 +17,9 @@ function renderWithRoute(orderId: string) {
 describe("ConfirmationPage", () => {
   it("displays order confirmed heading", () => {
     renderWithRoute("42");
-    expect(screen.getByRole("heading", { name: "Order Confirmed" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Order Confirmed" }),
+    ).toBeInTheDocument();
   });
 
   it("shows the order ID from the URL", () => {
@@ -27,6 +29,8 @@ describe("ConfirmationPage", () => {
 
   it("shows a thank-you message", () => {
     renderWithRoute("42");
-    expect(screen.getByRole("status")).toHaveTextContent("Thank you for your order!");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Thank you for your order!",
+    );
   });
 });

@@ -1,9 +1,9 @@
-import type { CartAdapter, CartDTO } from './cart-adapter';
+import type { CartAdapter, CartDTO } from "./cart-adapter";
 
 export class QuantityValidationError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'QuantityValidationError';
+    this.name = "QuantityValidationError";
   }
 }
 
@@ -14,7 +14,7 @@ export async function updateQuantity(
   quantity: number,
 ): Promise<CartDTO> {
   if (!Number.isInteger(quantity) || quantity < 1) {
-    throw new QuantityValidationError('Quantity must be a positive integer');
+    throw new QuantityValidationError("Quantity must be a positive integer");
   }
   return adapter.updateItemQuantity(cartId, itemId, quantity);
 }

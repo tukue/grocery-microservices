@@ -32,7 +32,9 @@ export function ProductCard({ product }: ProductCardProps) {
         <p className="text-sm text-zinc-600">{product.description}</p>
         <div className="mt-auto flex items-center justify-between gap-3">
           <Price amount={product.price} currency={product.currency} />
-          <span className={product.available ? "text-emerald-700" : "text-rose-700"}>
+          <span
+            className={product.available ? "text-emerald-700" : "text-rose-700"}
+          >
             {product.available ? "Available" : "Unavailable"}
           </span>
         </div>

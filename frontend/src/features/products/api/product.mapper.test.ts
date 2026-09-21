@@ -15,9 +15,9 @@ describe("toProduct", () => {
         price: 29.9,
       }),
     ).toEqual({
-        available: true,
-        currency: "SEK",
-        description: "Crisp apples.",
+      available: true,
+      currency: "SEK",
+      description: "Crisp apples.",
       id: 1,
       imageUrl: "https://images.example.test/apples.jpg",
       name: "Apples",
@@ -26,18 +26,40 @@ describe("toProduct", () => {
   });
 
   it("rejects a response with a missing required field", () => {
-    expect(() => toProduct({ available: true, currency: "SEK", description: "Crisp apples.", id: 1, price: 29.9 })).toThrow();
+    expect(() =>
+      toProduct({
+        available: true,
+        currency: "SEK",
+        description: "Crisp apples.",
+        id: 1,
+        price: 29.9,
+      }),
+    ).toThrow();
   });
 
   it("rejects an invalid price", () => {
     expect(() =>
-      toProduct({ available: true, currency: "SEK", description: "Crisp apples.", id: 1, name: "Apples", price: 0 }),
+      toProduct({
+        available: true,
+        currency: "SEK",
+        description: "Crisp apples.",
+        id: 1,
+        name: "Apples",
+        price: 0,
+      }),
     ).toThrow();
   });
 
   it("maps an unavailable product without hiding it", () => {
     expect(
-      toProduct({ available: false, currency: "SEK", description: "Crisp apples.", id: 1, name: "Apples", price: 29.9 }),
+      toProduct({
+        available: false,
+        currency: "SEK",
+        description: "Crisp apples.",
+        id: 1,
+        name: "Apples",
+        price: 29.9,
+      }),
     ).toMatchObject({ available: false, id: 1 });
   });
 });
