@@ -33,6 +33,24 @@ export async function fetchProducts(): Promise<ProductDTO[]> {
   return parseProducts(await fetch(PRODUCTS_BASE));
 }
 
+export async function fetchProduct(id: number): Promise<ProductDTO> {
+  const response = await fetch(`${PRODUCTS_BASE}/${id}`);
+  if (!response.ok) {
+    throw new Error(
+      response.status === 404 ? "Product not found" : "Unable to load product",
+    );
+  }
+
+  try {
+    const payload: unknown = await response.json();
+    const result = productSchema.safeParse(payload);
+    if (result.success) return result.data;
+  } catch {
+    // Do not expose transport or validation details to customer-facing callers.
+  }
+
+  throw new Error("Unable to read product data");
+}
 export async function searchProducts(name: string): Promise<ProductDTO[]> {
   return parseProducts(
     await fetch(`${PRODUCTS_BASE}/search?name=${encodeURIComponent(name)}`),

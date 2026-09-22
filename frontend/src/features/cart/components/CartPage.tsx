@@ -53,6 +53,20 @@ export function CartPage({ adapter }: CartPageProps) {
         <h1>Your Cart</h1>
         <p>Your cart is empty.</p>
         <Link to="/products">Browse products</Link>
+        <div style={{ marginTop: "16px" }}>
+          <Link
+            to="/checkout"
+            aria-disabled="true"
+            onClick={(event) => event.preventDefault()}
+            style={{
+              color: "#9ca3af",
+              pointerEvents: "none",
+              textDecoration: "none",
+            }}
+          >
+            Proceed to Checkout
+          </Link>
+        </div>
       </div>
     );
   }
@@ -67,11 +81,18 @@ export function CartPage({ adapter }: CartPageProps) {
             productName={item.productName}
             quantity={item.quantity}
             unitPrice={item.price}
+            lineTotal={Number((item.price * item.quantity).toFixed(2))}
+            cartId={cart.id}
+            itemId={item.id}
+            adapter={adapter}
+            onRemoved={setCart}
+            onQuantityUpdated={setCart}
           />
         ))}
       </ul>
       <CartSummary items={cart.items} />
-      <div style={{ marginTop: "16px" }}>
+      <div style={{ marginTop: "16px", display: "flex", gap: "16px" }}>
+        <Link to="/checkout">Proceed to Checkout</Link>
         <Link to="/products">Continue shopping</Link>
       </div>
     </div>
