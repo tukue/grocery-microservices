@@ -18,6 +18,7 @@ export function ProductList() {
   const adapter = useMemo(() => new CartAdapter(), []);
 
   useEffect(() => {
+    let active = true;
     const timeout = window.setTimeout(
       () => {
         setLoading(true);
@@ -26,13 +27,22 @@ export function ProductList() {
           ? searchProducts(query.trim())
           : fetchProducts();
         request
-          .then(setProducts)
-          .catch(() => setError(true))
-          .finally(() => setLoading(false));
+          .then((result) => {
+            if (active) setProducts(result);
+          })
+          .catch(() => {
+            if (active) setError(true);
+          })
+          .finally(() => {
+            if (active) setLoading(false);
+          });
       },
       query ? 300 : 0,
     );
-    return () => window.clearTimeout(timeout);
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+    };
   }, [query]);
 
   function updateQuery(value: string) {

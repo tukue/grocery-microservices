@@ -17,7 +17,16 @@ const PRODUCTS_BASE = "/api/catalog/products";
 
 async function parseProducts(response: Response): Promise<ProductDTO[]> {
   if (!response.ok) throw new Error("Unable to load products");
-  return z.array(productSchema).parse(await response.json());
+
+  try {
+    const payload: unknown = await response.json();
+    const result = z.array(productSchema).safeParse(payload);
+    if (result.success) return result.data;
+  } catch {
+    // Do not expose transport or validation details to customer-facing callers.
+  }
+
+  throw new Error("Unable to read product data");
 }
 
 export async function fetchProducts(): Promise<ProductDTO[]> {

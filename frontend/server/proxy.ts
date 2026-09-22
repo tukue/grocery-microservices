@@ -23,6 +23,7 @@ export function resolveService(path: string): {
     return { target: SERVICE_URLS.order, service: "order", upstreamPath: normalizedPath };
   }
   if (normalizedPath.startsWith("/catalog/products")) {
+    // ProductController is mounted at /products; /catalog belongs to the BFF only.
     return {
       target: SERVICE_URLS.product,
       service: "product",
