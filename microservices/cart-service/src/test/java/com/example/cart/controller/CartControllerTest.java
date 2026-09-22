@@ -20,9 +20,11 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.ActiveProfiles;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -80,5 +82,27 @@ public class CartControllerTest {
                         .content(objectMapper.writeValueAsString(cartDTO)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L));
+    }
+
+    @Test
+    public void testUpdateItemQuantity() throws Exception {
+        CartDTO returnedCart = new CartDTO();
+        returnedCart.setId(1L);
+
+        when(cartService.updateItem(anyLong(), anyLong(), anyInt())).thenReturn(returnedCart);
+
+        mockMvc.perform(patch("/carts/1/items/2")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantity\":3}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L));
+    }
+
+    @Test
+    public void testUpdateItemQuantityRejectsNegative() throws Exception {
+        mockMvc.perform(patch("/carts/1/items/2")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantity\":-1}"))
+                .andExpect(status().isBadRequest());
     }
 } 

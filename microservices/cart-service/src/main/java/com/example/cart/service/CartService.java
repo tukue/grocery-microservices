@@ -6,7 +6,9 @@ import com.example.cart.exception.CartNotFoundException;
 import com.example.cart.model.Cart;
 import com.example.cart.model.CartItem;
 import com.example.cart.repository.CartRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.stream.Collectors;
 
@@ -35,6 +37,21 @@ public class CartService {
     public CartDTO removeItem(Long cartId, Long itemId) {
         Cart cart = repo.findById(cartId).orElseThrow(() -> new CartNotFoundException(cartId));
         cart.getItems().removeIf(i -> i.getId().equals(itemId));
+        Cart updatedCart = repo.save(cart);
+        return toDTO(updatedCart);
+    }
+
+    public CartDTO updateItem(Long cartId, Long itemId, int quantity) {
+        Cart cart = repo.findById(cartId).orElseThrow(() -> new CartNotFoundException(cartId));
+        CartItem item = cart.getItems().stream()
+                .filter(i -> itemId.equals(i.getId()))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Item not found in cart"));
+        if (quantity == 0) {
+            cart.getItems().remove(item);
+        } else {
+            item.setQuantity(quantity);
+        }
         Cart updatedCart = repo.save(cart);
         return toDTO(updatedCart);
     }

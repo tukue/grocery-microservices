@@ -2,6 +2,7 @@ package com.example.cart.controller;
 
 import com.example.cart.dto.CartDTO;
 import com.example.cart.dto.CartItemDTO;
+import com.example.cart.dto.UpdateQuantityDTO;
 import com.example.cart.model.CartItem;
 import com.example.cart.service.CartService;
 import jakarta.validation.Valid;
@@ -40,5 +41,13 @@ public class CartController {
     @DeleteMapping("/{cartId}/items/{itemId}")
     public ResponseEntity<CartDTO> removeItemFromCart(@PathVariable Long cartId, @PathVariable Long itemId) {
         return ResponseEntity.ok(cartService.removeItem(cartId, itemId));
+    }
+
+    @PatchMapping("/{cartId}/items/{itemId}")
+    public ResponseEntity<CartDTO> updateItemQuantity(
+            @PathVariable Long cartId,
+            @PathVariable Long itemId,
+            @Valid @RequestBody UpdateQuantityDTO body) {
+        return ResponseEntity.ok(cartService.updateItem(cartId, itemId, body.getQuantity()));
     }
 } 

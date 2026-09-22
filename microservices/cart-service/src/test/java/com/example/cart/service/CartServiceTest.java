@@ -92,6 +92,54 @@ class CartServiceTest {
     }
 
     @Test
+    void testUpdateItemQuantity() {
+        // Arrange
+        CartItem item = new CartItem();
+        item.setId(1L);
+        item.setProductName("Apple");
+        item.setPrice(1.5);
+        item.setQuantity(2);
+        testCart.getItems().add(item);
+        when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
+        when(cartRepository.save(Mockito.any(Cart.class))).thenReturn(testCart);
+        // Act
+        var updatedCartDTO = cartService.updateItem(1L, 1L, 5);
+        // Assert
+        assertNotNull(updatedCartDTO);
+        assertEquals(5, updatedCartDTO.getItems().get(0).getQuantity());
+        verify(cartRepository, times(1)).save(Mockito.any(Cart.class));
+    }
+
+    @Test
+    void testUpdateItemQuantityZeroRemovesLine() {
+        // Arrange
+        CartItem item = new CartItem();
+        item.setId(1L);
+        item.setProductName("Apple");
+        item.setPrice(1.5);
+        item.setQuantity(2);
+        testCart.getItems().add(item);
+        when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
+        when(cartRepository.save(Mockito.any(Cart.class))).thenReturn(testCart);
+        // Act
+        var updatedCartDTO = cartService.updateItem(1L, 1L, 0);
+        // Assert
+        assertNotNull(updatedCartDTO);
+        assertTrue(updatedCartDTO.getItems().isEmpty());
+        verify(cartRepository, times(1)).save(Mockito.any(Cart.class));
+    }
+
+    @Test
+    void testUpdateItemNotFound() {
+        // Arrange
+        when(cartRepository.findById(1L)).thenReturn(Optional.of(testCart));
+        when(cartRepository.findById(2L)).thenReturn(Optional.empty());
+        // Act & Assert
+        assertThrows(Exception.class, () -> cartService.updateItem(2L, 1L, 3));
+        assertThrows(Exception.class, () -> cartService.updateItem(1L, 99L, 3));
+    }
+
+    @Test
     void testSaveCart() {
         // Arrange
         when(cartRepository.save(Mockito.any(Cart.class))).thenReturn(testCart);
