@@ -9,21 +9,28 @@ export type ServiceName = keyof typeof SERVICE_URLS;
 export function resolveService(path: string): {
   target: string;
   service: ServiceName;
+  upstreamPath: string;
 } {
-  if (path.startsWith("/api/customer/cart")) {
-    return { target: SERVICE_URLS.cart, service: "cart" };
+  const normalizedPath = path.startsWith("/api/") ? path.slice(4) : path;
+
+  if (normalizedPath.startsWith("/customer/cart")) {
+    return { target: SERVICE_URLS.cart, service: "cart", upstreamPath: normalizedPath };
   }
-  if (path.startsWith("/api/customer/checkout")) {
-    return { target: SERVICE_URLS.order, service: "order" };
+  if (normalizedPath.startsWith("/customer/checkout")) {
+    return { target: SERVICE_URLS.order, service: "order", upstreamPath: normalizedPath };
   }
-  if (path.startsWith("/api/customer/orders")) {
-    return { target: SERVICE_URLS.order, service: "order" };
+  if (normalizedPath.startsWith("/customer/orders")) {
+    return { target: SERVICE_URLS.order, service: "order", upstreamPath: normalizedPath };
   }
-  if (path.startsWith("/api/catalog/products")) {
-    return { target: SERVICE_URLS.product, service: "product" };
+  if (normalizedPath.startsWith("/catalog/products")) {
+    return {
+      target: SERVICE_URLS.product,
+      service: "product",
+      upstreamPath: normalizedPath.replace(/^\/catalog/, ""),
+    };
   }
-  if (path.startsWith("/api/auth")) {
-    return { target: SERVICE_URLS.cart, service: "cart" };
+  if (normalizedPath.startsWith("/auth")) {
+    return { target: SERVICE_URLS.cart, service: "cart", upstreamPath: normalizedPath };
   }
-  return { target: SERVICE_URLS.product, service: "product" };
+  return { target: SERVICE_URLS.product, service: "product", upstreamPath: normalizedPath };
 }

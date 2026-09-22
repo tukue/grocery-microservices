@@ -127,10 +127,10 @@ export function bffPlugin(): Plugin {
       server.middlewares.use("/api", async (req, res) => {
         const cookies = parseCookies(req.headers.cookie);
         const token = cookies.session_token;
-        const { target } = resolveService(req.url || "/");
+        const { target, upstreamPath } = resolveService(req.url || "/");
 
         try {
-          const url = new URL(req.url || "/", target);
+          const url = new URL(upstreamPath, target);
           const headers: Record<string, string> = {
             "content-type": req.headers["content-type"] || "application/json",
           };

@@ -26,7 +26,7 @@ export interface ApiError {
 export class CartAdapter {
   private token: string;
 
-  constructor(token: string) {
+  constructor(token = "") {
     this.token = token;
   }
 
@@ -38,7 +38,7 @@ export class CartAdapter {
       ...options,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${this.token}`,
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
         ...options.headers,
       },
     });
