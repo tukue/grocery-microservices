@@ -18,17 +18,20 @@ export function ProductList() {
   const adapter = useMemo(() => new CartAdapter(), []);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      setLoading(true);
-      setError(false);
-      const request = query.trim()
-        ? searchProducts(query.trim())
-        : fetchProducts();
-      request
-        .then(setProducts)
-        .catch(() => setError(true))
-        .finally(() => setLoading(false));
-    }, query ? 300 : 0);
+    const timeout = window.setTimeout(
+      () => {
+        setLoading(true);
+        setError(false);
+        const request = query.trim()
+          ? searchProducts(query.trim())
+          : fetchProducts();
+        request
+          .then(setProducts)
+          .catch(() => setError(true))
+          .finally(() => setLoading(false));
+      },
+      query ? 300 : 0,
+    );
     return () => window.clearTimeout(timeout);
   }, [query]);
 
