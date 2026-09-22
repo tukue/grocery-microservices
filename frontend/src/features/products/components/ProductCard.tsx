@@ -49,9 +49,16 @@ export function ProductCard({
         />
       )}
       <h3 style={{ margin: 0, fontSize: "16px" }}>{name}</h3>
-      {description && <p style={{ margin: 0, fontSize: "14px", color: "#6b7280" }}>{description}</p>}
+      {description && (
+        <p style={{ margin: 0, fontSize: "14px", color: "#6b7280" }}>
+          {description}
+        </p>
+      )}
       <p style={{ margin: 0, fontSize: "14px", color: "#6b7280" }}>
-        {new Intl.NumberFormat(undefined, { style: "currency", currency }).format(price)}
+        {new Intl.NumberFormat(undefined, {
+          style: "currency",
+          currency,
+        }).format(price)}
       </p>
       <AddToCartButton
         productId={id}
