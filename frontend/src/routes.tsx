@@ -2,21 +2,13 @@ import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 
 import { LoginPage } from "./features/auth/components/login-page";
 import { useSession } from "./features/auth/components/auth-context";
+import { ProductList } from "./features/products/components/ProductList";
 
 function ProtectedRoute() {
   const { session, loading } = useSession();
   if (loading) return <div role="status">Loading...</div>;
   if (!session) return <Navigate to="/login" replace />;
   return <Outlet />;
-}
-
-function ProductList() {
-  return (
-    <main>
-      <h1>Products</h1>
-      <p>Product catalogue coming soon.</p>
-    </main>
-  );
 }
 
 function ProductDetail() {

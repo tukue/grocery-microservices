@@ -6,6 +6,8 @@ export interface ProductCardProps {
   name: string;
   price: number;
   available: boolean;
+  description?: string;
+  currency?: string;
   imageUrl?: string;
   adapter: CartAdapter;
   onCartUpdated?: (cart: CartDTO) => void;
@@ -16,6 +18,8 @@ export function ProductCard({
   name,
   price,
   available,
+  description,
+  currency = "USD",
   imageUrl,
   adapter,
   onCartUpdated,
@@ -45,8 +49,16 @@ export function ProductCard({
         />
       )}
       <h3 style={{ margin: 0, fontSize: "16px" }}>{name}</h3>
+      {description && (
+        <p style={{ margin: 0, fontSize: "14px", color: "#6b7280" }}>
+          {description}
+        </p>
+      )}
       <p style={{ margin: 0, fontSize: "14px", color: "#6b7280" }}>
-        ${price.toFixed(2)}
+        {new Intl.NumberFormat(undefined, {
+          style: "currency",
+          currency,
+        }).format(price)}
       </p>
       <AddToCartButton
         productId={id}
