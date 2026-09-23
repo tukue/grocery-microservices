@@ -27,7 +27,11 @@ export async function submitOrderFromClient(input: unknown): Promise<Order> {
   const request = checkoutRequestSchema.parse(input);
 
   try {
-    const response = await fetch("/api/orders/checkout", {
+    // The BFF dynamic proxy resolves /api/customer/* to the owning service,
+    // so this hits order-service POST /api/customer/checkout (same path the
+    // server adapter uses). Do not use /api/orders/*: it falls through to the
+    // product service.
+    const response = await fetch("/api/customer/checkout", {
       body: JSON.stringify(request),
       headers: { "Content-Type": "application/json" },
       method: "POST",
