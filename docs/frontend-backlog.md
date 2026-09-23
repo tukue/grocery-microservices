@@ -3,6 +3,11 @@
 This file tracks frontend work that is intentionally not implemented in the
 current product and cart foundation.
 
+## Integration spec status
+
+- [x] Phase 6 Confirmation (INT-17 order read adapter, INT-18 confirmation
+  page, INT-19 order history) — see `Grocery_PR59_Integration_Spec.md`.
+
 ## Customer authentication
 
 - [ ] Implement the production sign-in/session flow that writes a short-lived,

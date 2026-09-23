@@ -42,9 +42,11 @@ describe("ConfirmationPage", () => {
   it("loads and displays the real order", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(JSON.stringify(orderDto), { status: 200 }),
-      ),
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify(orderDto), { status: 200 }),
+        ),
     );
 
     renderWithRoute("101");

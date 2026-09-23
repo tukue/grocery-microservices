@@ -50,9 +50,11 @@ describe("OrderHistory", () => {
   it("loads and lists customer orders", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(JSON.stringify(ordersDto), { status: 200 }),
-      ),
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify(ordersDto), { status: 200 }),
+        ),
     );
 
     renderHistory();
@@ -75,9 +77,11 @@ describe("OrderHistory", () => {
   it("navigates to the confirmation page when a row is clicked", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(JSON.stringify(ordersDto), { status: 200 }),
-      ),
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify(ordersDto), { status: 200 }),
+        ),
     );
 
     const user = userEvent.setup();
@@ -88,15 +92,15 @@ describe("OrderHistory", () => {
     });
 
     await user.click(screen.getByText("102"));
-    expect(
-      screen.getByText("Confirmation for order"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Confirmation for order")).toBeInTheDocument();
   });
 
   it("shows an empty state when there are no orders", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(new Response(JSON.stringify([]), { status: 200 })),
+      vi
+        .fn()
+        .mockResolvedValue(new Response(JSON.stringify([]), { status: 200 })),
     );
 
     renderHistory();
