@@ -38,6 +38,7 @@
     "src/features/products/components/ProductCard.tsx",
     "src/features/products/__tests__",
     "src/features/orders/api/order-adapter.ts",
+    "src/features/orders/api/order-client.ts",
     "src/features/orders/api/order-schemas.ts",
     "src/features/orders/types",
     "src/features/orders/__tests__"
