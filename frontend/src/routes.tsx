@@ -6,6 +6,7 @@ import { CartPage } from "./features/cart/components/CartPage";
 import { useCart } from "./features/cart/components/cart-context";
 import { ConfirmationPage } from "./features/orders/components/confirmation-page";
 import { CheckoutPage } from "./features/orders/components/checkout-page";
+import { OrderHistory } from "./features/orders/components/order-history";
 import { ProductDetail } from "./features/products/components/product-detail";
 import { ProductList } from "./features/products/components/ProductList";
 
@@ -19,15 +20,6 @@ function ProtectedRoute() {
 function CartRoute() {
   const { adapter } = useCart();
   return <CartPage adapter={adapter} />;
-}
-
-function OrderHistory() {
-  return (
-    <main>
-      <h1>Order History</h1>
-      <p>Order history coming soon.</p>
-    </main>
-  );
 }
 
 function NotFound() {
