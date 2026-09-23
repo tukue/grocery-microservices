@@ -29,7 +29,9 @@ describe("fetchOrder", () => {
   it("requests the order by id and returns a validated domain order", async () => {
     const fetchMock = vi
       .fn()
-      .mockResolvedValue(new Response(JSON.stringify(orderDto), { status: 200 }));
+      .mockResolvedValue(
+        new Response(JSON.stringify(orderDto), { status: 200 }),
+      );
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(fetchOrder(101)).resolves.toEqual({
@@ -46,13 +48,11 @@ describe("fetchOrder", () => {
   it("throws OrderError with the backend status on failure", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue(
-          new Response(JSON.stringify({ message: "Order not found" }), {
-            status: 404,
-          }),
-        ),
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ message: "Order not found" }), {
+          status: 404,
+        }),
+      ),
     );
 
     await expect(fetchOrder(999)).rejects.toMatchObject({
@@ -104,7 +104,9 @@ describe("fetchOrders", () => {
   it("throws OrderError 502 when the list payload is invalid", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(new Response(JSON.stringify({ not: "a list" }))),
+      vi
+        .fn()
+        .mockResolvedValue(new Response(JSON.stringify({ not: "a list" }))),
     );
 
     await expect(fetchOrders()).rejects.toMatchObject({

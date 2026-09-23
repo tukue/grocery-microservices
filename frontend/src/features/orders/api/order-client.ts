@@ -1,10 +1,7 @@
 import type { Order } from "../domain/order";
 import { OrderError } from "./order-adapter";
 import { toOrder } from "./order.mappers";
-import {
-  orderResponseSchema,
-  ordersListResponseSchema,
-} from "./order.schemas";
+import { orderResponseSchema, ordersListResponseSchema } from "./order.schemas";
 
 const ORDER_BASE = "/api/customer";
 
