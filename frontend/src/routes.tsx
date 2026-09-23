@@ -2,6 +2,9 @@ import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 
 import { LoginPage } from "./features/auth/components/login-page";
 import { useSession } from "./features/auth/components/auth-context";
+import { CartPage } from "./features/cart/components/CartPage";
+import { useCart } from "./features/cart/components/cart-context";
+import { ProductDetail } from "./features/products/components/product-detail";
 import { ProductList } from "./features/products/components/ProductList";
 
 function ProtectedRoute() {
@@ -11,22 +14,9 @@ function ProtectedRoute() {
   return <Outlet />;
 }
 
-function ProductDetail() {
-  return (
-    <main>
-      <h1>Product Detail</h1>
-      <p>Product detail page coming soon.</p>
-    </main>
-  );
-}
-
-function CartPage() {
-  return (
-    <main>
-      <h1>Your Cart</h1>
-      <p>Cart page coming soon.</p>
-    </main>
-  );
+function CartRoute() {
+  const { adapter } = useCart();
+  return <CartPage adapter={adapter} />;
 }
 
 function CheckoutPage() {
@@ -73,7 +63,7 @@ export const router = createBrowserRouter([
   {
     element: <ProtectedRoute />,
     children: [
-      { path: "/cart", element: <CartPage /> },
+      { path: "/cart", element: <CartRoute /> },
       { path: "/checkout", element: <CheckoutPage /> },
       { path: "/confirmation/:orderId", element: <ConfirmationPage /> },
       { path: "/orders", element: <OrderHistory /> },

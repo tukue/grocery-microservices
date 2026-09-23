@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { removeCartItem } from "../api/remove-item";
 import type { CartAdapter, CartDTO } from "../api/cart-adapter";
+import { QuantityControl } from "./QuantityControl";
 
 export interface CartItemProps {
   productName: string;
@@ -11,6 +12,7 @@ export interface CartItemProps {
   itemId?: number;
   adapter?: CartAdapter;
   onRemoved?: (cart: CartDTO) => void;
+  onQuantityUpdated?: (cart: CartDTO) => void;
 }
 
 export function CartItem({
@@ -22,6 +24,7 @@ export function CartItem({
   itemId,
   adapter,
   onRemoved,
+  onQuantityUpdated,
 }: CartItemProps) {
   const [removing, setRemoving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +67,16 @@ export function CartItem({
         </span>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        {adapter && cartId != null && itemId != null && onQuantityUpdated ? (
+          <QuantityControl
+            key={`${itemId}-${quantity}`}
+            cartId={cartId}
+            itemId={itemId}
+            initialQuantity={quantity}
+            adapter={adapter}
+            onCartUpdated={onQuantityUpdated}
+          />
+        ) : null}{" "}
         <div
           style={{
             textAlign: "right",
