@@ -4,6 +4,8 @@ import { LoginPage } from "./features/auth/components/login-page";
 import { useSession } from "./features/auth/components/auth-context";
 import { CartPage } from "./features/cart/components/CartPage";
 import { useCart } from "./features/cart/components/cart-context";
+import { ConfirmationPage } from "./features/orders/components/confirmation-page";
+import { CheckoutPage } from "./features/orders/components/checkout-page";
 import { ProductDetail } from "./features/products/components/product-detail";
 import { ProductList } from "./features/products/components/ProductList";
 
@@ -17,24 +19,6 @@ function ProtectedRoute() {
 function CartRoute() {
   const { adapter } = useCart();
   return <CartPage adapter={adapter} />;
-}
-
-function CheckoutPage() {
-  return (
-    <main>
-      <h1>Checkout</h1>
-      <p>Checkout page coming soon.</p>
-    </main>
-  );
-}
-
-function ConfirmationPage() {
-  return (
-    <main>
-      <h1>Order Confirmed</h1>
-      <p>Confirmation page coming soon.</p>
-    </main>
-  );
 }
 
 function OrderHistory() {

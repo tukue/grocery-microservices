@@ -28,7 +28,7 @@ describe("submitOrderFromClient", () => {
     await expect(submitOrderFromClient({ cartId: 42 })).resolves.toMatchObject({
       id: 101,
     });
-    expect(fetchMock).toHaveBeenCalledWith("/api/orders/checkout", {
+    expect(fetchMock).toHaveBeenCalledWith("/api/customer/checkout", {
       body: JSON.stringify({ cartId: 42 }),
       headers: { "Content-Type": "application/json" },
       method: "POST",
