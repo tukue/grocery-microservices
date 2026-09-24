@@ -8,13 +8,16 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
-      "server-only": fileURLToPath(new URL("./src/test/server-only.ts", import.meta.url)),
+      "server-only": fileURLToPath(
+        new URL("./src/test/server-only.ts", import.meta.url),
+      ),
     },
     tsconfigPaths: true,
   },
   test: {
     environment: "jsdom",
-    include: ["src/features/**/__tests__/**/*.test.{ts,tsx}"],
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    exclude: ["**/node_modules/**", "src/app-backup/**"],
     setupFiles: ["./src/test/setup.ts"],
     coverage: {
       exclude: ["src/test/**"],

@@ -103,9 +103,10 @@ describe("CheckoutPage", () => {
     await waitFor(() => expect(submitButton).toBeEnabled());
     fireEvent.click(submitButton);
 
-    await waitFor(() =>
-      expect(screen.getByText("Order ID: 100")).toBeInTheDocument(),
-    );
+    await waitFor(() => {
+      expect(screen.getByText("Order ID")).toBeInTheDocument();
+      expect(screen.getByText("100")).toBeInTheDocument();
+    });
     expect(fetch).toHaveBeenCalledWith(
       "/api/customer/checkout",
       expect.objectContaining({ method: "POST" }),
