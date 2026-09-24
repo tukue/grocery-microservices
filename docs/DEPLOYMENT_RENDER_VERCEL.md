@@ -7,19 +7,47 @@ no production secrets, database URLs, or Kafka credentials belong in Git.
 ## Target architecture
 
 ```mermaid
-flowchart LR
-  Browser -->|HTTPS| Vercel[Vercel: Vite static site + /api BFF functions]
-  Vercel -->|HTTPS + bearer token| Cart[Render cart-service]
-  Vercel -->|HTTPS + bearer token| Product[Render product-service]
-  Vercel -->|HTTPS + bearer token| Order[Render order-service]
-  Order -->|private network| Cart
-  Order -->|private network| Product
-  Cart --> CartDb[(Render Postgres)]
-  Product --> ProductDb[(Render Postgres)]
-  Order --> OrderDb[(Render Postgres)]
-  Order --> Kafka[Managed Kafka]
-  Kafka --> Summary[Render summary-service]
-  Summary --> SummaryDb[(Render Postgres)]
+flowchart TB
+  Browser[Customer browser]
+  IdP[OIDC identity provider]
+
+  subgraph Vercel["Vercel deployment"]
+    Static["Vite static frontend\nfrontend → dist"]
+    Bff["Production BFF functions\n/api/*"]
+    Static -->|same-origin /api requests| Bff
+  end
+
+  subgraph Render["Render deployment — one region"]
+    Cart["Public cart-service\n/api/customer/cart*\n/auth/login"]
+    Product["Public product-service\n/products*"]
+    Order["Public order-service\n/api/customer/checkout\n/api/customer/orders*"]
+    Summary["summary-service\nreceipt projection"]
+
+    CartDb[(cart Postgres)]
+    ProductDb[(product Postgres)]
+    OrderDb[(order Postgres)]
+    SummaryDb[(summary Postgres)]
+
+    Cart -->|internal JDBC| CartDb
+    Product -->|internal JDBC| ProductDb
+    Order -->|internal JDBC| OrderDb
+    Summary -->|internal JDBC| SummaryDb
+    Order -->|private service URL| Cart
+    Order -->|private service URL| Product
+  end
+
+  Kafka[Managed Kafka\norder.created.v1]
+
+  Browser -->|1. HTTPS: UI and assets| Static
+  Bff -->|2. HTTPS: login/cart\nHTTP-only session → bearer token| Cart
+  Bff -->|2. HTTPS: catalog\n/catalog prefix removed| Product
+  Bff -->|2. HTTPS: checkout/orders| Order
+  Cart -.->|JWT discovery / validation| IdP
+  Product -.->|JWT validation| IdP
+  Order -.->|JWT validation| IdP
+  Summary -.->|JWT validation| IdP
+  Order -->|3. publish order-created| Kafka
+  Kafka -->|4. consume and persist receipt| Summary
 ```
 
 Keep the four databases and all Render services in one Render region. Render
@@ -27,6 +55,14 @@ services should use the database's **internal** address and peer services'
 private addresses wherever both ends are on Render. The Vercel BFF is outside
 that network, so it needs HTTPS access to the public backend endpoints (or an
 API gateway added in front of private services).
+
+The numbered arrows show the frontend/backend integration boundary: the browser
+only calls Vercel; the BFF selects the owning backend and injects the bearer
+token from its HTTP-only session cookie. Cart, product, and order must be
+reachable by that BFF, while order-to-cart/product and service-to-database
+traffic stays on Render's private network. The summary service is asynchronous:
+checkout succeeds after the order is persisted, and the receipt follows after
+Kafka consumption.
 
 ## Readiness decision
 
