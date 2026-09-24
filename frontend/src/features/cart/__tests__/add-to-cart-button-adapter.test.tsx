@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { AddToCartButton } from "../components/AddToCartButton";
+import { AddToCartButton } from "../components/add-to-cart-button";
 import type { CartAdapter, CartDTO } from "../api/cart-adapter";
 
 function createMockAdapter(overrides: Partial<CartAdapter> = {}): CartAdapter {

@@ -7,7 +7,7 @@ import {
   searchProducts,
   type ProductDTO,
 } from "../api/product-adapter";
-import { ProductCard } from "./ProductCard";
+import { ProductCard } from "./product-card";
 
 export function ProductList() {
   const [params, setParams] = useSearchParams();
@@ -68,7 +68,7 @@ export function ProductList() {
       {!loading && !error && products.length > 0 && (
         <section aria-label="Products">
           {products.map((product) => (
-            <ProductCard adapter={adapter} key={product.id} {...product} />
+            <ProductCard adapter={adapter} key={product.id} product={product} />
           ))}
         </section>
       )}

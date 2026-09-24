@@ -1,11 +1,19 @@
+import type { CartAdapter, CartDTO } from "../../cart/api/cart-adapter";
+import { AddToCartButton } from "../../cart/components/add-to-cart-button";
 import type { Product } from "../domain/product";
 import { Price } from "./price";
 
 type ProductCardProps = Readonly<{
   product: Product;
+  adapter?: CartAdapter;
+  onCartUpdated?: (cart: CartDTO) => void;
 }>;
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({
+  product,
+  adapter,
+  onCartUpdated,
+}: ProductCardProps) {
   return (
     <article className="flex min-h-72 flex-col gap-3 border border-zinc-200 bg-white p-4 shadow-sm">
       {product.imageUrl ? (
@@ -34,6 +42,14 @@ export function ProductCard({ product }: ProductCardProps) {
             {product.available ? "Available" : "Unavailable"}
           </span>
         </div>
+        {adapter && (
+          <AddToCartButton
+            adapter={adapter}
+            available={product.available}
+            onCartUpdated={onCartUpdated}
+            productId={product.id}
+          />
+        )}
       </div>
     </article>
   );

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-import { AddToCartButton } from "../../cart/components/AddToCartButton";
+import { AddToCartButton } from "../../cart/components/add-to-cart-button";
 import { useCart } from "../../cart/components/cart-context";
 import { fetchProduct } from "../api/product-adapter";
 import type { ProductDTO } from "../api/product-adapter";

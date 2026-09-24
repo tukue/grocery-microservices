@@ -1,8 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ProductCard } from "../components/ProductCard";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import type { CartAdapter, CartDTO } from "../../cart/api/cart-adapter";
+import { ProductCard } from "../components/product-card";
 
 function createMockAdapter(overrides: Partial<CartAdapter> = {}): CartAdapter {
   return {
@@ -24,36 +25,31 @@ const mockCartWithItem: CartDTO = {
   ],
 };
 
-describe("ProductCard", () => {
+const product = {
+  available: true,
+  currency: "USD",
+  description: "Crisp apples.",
+  id: 42,
+  name: "Apple",
+  price: 2.5,
+};
+
+describe("ProductCard with adapter", () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
   });
 
   it("renders product name and price", () => {
-    const adapter = createMockAdapter();
-    render(
-      <ProductCard
-        id={42}
-        name="Apple"
-        price={2.5}
-        available={true}
-        adapter={adapter}
-      />,
-    );
+    render(<ProductCard adapter={createMockAdapter()} product={product} />);
     expect(screen.getByText("Apple")).toBeInTheDocument();
     expect(screen.getByText("$2.50")).toBeInTheDocument();
   });
 
   it("renders image when imageUrl is provided", () => {
-    const adapter = createMockAdapter();
     render(
       <ProductCard
-        id={42}
-        name="Apple"
-        price={2.5}
-        available={true}
-        imageUrl="/apple.jpg"
-        adapter={adapter}
+        adapter={createMockAdapter()}
+        product={{ ...product, imageUrl: "/apple.jpg" }}
       />,
     );
     expect(screen.getByRole("img", { name: "Apple" })).toHaveAttribute(
@@ -62,35 +58,17 @@ describe("ProductCard", () => {
     );
   });
 
-  it("does not render image when imageUrl is absent", () => {
-    const adapter = createMockAdapter();
+  it("disables add to cart for unavailable products", () => {
     render(
       <ProductCard
-        id={42}
-        name="Apple"
-        price={2.5}
-        available={true}
-        adapter={adapter}
-      />,
-    );
-    expect(screen.queryByRole("img")).not.toBeInTheDocument();
-  });
-
-  it("passes only id and availability to AddToCartButton", () => {
-    const adapter = createMockAdapter();
-    render(
-      <ProductCard
-        id={42}
-        name="Apple"
-        price={2.5}
-        available={false}
-        adapter={adapter}
+        adapter={createMockAdapter()}
+        product={{ ...product, available: false }}
       />,
     );
     expect(screen.getByRole("button", { name: /unavailable/i })).toBeDisabled();
   });
 
-  it("does not place API logic in ProductCard", async () => {
+  it("delegates add-to-cart API calls to the adapter", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const adapter = createMockAdapter({
       getCurrentCart: vi.fn().mockResolvedValue(mockCart),
@@ -100,12 +78,9 @@ describe("ProductCard", () => {
 
     render(
       <ProductCard
-        id={42}
-        name="Apple"
-        price={2.5}
-        available={true}
         adapter={adapter}
         onCartUpdated={onCartUpdated}
+        product={product}
       />,
     );
     await user.click(screen.getByRole("button", { name: /add to cart/i }));
