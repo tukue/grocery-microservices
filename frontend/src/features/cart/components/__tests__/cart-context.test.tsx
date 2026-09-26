@@ -25,8 +25,6 @@ const mockCart: CartDTO = {
   ],
 };
 
-const emptyCart: CartDTO = { id: 1, status: "OPEN", items: [] };
-
 function mockSession(session: unknown, ok = true) {
   vi.stubGlobal(
     "fetch",

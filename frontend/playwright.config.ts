@@ -10,7 +10,7 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: "npm run dev",
+    command: "npm run dev -- --port 3000 --strictPort",
     env: {
       CART_SERVICE_URL: "http://127.0.0.1:8080",
       ORDER_SERVICE_URL: "http://127.0.0.1:8081",
