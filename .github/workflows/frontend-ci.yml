@@ -57,3 +57,11 @@ jobs:
           CART_SERVICE_URL: http://cart-service.invalid
           ORDER_SERVICE_URL: http://order-service.invalid
           PRODUCT_SERVICE_URL: http://product-service.invalid
+
+      # The smoke test mocks every API route, so the Java services are not
+      # started here; Playwright's webServer boots the BFF + Vite dev server.
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run e2e smoke tests
+        run: npm run test:e2e
