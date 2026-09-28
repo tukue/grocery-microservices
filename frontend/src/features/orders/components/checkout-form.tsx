@@ -11,6 +11,10 @@ import {
 
 import type { CartSummary, Order } from "../domain/order";
 import {
+  clearIdempotencyKey,
+  getOrCreateIdempotencyKey,
+} from "../../../shared/utils/idempotency";
+import {
   checkoutFormSchema,
   type CheckoutFormValues,
 } from "../api/checkout-form-schema";
@@ -20,7 +24,7 @@ type CheckoutFormProps = Readonly<{
   onConfirmed(order: Order): void;
   submitOrder(input: {
     cartId: number;
-    idempotencyKey?: string;
+    idempotencyKey: string;
   }): Promise<Order>;
 }>;
 
@@ -32,7 +36,7 @@ export function CheckoutForm({
   const [failureMessage, setFailureMessage] = useState<string>();
   const [submissionLocked, setSubmissionLocked] = useState(false);
   const form = useForm<CheckoutFormValues>({
-    defaultValues: { idempotencyKey: "" },
+    defaultValues: {},
     mode: "onChange",
     resolver: zodResolver(checkoutFormSchema),
   });
@@ -45,7 +49,12 @@ export function CheckoutForm({
     setSubmissionLocked(true);
     setFailureMessage(undefined);
     try {
-      const order = await submitOrder({ cartId: cart.id, ...values });
+      const order = await submitOrder({
+        cartId: cart.id,
+        idempotencyKey: getOrCreateIdempotencyKey(),
+        ...values,
+      });
+      clearIdempotencyKey();
       onConfirmed(order);
     } catch (error) {
       const applicationError =
@@ -69,11 +78,6 @@ export function CheckoutForm({
           </li>
         ))}
       </ul>
-      <label htmlFor="idempotencyKey">Order reference (optional)</label>
-      <input id="idempotencyKey" {...form.register("idempotencyKey")} />
-      {form.formState.errors.idempotencyKey && (
-        <p role="alert">{form.formState.errors.idempotencyKey.message}</p>
-      )}
       {failureMessage && <p role="alert">{failureMessage}</p>}
       <button
         disabled={

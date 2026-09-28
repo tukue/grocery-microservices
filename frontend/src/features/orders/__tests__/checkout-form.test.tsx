@@ -40,21 +40,6 @@ describe("CheckoutForm", () => {
     );
   });
 
-  it("shows accessible validation errors for unsupported idempotency key length", async () => {
-    const user = userEvent.setup();
-    render(
-      <CheckoutForm cart={cart} onConfirmed={vi.fn()} submitOrder={vi.fn()} />,
-    );
-    await user.type(
-      screen.getByLabelText("Order reference (optional)"),
-      "x".repeat(65),
-    );
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Idempotency key must not exceed 64 characters",
-    );
-    expect(screen.getByRole("button", { name: "Submit order" })).toBeDisabled();
-  });
-
   it("confirms only with the backend order ID", async () => {
     const user = userEvent.setup();
     const onConfirmed = vi.fn();
@@ -69,7 +54,7 @@ describe("CheckoutForm", () => {
     expect(onConfirmed).toHaveBeenCalledWith(order);
   });
 
-  it("preserves entered data and shows safe failures", async () => {
+  it("preserves the generated retry key and shows safe failures", async () => {
     const user = userEvent.setup();
     render(
       <CheckoutForm
@@ -80,10 +65,7 @@ describe("CheckoutForm", () => {
           .mockRejectedValue(createApplicationError("timeout"))}
       />,
     );
-    const input = screen.getByLabelText("Order reference (optional)");
-    await user.type(input, "retry-42");
     await user.click(screen.getByRole("button", { name: "Submit order" }));
-    expect(input).toHaveValue("retry-42");
     expect(screen.getByRole("alert")).toHaveTextContent(
       "The request took too long",
     );

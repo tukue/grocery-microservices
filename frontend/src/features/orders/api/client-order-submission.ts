@@ -5,23 +5,7 @@ import { createApplicationError } from "@/shared/errors/application-error";
 import type { Order } from "../domain/order";
 import { toOrder } from "./order.mappers";
 import { checkoutRequestSchema, orderResponseSchema } from "./order.schemas";
-
-function errorForStatus(status: number) {
-  if (status === 400 || status === 422) {
-    return createApplicationError("validation");
-  }
-  if (status === 401 || status === 403) {
-    return createApplicationError("unauthorized");
-  }
-  if (status === 404) {
-    return createApplicationError("not-found");
-  }
-  if (status >= 500) {
-    return createApplicationError("service-unavailable");
-  }
-
-  return createApplicationError("unexpected");
-}
+import { checkoutErrorForStatus } from "./checkout-errors";
 
 export async function submitOrderFromClient(input: unknown): Promise<Order> {
   const request = checkoutRequestSchema.parse(input);
@@ -38,7 +22,7 @@ export async function submitOrderFromClient(input: unknown): Promise<Order> {
     });
 
     if (!response.ok) {
-      throw errorForStatus(response.status);
+      throw checkoutErrorForStatus(response.status);
     }
 
     const payload: unknown = await response.json();

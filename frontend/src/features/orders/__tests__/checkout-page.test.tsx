@@ -94,9 +94,6 @@ describe("CheckoutPage", () => {
     );
     expect(screen.getByText("Cart total: 7.50")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText(/order reference/i), {
-      target: { value: "ref-1" },
-    });
     const submitButton = screen.getByRole("button", {
       name: /submit order/i,
     });
@@ -108,7 +105,10 @@ describe("CheckoutPage", () => {
     );
     expect(fetch).toHaveBeenCalledWith(
       "/api/customer/checkout",
-      expect.objectContaining({ method: "POST" }),
+      expect.objectContaining({
+        body: expect.stringMatching(/"idempotencyKey":"[0-9a-f-]{36}"/),
+        method: "POST",
+      }),
     );
   });
 

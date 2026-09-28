@@ -14,7 +14,10 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
-    include: ["src/features/**/__tests__/**/*.test.{ts,tsx}"],
+    include: [
+      "src/features/**/__tests__/**/*.test.{ts,tsx}",
+      "src/shared/**/*.test.{ts,tsx}",
+    ],
     setupFiles: ["./src/test/setup.ts"],
     coverage: {
       exclude: ["src/test/**"],
