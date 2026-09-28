@@ -99,3 +99,22 @@ by the server and `path` is the requested URI.
 
 `validationErrors` is set only for DTO validation failures and may be omitted
 from other error responses.
+
+## Frontend browser client
+
+The Vite SPA reads orders through the session-cookie BFF (no browser-held JWT).
+
+- `frontend/src/features/orders/api/order-client.ts`:
+  - `fetchOrder(id)` → `GET /api/customer/orders/{id}`
+  - `fetchOrders()` → `GET /api/customer/orders`
+- Responses are validated with `orderResponseSchema` /
+  `ordersListResponseSchema` and mapped to the domain `Order` type.
+- `401`/`403`/`404` surface as customer-safe messages on the confirmation and
+  order-history pages; invalid payloads map to a retryable error.
+
+### Browser routes
+
+| Route | Component | Behavior |
+| --- | --- | --- |
+| `/confirmation/:orderId` | `ConfirmationPage` | Loads one order; shows loading, error (not found/not owned), and order ID, date, status, line items, total. Direct URL reload works. |
+| `/orders` | `OrderHistory` | Lists the customer's orders (ID, date, status, total); row click navigates to `/confirmation/:id`; empty state when there are none. |
