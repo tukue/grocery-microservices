@@ -23,10 +23,12 @@ export class ApplicationError extends Error {
   constructor(
     readonly kind: ApplicationErrorKind,
     validationErrors?: Readonly<Record<string, string>>,
+    customerMessage = customerMessages[kind],
   ) {
     super(customerMessages[kind]);
     this.name = "ApplicationError";
-    this.customerMessage = customerMessages[kind];
+    this.customerMessage = customerMessage;
+    this.message = customerMessage;
     this.validationErrors = validationErrors;
   }
 }
@@ -34,6 +36,7 @@ export class ApplicationError extends Error {
 export function createApplicationError(
   kind: ApplicationErrorKind,
   validationErrors?: Readonly<Record<string, string>>,
+  customerMessage?: string,
 ): ApplicationError {
-  return new ApplicationError(kind, validationErrors);
+  return new ApplicationError(kind, validationErrors, customerMessage);
 }
