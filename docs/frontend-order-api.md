@@ -111,6 +111,10 @@ The Vite SPA reads orders through the session-cookie BFF (no browser-held JWT).
   `ordersListResponseSchema` and mapped to the domain `Order` type.
 - `401`/`403`/`404` surface as customer-safe messages on the confirmation and
   order-history pages; invalid payloads map to a retryable error.
+- Unit coverage lives in
+  `frontend/src/features/orders/api/__tests__/order-client.test.ts`; the
+  Playwright smoke test (`frontend/e2e/smoke.spec.ts`) drives checkout and
+  order confirmation through mocked BFF routes.
 
 ### Browser routes
 
