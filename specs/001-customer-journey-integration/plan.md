@@ -14,7 +14,7 @@ Complete the partially built Vite storefront as a real authenticated customer jo
 
 **Primary Dependencies**: React 19, React Router 7, Vite 6, Express, cookie-parser, http-proxy-middleware, Zod 4, Spring Boot 4.1
 
-**Storage**: Existing service-owned relational persistence for products, carts, and orders; BFF process-local session registry for the demo runtime; browser `sessionStorage` only for a non-secret checkout retry key
+**Storage**: Existing service-owned relational persistence for products, carts, and orders; Redis-backed BFF session registry with expiry; browser `sessionStorage` only for a non-secret checkout retry key
 
 **Testing**: Vitest 3, Testing Library, Playwright, Maven/Spring test suites
 
@@ -97,7 +97,7 @@ microservices/
 ## Implementation Strategy
 
 1. **Stabilize runtime boundaries**: keep React Router as the SPA router, remove remaining Next.js/server-only artifacts, add the standalone BFF entry point, and make Vite proxy `/api` to that BFF during development.
-2. **Secure the session path**: exchange credentials with the demo identity endpoint, store the returned JWT only in the BFF session registry, set an opaque HttpOnly cookie, validate expiry on `/api/auth/me`, clear server and cookie state on logout, and inject the bearer token only for protected upstream calls.
+2. **Secure the session path**: exchange credentials with the identity endpoint, verify each returned JWT's RS256 signature, issuer, audience, and expiry against trusted JWKS, store it only in the Redis-backed BFF session registry, set an opaque HttpOnly cookie, validate expiry on `/api/auth/me`, clear server and cookie state on logout, and inject the bearer token only for protected upstream calls.
 3. **Finish catalogue integration**: consolidate duplicate product components, use one Zod-validated client for list/search/detail, synchronize search with `?q=`, and implement loading, empty, unavailable, and error states.
 4. **Finish cart integration**: consolidate the current cart adapters, create a cart on first add when absent, expose add/update/remove through one context, use optimistic updates only where rollback is deterministic, and refresh from the service after each mutation.
 5. **Complete checkout and reads**: generate and retain a per-attempt idempotency key, submit the real cart, map status-specific recovery behavior, clear/refresh cart state after success, fetch confirmation by URL, and add the real order-history page.

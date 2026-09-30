@@ -6,12 +6,35 @@ export interface CheckoutAttempt {
   state: CheckoutAttemptState;
 }
 const keyFor = (cartId: number) => `checkout.attempt.${cartId}`;
+const states: CheckoutAttemptState[] = [
+  "READY",
+  "SUBMITTING",
+  "AMBIGUOUS",
+  "SUCCEEDED",
+  "FAILED",
+];
 function generate() {
   return globalThis.crypto.randomUUID();
 }
 export function getOrCreateCheckoutAttempt(cartId: number): CheckoutAttempt {
   const stored = sessionStorage.getItem(keyFor(cartId));
-  if (stored) return JSON.parse(stored) as CheckoutAttempt;
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored) as Partial<CheckoutAttempt>;
+      if (
+        parsed.cartId === cartId &&
+        typeof parsed.idempotencyKey === "string" &&
+        parsed.idempotencyKey.length > 0 &&
+        parsed.idempotencyKey.length <= 64 &&
+        typeof parsed.state === "string" &&
+        states.includes(parsed.state as CheckoutAttemptState)
+      )
+        return parsed as CheckoutAttempt;
+    } catch {
+      // Corrupt browser state is discarded below and replaced safely.
+    }
+    sessionStorage.removeItem(keyFor(cartId));
+  }
   const attempt = {
     cartId,
     idempotencyKey: generate(),

@@ -2,9 +2,15 @@
 import request from "supertest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createBff } from "../bff";
+import { MemorySessionStore } from "../session-store";
 
 const config = {
   cookieSecure: false,
+  jwt: {
+    audience: "grocery-api",
+    issuer: "https://issuer.test",
+    jwksUri: "https://issuer.test/jwks",
+  },
   port: 3000,
   serviceUrls: {
     cart: "http://cart",
@@ -12,11 +18,38 @@ const config = {
     product: "http://product",
   },
 };
+const verifyToken = async () => ({
+  sub: "u1",
+  email: "u@example.com",
+  exp: Math.floor(Date.now() / 1000) + 3600,
+});
 function token(exp = Math.floor(Date.now() / 1000) + 3600) {
   return `x.${Buffer.from(JSON.stringify({ sub: "u1", email: "u@example.com", exp })).toString("base64url")}.x`;
 }
 afterEach(() => vi.unstubAllGlobals());
 describe("auth contract", () => {
+  it("does not create a session when token verification fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ token: token() }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      ),
+    );
+    const rejectToken = async () => {
+      throw new Error("invalid signature");
+    };
+    const response = await request(
+      createBff(config, new MemorySessionStore(), rejectToken),
+    )
+      .post("/api/auth/login")
+      .send({ username: "u", password: "p" });
+    expect(response.status).toBe(502);
+    expect(response.headers["set-cookie"]).toBeUndefined();
+  });
+
   it("sets an opaque HttpOnly cookie and never returns the JWT", async () => {
     vi.stubGlobal(
       "fetch",
@@ -27,7 +60,9 @@ describe("auth contract", () => {
         }),
       ),
     );
-    const response = await request(createBff(config))
+    const response = await request(
+      createBff(config, new MemorySessionStore(), verifyToken),
+    )
       .post("/api/auth/login")
       .send({ username: "u", password: "p" });
     expect(response.status).toBe(200);
@@ -35,7 +70,9 @@ describe("auth contract", () => {
     expect(response.headers["set-cookie"][0]).toMatch(
       /grocery_session=.*HttpOnly.*SameSite=Lax/,
     );
-    const me = await request(createBff(config))
+    const me = await request(
+      createBff(config, new MemorySessionStore(), verifyToken),
+    )
       .get("/api/auth/me")
       .set("Cookie", response.headers["set-cookie"]);
     expect(me.status).toBe(401);
@@ -50,7 +87,9 @@ describe("auth contract", () => {
         }),
       ),
     );
-    const agent = request.agent(createBff(config));
+    const agent = request.agent(
+      createBff(config, new MemorySessionStore(), verifyToken),
+    );
     await agent
       .post("/api/auth/login")
       .send({ username: "u", password: "p" })

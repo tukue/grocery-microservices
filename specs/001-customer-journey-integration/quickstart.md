@@ -6,6 +6,7 @@
 - npm
 - Java 25 and the repository Maven wrapper
 - Docker Compose for service dependencies and the integration environment
+- Redis 7 (provided by the Compose stack) for durable BFF sessions
 - A test user accepted by the demo identity provider
 
 The browser contract is defined in [contracts/browser-bff.openapi.yaml](contracts/browser-bff.openapi.yaml). Domain state and ownership are described in [data-model.md](data-model.md).
@@ -26,11 +27,12 @@ Expected: every command exits successfully, all colocated `*.test.*` and `*.spec
 
 ## 2. Start the services
 
-From the repository root, start product, cart, and order services using `microservices/docker-compose.yml`. Confirm their configured host ports match:
+From the repository root, start Redis plus product, cart, and order services using `microservices/docker-compose.yml`. Confirm their configured host ports match:
 
 - cart-service: `8081`
 - order-service: `8082`
 - product-service: `8083`
+- Redis: `6379`
 
 Expected: each required service reports healthy before the browser application starts.
 
@@ -38,6 +40,9 @@ Expected: each required service reports healthy before the browser application s
 
 ```bash
 cd frontend
+export REDIS_URL=redis://localhost:6379
+export JWT_ISSUER_URI=http://cart-service:8080
+export JWT_JWKS_URI=http://localhost:8081/.well-known/jwks.json
 npm run dev
 ```
 
@@ -46,6 +51,7 @@ Expected:
 - BFF listens on `http://localhost:3000`.
 - Vite listens on `http://localhost:5173`.
 - Browser calls use relative `/api/*` paths and never call ports 8081-8083 directly.
+- The BFF validates token signature, issuer, audience, algorithm, and expiry against the configured JWKS before creating a Redis-backed session.
 
 ## 4. Validate the public catalogue
 

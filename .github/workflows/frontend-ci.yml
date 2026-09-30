@@ -22,6 +22,9 @@ jobs:
       CART_SERVICE_URL: http://127.0.0.1:8081
       ORDER_SERVICE_URL: http://127.0.0.1:8082
       PRODUCT_SERVICE_URL: http://127.0.0.1:8083
+      REDIS_URL: redis://127.0.0.1:6379
+      JWT_ISSUER_URI: http://cart-service:8080
+      JWT_JWKS_URI: http://127.0.0.1:8081/.well-known/jwks.json
     defaults:
       run:
         working-directory: frontend
@@ -59,7 +62,7 @@ jobs:
           PRODUCT_SERVICE_URL: http://product-service.invalid
 
       - name: Start integration services
-        run: docker compose -f ../microservices/docker-compose.yml up -d --build cart-service order-service product-service
+        run: docker compose -f ../microservices/docker-compose.yml up -d --build redis cart-service order-service product-service
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium

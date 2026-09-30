@@ -4,21 +4,34 @@ import express, {
   type Request,
   type Response,
 } from "express";
+import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import { pathToFileURL } from "node:url";
 import { loadConfig, type BffConfig } from "./config.js";
 import { resolveService } from "./proxy.js";
-import { SessionStore, type SessionRecord } from "./session-store.js";
+import {
+  RedisSessionStore,
+  type SessionRecord,
+  type SessionStore,
+} from "./session-store.js";
 
 const COOKIE_NAME = "grocery_session";
 const TIMEOUT = 8_000;
-type JwtPayload = { email?: unknown; exp?: unknown; sub?: unknown };
+export type TokenVerifier = (token: string) => Promise<JWTPayload>;
 
-function decodeJwt(token: string) {
-  const parts = token.split(".");
-  if (parts.length !== 3) throw new Error("Invalid identity token");
-  const payload = JSON.parse(
-    Buffer.from(parts[1], "base64url").toString(),
-  ) as JwtPayload;
+export function createTokenVerifier(config: BffConfig): TokenVerifier {
+  const jwks = createRemoteJWKSet(new URL(config.jwt.jwksUri));
+  return async (token) =>
+    (
+      await jwtVerify(token, jwks, {
+        algorithms: ["RS256"],
+        audience: config.jwt.audience,
+        issuer: config.jwt.issuer,
+      })
+    ).payload;
+}
+
+async function verifiedIdentity(token: string, verifyToken: TokenVerifier) {
+  const payload = await verifyToken(token);
   const email = typeof payload.email === "string" ? payload.email : "";
   const userId = typeof payload.sub === "string" ? payload.sub : email;
   const expiresAt =
@@ -47,8 +60,9 @@ function sendError(
 }
 
 export function createBff(
-  config: BffConfig = loadConfig(),
-  sessions = new SessionStore(),
+  config: BffConfig,
+  sessions: SessionStore,
+  verifyToken: TokenVerifier = createTokenVerifier(config),
 ) {
   const app = express();
   app.disable("x-powered-by");
@@ -90,8 +104,8 @@ export function createBff(
         );
         return;
       }
-      const session = sessions.create({
-        ...decodeJwt(body.token),
+      const session = await sessions.create({
+        ...(await verifiedIdentity(body.token, verifyToken)),
         jwt: body.token,
       });
       res.cookie(COOKIE_NAME, session.id, {
@@ -106,8 +120,8 @@ export function createBff(
       sendError(res, 502, "Authentication service unavailable", req.path);
     }
   });
-  app.post("/api/auth/logout", (req, res) => {
-    sessions.delete(req.cookies[COOKIE_NAME]);
+  app.post("/api/auth/logout", async (req, res) => {
+    await sessions.delete(req.cookies[COOKIE_NAME]);
     res.clearCookie(COOKIE_NAME, {
       httpOnly: true,
       path: "/",
@@ -116,8 +130,8 @@ export function createBff(
     });
     res.status(204).end();
   });
-  app.get("/api/auth/me", (req, res) => {
-    const session = sessions.get(req.cookies[COOKIE_NAME]);
+  app.get("/api/auth/me", async (req, res) => {
+    const session = await sessions.get(req.cookies[COOKIE_NAME]);
     if (!session) {
       sendError(res, 401, "Not authenticated", req.path);
       return;
@@ -134,7 +148,7 @@ export function createBff(
       sendError(res, 404, "Route not found", req.path);
       return;
     }
-    const session = sessions.get(req.cookies[COOKIE_NAME]);
+    const session = await sessions.get(req.cookies[COOKIE_NAME]);
     if (route.protected && !session) {
       sendError(res, 401, "Not authenticated", req.path);
       return;
@@ -185,7 +199,10 @@ const isMain =
   process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) {
   const config = loadConfig();
-  createBff(config).listen(config.port, () =>
+  if (!config.redisUrl)
+    throw new Error("REDIS_URL is required for the BFF session store");
+  const sessions = await RedisSessionStore.connect(config.redisUrl);
+  createBff(config, sessions).listen(config.port, () =>
     // The startup message is operational output for the standalone process.
     // eslint-disable-next-line no-console
     console.log(`Grocery BFF listening on http://localhost:${config.port}`),

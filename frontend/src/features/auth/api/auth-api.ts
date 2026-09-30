@@ -27,7 +27,7 @@ export async function logout(): Promise<void> {
   if (!response.ok) throw new Error("Logout failed");
 }
 
-export async function getSession(): Promise<Session> {
+export async function getSession(): Promise<Session | null> {
   const res = await fetch("/api/auth/me");
   if (!res.ok) return null;
   return sessionSchema.parse(await res.json());

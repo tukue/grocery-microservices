@@ -23,4 +23,16 @@ describe("checkout attempts", () => {
     clearCheckoutAttempt(1);
     expect(sessionStorage.length).toBe(0);
   });
+  it("replaces corrupt or invalid stored attempts", () => {
+    sessionStorage.setItem("checkout.attempt.1", "not-json");
+    expect(getOrCreateCheckoutAttempt(1)).toMatchObject({
+      cartId: 1,
+      state: "READY",
+    });
+    sessionStorage.setItem(
+      "checkout.attempt.2",
+      JSON.stringify({ cartId: 99, idempotencyKey: "forged", state: "READY" }),
+    );
+    expect(getOrCreateCheckoutAttempt(2).idempotencyKey).not.toBe("forged");
+  });
 });

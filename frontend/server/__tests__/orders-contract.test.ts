@@ -2,9 +2,14 @@
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 import { createBff } from "../bff";
-import { SessionStore } from "../session-store";
+import { MemorySessionStore } from "../session-store";
 const config = {
   cookieSecure: false,
+  jwt: {
+    audience: "grocery-api",
+    issuer: "https://issuer.test",
+    jwksUri: "https://issuer.test/jwks",
+  },
   port: 3000,
   serviceUrls: {
     cart: "http://cart",
@@ -14,8 +19,8 @@ const config = {
 };
 describe("order proxy ownership boundary", () => {
   it("requires a session and forwards only its bearer token", async () => {
-    const sessions = new SessionStore();
-    const session = sessions.create({
+    const sessions = new MemorySessionStore();
+    const session = await sessions.create({
       jwt: "owner-token",
       userId: "owner",
       email: "o@example.com",
