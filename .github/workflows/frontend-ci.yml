@@ -4,15 +4,15 @@ on:
   push:
     branches: [main, develop]
     paths:
-      - 'frontend/**'
-      - 'microservices/docker-compose.yml'
-      - '.github/workflows/frontend-ci.yml'
+      - "frontend/**"
+      - "microservices/docker-compose.yml"
+      - ".github/workflows/frontend-ci.yml"
   pull_request:
     branches: [main, develop]
     paths:
-      - 'frontend/**'
-      - 'microservices/docker-compose.yml'
-      - '.github/workflows/frontend-ci.yml'
+      - "frontend/**"
+      - "microservices/docker-compose.yml"
+      - ".github/workflows/frontend-ci.yml"
 
 permissions:
   contents: read
@@ -70,11 +70,15 @@ jobs:
 
       - name: Wait for integration services
         run: |
-          for url in \
-            http://127.0.0.1:8081/actuator/health \
-            http://127.0.0.1:8082/actuator/health \
-            http://127.0.0.1:8083/actuator/health; do
-            curl --fail --retry 60 --retry-connrefused --retry-delay 5 "$url"
+          for entry in cart-service:8081 order-service:8082 product-service:8083; do
+            service="${entry%%:*}"
+            port="${entry##*:}"
+            url="http://127.0.0.1:${port}/actuator/health"
+            echo "Waiting for ${service} at ${url}"
+            if ! curl --silent --show-error --fail --retry 60 --retry-all-errors --retry-delay 5 "$url"; then
+              docker compose -f ../microservices/docker-compose.yml logs --no-color "$service"
+              exit 1
+            fi
           done
 
       - name: Install Playwright browser
@@ -83,7 +87,7 @@ jobs:
       - name: Run end-to-end tests
         run: npm run test:e2e
         env:
-          E2E_REAL_SERVICES: '1'
+          E2E_REAL_SERVICES: "1"
 
       - name: Upload Playwright artifacts
         if: failure()
