@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { signIn } from "./helpers";
 
 test.skip(!process.env.E2E_REAL_SERVICES, "requires the identity service");
 
@@ -8,13 +9,12 @@ test("session token remains behind the BFF", async ({ page }) => {
     if (/:(8081|8082|8083)\//.test(request.url()))
       serviceRequests.push(request.url());
   });
-  await page.goto("/login");
-  await page
-    .getByLabel("Username")
-    .fill(process.env.E2E_USERNAME ?? "demo-user");
-  await page.getByLabel("Password").fill(process.env.E2E_PASSWORD ?? "");
-  const login = page.waitForResponse("**/api/auth/login");
-  await page.getByRole("button", { name: "Sign In" }).click();
+  const login = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/auth/login") &&
+      response.request().method() === "POST",
+  );
+  await signIn(page);
   expect(await (await login).text()).not.toMatch(/eyJ[A-Za-z0-9_-]+\./);
   const storage = await page.evaluate(() => ({
     local: Object.values(localStorage),

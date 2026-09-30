@@ -113,11 +113,13 @@ services:
     container_name: cart-service
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      SPRING_FLYWAY_LOCATIONS: classpath:db/migration/cart
       SPRING_APPLICATION_JSON: ${SPRING_APPLICATION_JSON:-}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
       JWT_ISSUER_URI: ${JWT_ISSUER_URI:-http://cart-service:8080}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-grocery-api}
       DEMO_IDENTITY_ENABLED: ${CART_DEMO_IDENTITY_ENABLED:-true}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-ci-demo-password}
     ports:
       - "8081:8080"
     security_opt:
@@ -141,6 +143,7 @@ services:
     container_name: order-service
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      SPRING_FLYWAY_LOCATIONS: classpath:db/migration/order
       SPRING_APPLICATION_JSON: ${SPRING_APPLICATION_JSON:-}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
       JWT_ISSUER_URI: ${JWT_ISSUER_URI:-http://cart-service:8080}
@@ -171,6 +174,7 @@ services:
     container_name: product-service
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      SPRING_FLYWAY_LOCATIONS: classpath:db/migration/product
       SPRING_APPLICATION_JSON: ${SPRING_APPLICATION_JSON:-}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
       JWT_ISSUER_URI: ${JWT_ISSUER_URI:-http://cart-service:8080}

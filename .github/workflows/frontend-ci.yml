@@ -5,11 +5,13 @@ on:
     branches: [main, develop]
     paths:
       - 'frontend/**'
+      - 'microservices/docker-compose.yml'
       - '.github/workflows/frontend-ci.yml'
   pull_request:
     branches: [main, develop]
     paths:
       - 'frontend/**'
+      - 'microservices/docker-compose.yml'
       - '.github/workflows/frontend-ci.yml'
 
 permissions:
@@ -25,6 +27,8 @@ jobs:
       REDIS_URL: redis://127.0.0.1:6379
       JWT_ISSUER_URI: http://cart-service:8080
       JWT_JWKS_URI: http://127.0.0.1:8081/.well-known/jwks.json
+      E2E_USERNAME: demo-user
+      E2E_PASSWORD: ci-demo-password
     defaults:
       run:
         working-directory: frontend
@@ -63,6 +67,15 @@ jobs:
 
       - name: Start integration services
         run: docker compose -f ../microservices/docker-compose.yml up -d --build redis cart-service order-service product-service
+
+      - name: Wait for integration services
+        run: |
+          for url in \
+            http://127.0.0.1:8081/actuator/health \
+            http://127.0.0.1:8082/actuator/health \
+            http://127.0.0.1:8083/actuator/health; do
+            curl --fail --retry 60 --retry-connrefused --retry-delay 5 "$url"
+          done
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
