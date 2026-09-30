@@ -82,11 +82,11 @@ describe("order schemas", () => {
       expect(orderResponseSchema.safeParse(validOrder).success).toBe(true);
     });
 
-    it("accepts order with empty order lines", () => {
+    it("rejects order with empty order lines", () => {
       expect(
         orderResponseSchema.safeParse({ ...validOrder, orderLines: [] })
           .success,
-      ).toBe(true);
+      ).toBe(false);
     });
 
     it("rejects missing required fields", () => {
@@ -104,7 +104,15 @@ describe("order schemas", () => {
           orderDate: "2026-01-15T10:30:00",
           total: 10,
           cartId: 1,
-          orderLines: [],
+          orderLines: [
+            {
+              productId: 1,
+              productName: "Apple",
+              unitPrice: 10,
+              quantity: 1,
+              lineTotal: 10,
+            },
+          ],
         },
         {
           id: 2,
@@ -113,7 +121,15 @@ describe("order schemas", () => {
           orderDate: "2026-01-16T10:30:00",
           total: 20,
           cartId: 2,
-          orderLines: [],
+          orderLines: [
+            {
+              productId: 2,
+              productName: "Pear",
+              unitPrice: 20,
+              quantity: 1,
+              lineTotal: 20,
+            },
+          ],
         },
       ];
       expect(ordersListResponseSchema.safeParse(orders).success).toBe(true);

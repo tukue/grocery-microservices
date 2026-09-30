@@ -4,6 +4,14 @@
 # Log files
 *.log
 
+# Node.js and frontend build output
+node_modules/
+dist/
+build/
+coverage/
+.env*
+!.env.example
+
 # Maven build output
 target/
 
@@ -19,6 +27,9 @@ target/
 .project
 .settings/
 .vscode/
+Thumbs.db
+*.tmp
+*.swp
 
 # VM crash logs
 hs_err_pid*
@@ -36,3 +47,7 @@ microservices/cart-service/src/test/resources/application-test.properties
 
 # Ignore test properties with secrets
 microservices/*/src/test/resources/application-test.properties
+
+# Browser test artifacts
+frontend/playwright-report/
+frontend/test-results/

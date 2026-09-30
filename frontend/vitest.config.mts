@@ -14,10 +14,12 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    fileParallelism: false,
     include: [
-      "src/features/**/__tests__/**/*.test.{ts,tsx}",
-      "src/shared/**/*.test.{ts,tsx}",
+      "src/**/*.{test,spec}.{ts,tsx}",
+      "server/**/*.{test,spec}.ts",
     ],
+    exclude: ["src/app-backup/**", "**/node_modules/**"],
     setupFiles: ["./src/test/setup.ts"],
     coverage: {
       exclude: ["src/test/**"],

@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = "http://127.0.0.1:3000";
+const baseURL = "http://127.0.0.1:5173";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -9,15 +9,23 @@ export default defineConfig({
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
   },
-  webServer: {
-    command: "npm run dev",
-    env: {
-      CART_SERVICE_URL: "http://127.0.0.1:8080",
-      ORDER_SERVICE_URL: "http://127.0.0.1:8081",
-      PRODUCT_SERVICE_URL: "http://127.0.0.1:8083",
+  webServer: [
+    {
+      command: "npm run dev:server",
+      env: {
+        BFF_PORT: "3000",
+        CART_SERVICE_URL: "http://127.0.0.1:8081",
+        ORDER_SERVICE_URL: "http://127.0.0.1:8082",
+        PRODUCT_SERVICE_URL: "http://127.0.0.1:8083",
+      },
+      reuseExistingServer: !process.env.CI,
+      url: "http://127.0.0.1:3000/health",
     },
-    reuseExistingServer: !process.env.CI,
-    url: baseURL,
-  },
+    {
+      command: "npm run dev:client -- --host 127.0.0.1",
+      reuseExistingServer: !process.env.CI,
+      url: baseURL,
+    },
+  ],
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 });

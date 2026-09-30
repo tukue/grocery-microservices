@@ -4,26 +4,27 @@ export const checkoutRequestSchema = z.object({
   cartId: z.number().int().positive(),
   idempotencyKey: z
     .string()
+    .min(1)
     .max(64, "Idempotency key must not exceed 64 characters")
     .optional(),
 });
 
 export const orderLineResponseSchema = z.object({
-  lineTotal: z.number(),
-  productId: z.number().int(),
-  productName: z.string(),
-  quantity: z.number().int(),
-  unitPrice: z.number(),
+  lineTotal: z.number().finite().nonnegative(),
+  productId: z.number().int().positive(),
+  productName: z.string().trim().min(1),
+  quantity: z.number().int().positive(),
+  unitPrice: z.number().finite().nonnegative(),
 });
 
 export const orderResponseSchema = z.object({
-  cartId: z.number().int(),
-  id: z.number().int(),
-  orderDate: z.string(),
-  orderLines: z.array(orderLineResponseSchema),
+  cartId: z.number().int().positive(),
+  id: z.number().int().positive(),
+  orderDate: z.string().datetime({ local: true }),
+  orderLines: z.array(orderLineResponseSchema).min(1),
   status: z.enum(["PENDING", "COMPLETED", "CANCELLED"]),
-  total: z.number(),
-  userId: z.string(),
+  total: z.number().finite().nonnegative(),
+  userId: z.string().trim().min(1),
 });
 
 export const orderStatusSchema = z.enum(["PENDING", "COMPLETED", "CANCELLED"]);

@@ -6,7 +6,15 @@ const orderResponse = {
   cartId: 42,
   id: 101,
   orderDate: "2026-09-17T14:45:00",
-  orderLines: [],
+  orderLines: [
+    {
+      productId: 1,
+      productName: "Apple",
+      unitPrice: 29.9,
+      quantity: 1,
+      lineTotal: 29.9,
+    },
+  ],
   status: "PENDING" as const,
   total: 29.9,
   userId: "customer-123",

@@ -1,15 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-import { AddToCartButton } from "../../cart/components/AddToCartButton";
 import { useCart } from "../../cart/components/cart-context";
-import { fetchProduct } from "../api/product-adapter";
-import type { ProductDTO } from "../api/product-adapter";
+import { fetchProduct } from "../api/product-client";
+import type { ProductResponse } from "../api/product.schemas";
 
 export function ProductDetail() {
   const { id } = useParams<{ id: string }>();
-  const { adapter } = useCart();
-  const [product, setProduct] = useState<ProductDTO | null>(null);
+  const { addItem, pendingItems } = useCart();
+  const [product, setProduct] = useState<ProductResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,7 +62,7 @@ export function ProductDetail() {
     );
   }
 
-  const purchasable = product.available && product.stockQuantity > 0;
+  const purchasable = product.available && (product.stockQuantity ?? 1) > 0;
 
   return (
     <main>
@@ -77,16 +76,17 @@ export function ProductDetail() {
         }).format(product.price)}
       </p>
       <p>
-        {product.stockQuantity > 0
+        {(product.stockQuantity ?? 1) > 0
           ? `${product.stockQuantity} in stock`
           : "Out of stock"}
       </p>
       {purchasable ? (
-        <AddToCartButton
-          productId={product.id}
-          available={product.available}
-          adapter={adapter}
-        />
+        <button
+          disabled={pendingItems.has(product.id)}
+          onClick={() => void addItem(product.id, 1)}
+        >
+          {pendingItems.has(product.id) ? "Adding..." : "Add to Cart"}
+        </button>
       ) : (
         <button type="button" disabled>
           Unavailable
