@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { useCart } from "../../cart/components/cart-context";
-import { submitOrderFromClient } from "../api/client-order-submission";
+import { submitCheckout } from "../api/checkout-client";
+import { toOrder } from "../api/order.mappers";
 import type { CartSummary, Order } from "../domain/order";
 import { CheckoutForm } from "./checkout-form";
 
@@ -29,7 +30,7 @@ function toSummary(
 }
 
 export function CheckoutPage() {
-  const { cart, loading, error, refresh } = useCart();
+  const { cart, clear, loading, error } = useCart();
   const navigate = useNavigate();
 
   const summary = useMemo(
@@ -38,7 +39,7 @@ export function CheckoutPage() {
   );
 
   async function handleConfirmed(order: Order): Promise<void> {
-    await refresh().catch(() => {});
+    clear();
     navigate(`/confirmation/${order.id}`);
   }
 
@@ -74,7 +75,7 @@ export function CheckoutPage() {
     <main>
       <CheckoutForm
         cart={summary}
-        submitOrder={(input) => submitOrderFromClient(input)}
+        submitOrder={async (input) => toOrder(await submitCheckout(input))}
         onConfirmed={(order) => void handleConfirmed(order)}
       />
       <div style={{ marginTop: "16px" }}>

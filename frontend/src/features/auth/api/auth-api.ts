@@ -1,4 +1,10 @@
 import type { Session } from "../domain/session";
+import { z } from "zod";
+
+const sessionSchema = z.object({
+  userId: z.string().min(1),
+  email: z.string().min(1),
+});
 
 export async function login(
   username: string,
@@ -13,16 +19,16 @@ export async function login(
     const body = await res.json().catch(() => null);
     throw new Error(body?.error || "Login failed");
   }
-  const data = await res.json();
-  return data.user;
+  return sessionSchema.parse(await res.json());
 }
 
 export async function logout(): Promise<void> {
-  await fetch("/api/auth/logout", { method: "POST" });
+  const response = await fetch("/api/auth/logout", { method: "POST" });
+  if (!response.ok) throw new Error("Logout failed");
 }
 
-export async function getSession(): Promise<Session> {
+export async function getSession(): Promise<Session | null> {
   const res = await fetch("/api/auth/me");
   if (!res.ok) return null;
-  return res.json();
+  return sessionSchema.parse(await res.json());
 }

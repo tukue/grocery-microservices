@@ -1,33 +1,32 @@
-import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
+import {
+  createBrowserRouter,
+  Navigate,
+  Outlet,
+  useLocation,
+} from "react-router-dom";
 
 import { LoginPage } from "./features/auth/components/login-page";
 import { useSession } from "./features/auth/components/auth-context";
-import { CartPage } from "./features/cart/components/CartPage";
-import { useCart } from "./features/cart/components/cart-context";
+import { CartPage } from "./features/cart/components/cart-page";
 import { ConfirmationPage } from "./features/orders/components/confirmation-page";
 import { CheckoutPage } from "./features/orders/components/checkout-page";
+import { OrderHistory } from "./features/orders/components/order-history";
 import { ProductDetail } from "./features/products/components/product-detail";
-import { ProductList } from "./features/products/components/ProductList";
+import { ProductList } from "./features/products/components/product-list";
 
 function ProtectedRoute() {
   const { session, loading } = useSession();
+  const location = useLocation();
   if (loading) return <div role="status">Loading...</div>;
-  if (!session) return <Navigate to="/login" replace />;
+  if (!session)
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: `${location.pathname}${location.search}` }}
+      />
+    );
   return <Outlet />;
-}
-
-function CartRoute() {
-  const { adapter } = useCart();
-  return <CartPage adapter={adapter} />;
-}
-
-function OrderHistory() {
-  return (
-    <main>
-      <h1>Order History</h1>
-      <p>Order history coming soon.</p>
-    </main>
-  );
 }
 
 function NotFound() {
@@ -47,7 +46,7 @@ export const router = createBrowserRouter([
   {
     element: <ProtectedRoute />,
     children: [
-      { path: "/cart", element: <CartRoute /> },
+      { path: "/cart", element: <CartPage /> },
       { path: "/checkout", element: <CheckoutPage /> },
       { path: "/confirmation/:orderId", element: <ConfirmationPage /> },
       { path: "/orders", element: <OrderHistory /> },

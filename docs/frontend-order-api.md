@@ -99,3 +99,10 @@ by the server and `path` is the requested URI.
 
 `validationErrors` is set only for DTO validation failures and may be omitted
 from other error responses.
+# Storefront BFF integration
+
+The Vite client uses only relative `/api` routes. A standalone BFF on port 3000 owns the opaque `grocery_session` HttpOnly cookie, maps it to the upstream JWT in Redis, and forwards bearer authentication to cart-service and order-service. Before creating a session, the BFF verifies the token's RS256 signature, issuer, audience, and expiry against `JWT_JWKS_URI`. Runtime configuration requires `REDIS_URL`; `JWT_ISSUER_URI` and `JWT_AUDIENCE` identify the trusted issuer and audience. JWTs, customer identifiers, prices, and totals are never accepted from browser state as authoritative.
+
+Checkout sends `{ cartId, idempotencyKey }` to `/api/customer/checkout`. The key is generated internally, scoped to the cart in session storage, retained after ambiguous failures, and cleared after confirmed success. Statuses 400/422, 401, 403, 404, 409, and 503 map to distinct recovery guidance.
+
+Confirmation and history always reload persisted data from `/api/customer/orders/:id` and `/api/customer/orders`; they do not rely on navigation state.

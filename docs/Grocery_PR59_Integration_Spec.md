@@ -139,7 +139,7 @@ Each task is one commit. Run `npm test`, `npm run type-check`, and `npm run buil
 2. Create `frontend/server/bff.ts`:
    - `POST /api/auth/login` proxies to cart-service `/auth/login`, sets HttpOnly cookie with session JWT.
    - `POST /api/auth/logout` clears cookie.
-   - `GET /api/auth/me` decodes cookie JWT, returns `{userId, email}`.
+   - `GET /api/auth/me` resolves the opaque cookie through the Redis-backed server session and returns `{userId, email}`; browser cookies never contain JWTs.
    - All `/api/customer/*` requests forward `Authorization: Bearer <cookie-jwt>` to the correct service.
    - `/api/catalog/*` proxies to product-service (public, no auth).
 3. Create `frontend/server/proxy.ts` with route-to-service mapping.

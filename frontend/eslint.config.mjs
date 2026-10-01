@@ -9,6 +9,14 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ["node_modules/", "dist/", "e2e/", "src/app/**"],
+    ignores: [
+      "node_modules/",
+      "dist/",
+      "build/",
+      "coverage/",
+      "e2e/",
+      "src/app/**",
+      "**/*.min.js",
+    ],
   }
 );

@@ -1,5 +1,3 @@
-"use client";
-
 import { createApplicationError } from "@/shared/errors/application-error";
 
 import type { Order } from "../domain/order";
