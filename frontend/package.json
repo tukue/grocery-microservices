@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently -k \"npm run dev:server\" \"npm run dev:client\"",
-    "dev:server": "tsx server/bff.ts",
+    "dev:server": "tsx --env-file=.env server/bff.ts",
     "dev:client": "vite",
     "start:server": "tsx server/bff.ts",
     "build": "tsc -b && vite build",
