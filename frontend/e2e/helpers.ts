@@ -35,6 +35,14 @@ export async function mockApi(page: Page) {
     const method = request.method();
     const path = new URL(request.url()).pathname;
 
+    // The broad glob also matches Vite source modules in directories named
+    // `api` (for example, /src/features/auth/api/auth-api.ts). Let those
+    // requests reach the dev server and only mock the BFF's /api namespace.
+    if (!path.startsWith("/api/")) {
+      await route.continue();
+      return;
+    }
+
     if (path === "/api/auth/login" && method === "POST") {
       authenticated = true;
       await json(route, 200, customer);
