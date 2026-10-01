@@ -160,7 +160,7 @@
 - [X] T058 Replace PascalCase duplicates with canonical kebab-case imports, then remove obsolete duplicate files and frontend/src/app/ after import verification in frontend/src/
 - [X] T059 [P] Add the complete sign-in, browse/search/detail, add/update/remove, checkout, confirmation reload, history, logout, and protected-route smoke journey in frontend/e2e/customer-journey.spec.ts
 - [X] T060 [P] Add security assertions that no JWT appears in response bodies or script-readable storage and that browser requests never target service ports directly in frontend/e2e/session-security.spec.ts
-- [X] T061 Update format, lint, type-check, unit test, production build, service startup, BFF/Vite startup, Playwright, artifact upload, and teardown gates in .github/workflows/frontend-ci.yml
+- [X] T061 Update format, lint, type-check, unit test, production build, mocked Playwright API journey, and artifact upload gates in .github/workflows/frontend-ci.yml
 - [X] T062 [P] Update delivered routes, payloads, retry behavior, and customer recovery guidance in docs/frontend-order-api.md and docs/frontend-backlog.md
 - [X] T063 Run every command and manual scenario in specs/001-customer-journey-integration/quickstart.md and record deviations or corrections in specs/001-customer-journey-integration/quickstart.md
 

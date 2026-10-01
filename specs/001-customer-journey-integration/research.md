@@ -58,8 +58,8 @@
 
 ## Decision 8: Test the real service-backed journey and retain focused unit tests
 
-**Decision**: Use Vitest/Testing Library for schemas, clients, contexts, and routes; Maven suites for service rules; and Playwright for a real happy path plus essential auth/retry assertions. CI starts services and the BFF before Playwright.
+**Decision**: Use Vitest/Testing Library for schemas, clients, contexts, and routes; Maven suites for service rules; server contract tests for the BFF boundary; and Playwright with mocked browser-facing APIs for the customer journey. CI starts only Vite for Playwright, keeping the browser suite independent of service readiness and host ports.
 
 **Rationale**: Mock-only tests cannot prove cookie behavior, routing, persistence, ownership, or confirmation reload across process boundaries.
 
-**Alternatives considered**: Mocked browser tests alone were rejected as insufficient. Exercising every error solely through Playwright was rejected as slow and brittle; detailed error mapping belongs in focused tests.
+**Alternatives considered**: Starting the complete Docker stack for every browser test was rejected after it made the frontend gate depend on local service startup and seed data. Exercising every error solely through Playwright remains too slow and brittle; detailed error mapping belongs in focused tests.

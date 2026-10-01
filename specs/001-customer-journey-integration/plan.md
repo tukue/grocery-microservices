@@ -102,7 +102,7 @@ microservices/
 4. **Finish cart integration**: consolidate the current cart adapters, create a cart on first add when absent, expose add/update/remove through one context, use optimistic updates only where rollback is deterministic, and refresh from the service after each mutation.
 5. **Complete checkout and reads**: generate and retain a per-attempt idempotency key, submit the real cart, map status-specific recovery behavior, clear/refresh cart state after success, fetch confirmation by URL, and add the real order-history page.
 6. **Remove obsolete paths**: update imports to canonical kebab-case components, delete duplicate PascalCase and Next.js-era artifacts only after consumers migrate, and keep Vite as the sole browser build.
-7. **Enforce quality gates**: broaden Vitest discovery, add API/context/route tests, add the full Playwright journey including reload and retry, and make CI run format, lint, type-check, unit tests, build, service-backed e2e, and teardown.
+7. **Enforce quality gates**: broaden Vitest discovery, add API/context/route tests, add the full Playwright journey including reload and retry using mocked browser-facing APIs, and make CI run format, lint, type-check, unit tests, build, and browser tests without requiring local microservices.
 
 ## Delivery Boundaries
 
@@ -117,7 +117,7 @@ microservices/
 - Contract tests validate every operation in `contracts/browser-bff.openapi.yaml`, including auth enforcement and upstream status preservation.
 - Frontend unit tests validate Zod schemas, API clients, error mapping, session state, optimistic cart rollback, and idempotency-key reuse.
 - Existing Maven tests continue to validate product availability, cart ownership, order ownership, cart claiming, reservations, and checkout idempotency.
-- Playwright validates sign-in, browse/search/detail, add/update/remove, checkout, confirmation reload, order history, logout, and protected-route redirection against real services.
+- Playwright validates sign-in, browse/search/detail, add/update/remove, checkout, confirmation reload, and order history with mocked browser-facing API responses; BFF JWT and session behavior is validated by server contract tests.
 - CI runs the same static and dynamic checks documented in [quickstart.md](quickstart.md).
 
 ## Complexity Tracking

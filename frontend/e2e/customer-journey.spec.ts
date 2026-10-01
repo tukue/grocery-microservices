@@ -1,11 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { addProductToCart, signIn } from "./helpers";
 
-test.skip(
-  !process.env.E2E_REAL_SERVICES,
-  "requires the seeded microservice stack",
-);
-
 test("authenticated customer journey", async ({ page }) => {
   await signIn(page);
   await addProductToCart(page);

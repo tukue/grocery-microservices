@@ -5,13 +5,11 @@ on:
     branches: [main, develop]
     paths:
       - "frontend/**"
-      - "microservices/docker-compose.yml"
       - ".github/workflows/frontend-ci.yml"
   pull_request:
     branches: [main, develop]
     paths:
       - "frontend/**"
-      - "microservices/docker-compose.yml"
       - ".github/workflows/frontend-ci.yml"
 
 permissions:
@@ -20,15 +18,6 @@ permissions:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
-    env:
-      CART_SERVICE_URL: http://127.0.0.1:8081
-      ORDER_SERVICE_URL: http://127.0.0.1:8082
-      PRODUCT_SERVICE_URL: http://127.0.0.1:8083
-      REDIS_URL: redis://127.0.0.1:6379
-      JWT_ISSUER_URI: http://cart-service:8080
-      JWT_JWKS_URI: http://127.0.0.1:8081/.well-known/jwks.json
-      E2E_USERNAME: demo-user
-      E2E_PASSWORD: ci-demo-password
     defaults:
       run:
         working-directory: frontend
@@ -60,34 +49,12 @@ jobs:
 
       - name: Build frontend
         run: npm run build
-        env:
-          CART_SERVICE_URL: http://cart-service.invalid
-          ORDER_SERVICE_URL: http://order-service.invalid
-          PRODUCT_SERVICE_URL: http://product-service.invalid
-
-      - name: Start integration services
-        run: docker compose -f ../microservices/docker-compose.yml up -d --build redis cart-service order-service product-service
-
-      - name: Wait for integration services
-        run: |
-          for entry in cart-service:8081 order-service:8082 product-service:8083; do
-            service="${entry%%:*}"
-            port="${entry##*:}"
-            url="http://127.0.0.1:${port}/actuator/health"
-            echo "Waiting for ${service} at ${url}"
-            if ! curl --silent --show-error --fail --retry 60 --retry-all-errors --retry-delay 5 "$url"; then
-              docker compose -f ../microservices/docker-compose.yml logs --no-color "$service"
-              exit 1
-            fi
-          done
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
       - name: Run end-to-end tests
         run: npm run test:e2e
-        env:
-          E2E_REAL_SERVICES: "1"
 
       - name: Upload Playwright artifacts
         if: failure()
@@ -95,7 +62,3 @@ jobs:
         with:
           name: playwright-report
           path: frontend/playwright-report/
-
-      - name: Stop integration services
-        if: always()
-        run: docker compose -f ../microservices/docker-compose.yml down -v

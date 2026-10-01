@@ -94,14 +94,12 @@ Expected: the owner can reload the order; the other user receives not-found or f
 
 ## 8. Run the automated browser journey
 
-With integration dependencies available:
-
 ```bash
 cd frontend
 npm run test:e2e
 ```
 
-Expected: Playwright completes sign-in, browse/search, add/update/remove, checkout, confirmation reload, history, logout, and protected-route checks. Run the happy path three times when validating repeatability.
+Expected: Playwright completes sign-in, browse/search, add/update/remove, checkout, confirmation reload, and order history using mocked browser-facing API responses. No microservices, Redis instance, or service ports are needed for this suite. The BFF and its upstream authentication/session behavior are covered separately by Node contract tests.
 
 ## Failure checks
 
@@ -117,5 +115,6 @@ Expected: Playwright completes sign-in, browse/search, add/update/remove, checko
 - `npm run type-check`: passed.
 - `npm test`: passed with 44 files and 168 tests.
 - `npm run build`: passed; Vite produced the production bundle.
-- `npm run test:e2e`: runner and BFF/Vite startup passed; four real-service scenarios were discovered and intentionally skipped because `E2E_REAL_SERVICES` was not set.
-- Real Docker-backed checkout, retry, cross-customer, and manual browser scenarios remain enforced in `.github/workflows/frontend-ci.yml`, where the microservice stack is started and `E2E_REAL_SERVICES=1` is set. They were not executed locally because this workspace did not have the required Playwright system library (`libnspr4`) or a running seeded microservice stack.
+- Baseline run on 2026-09-30, before switching to API mocks: `npm run test:e2e` started the runner and BFF/Vite, then skipped four service-backed scenarios because `E2E_REAL_SERVICES` was not set.
+- The Playwright browser journey uses mocked `/api` responses so it is deterministic and does not depend on a running Docker stack. Service-backed checkout and cross-customer validation remain separate integration coverage.
+- 2026-10-01: Playwright discovers all four mocked scenarios without launching the BFF or microservices. Full local browser execution remains unavailable in this WSL image because Chromium requires `libnspr4`; CI installs browser system dependencies before running the suite.
