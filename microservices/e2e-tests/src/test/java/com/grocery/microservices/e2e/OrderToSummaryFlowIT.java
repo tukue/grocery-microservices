@@ -350,7 +350,7 @@ class OrderToSummaryFlowIT {
     }
 
     private static ConfigurableApplicationContext startSummaryService() {
-        return new SpringApplicationBuilder(SummaryServiceApplication.class)
+        return new SpringApplicationBuilder(LedgerServiceApplication.class)
                 .profiles("docker")
                 .web(WebApplicationType.SERVLET)
                 .run(
