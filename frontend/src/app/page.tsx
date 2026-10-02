@@ -53,7 +53,9 @@ export default function Home() {
   async function handleSearch(event: Event) {
     event.preventDefault();
     const target = event.target as HTMLFormElement;
-    const searchValue = target.querySelector('input[name="search"]') as HTMLInputElement | null;
+    const searchValue = target.querySelector(
+      'input[name="search"]',
+    ) as HTMLInputElement | null;
     if (searchValue) {
       setSearch(searchValue.value);
       await loadProducts(searchValue.value || undefined);
@@ -61,7 +63,7 @@ export default function Home() {
     }
   }
 
-function handleClearSearch() {
+  function handleClearSearch() {
     setSearch("");
     setProducts([]);
     setSearchParams({});
@@ -89,18 +91,18 @@ function handleClearSearch() {
           <div className="animate-pulse rounded bg-zinc-100 h-64 w-full mb-6">
             Loading products...
           </div>
-        ) : products.length === 0 ? search ? (
-          <p className="text-zinc-500 text-sm text-center">
-            No products found matching "{search}"
-          </p>
+        ) : products.length === 0 ? (
+          search ? (
+            <p className="text-zinc-500 text-sm text-center">
+              No products found matching "{search}"
+            </p>
+          ) : (
+            <p className="text-zinc-500 text-sm text-center">
+              Welcome! Start searching for products.
+            </p>
+          )
         ) : (
-          <p className="text-zinc-500 text-sm text-center">
-            Welcome! Start searching for products.
-          </p>
-        ) : (
-          <ProductGrid
-          ref={productGridRef}
-          products={products} />
+          <ProductGrid ref={productGridRef} products={products} />
         )}
       </section>
     </main>

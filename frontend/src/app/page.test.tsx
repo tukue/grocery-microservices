@@ -6,14 +6,18 @@ describe("Home", () => {
   it("renders the home page with search field", () => {
     render(<Home />);
 
-    expect(screen.getByRole("heading", { name: "Ecommerce Store" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Ecommerce Store" }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("Search products")).toBeInTheDocument();
   });
 
   it("shows welcome message initially", () => {
     render(<Home />);
 
-    expect(screen.getByText("Welcome! Start searching for products.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Welcome! Start searching for products."),
+    ).toBeInTheDocument();
   });
 
   it("shows loading state", async () => {
@@ -29,7 +33,9 @@ describe("Home", () => {
     fireEvent.change(searchInput, { target: { value: "nonexistent" } });
     fireEvent.submit(screen.getByRole("form"));
 
-    expect(screen.getByText('No products found matching "nonexistent"')).toBeInTheDocument();
+    expect(
+      screen.getByText('No products found matching "nonexistent"'),
+    ).toBeInTheDocument();
   });
 
   it("navigates to products page with search query", async () => {
