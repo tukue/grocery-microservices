@@ -29,7 +29,7 @@
         </dependency>
         <dependency>
             <groupId>com.grocery.microservices</groupId>
-            <artifactId>summary-service</artifactId>
+            <artifactId>ledger-service</artifactId>
             <version>${project.version}</version>
         </dependency>
 

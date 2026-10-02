@@ -11,8 +11,8 @@ import com.grocery.microservices.order.client.ProductSnapshot;
 import com.grocery.microservices.order.client.StockReservationSnapshot;
 import com.grocery.microservices.order.exception.InsufficientProductStockException;
 import com.grocery.microservices.order.exception.CheckoutCartAlreadyCheckedOutException;
-import com.grocery.microservices.summary.SummaryServiceApplication;
-import com.grocery.microservices.summary.dto.CustomerSummaryDTO;
+import com.grocery.microservices.ledger.LedgerServiceApplication;
+import com.grocery.microservices.ledger.dto.CustomerSummaryDTO;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -350,7 +350,7 @@ class OrderToSummaryFlowIT {
     }
 
     private static ConfigurableApplicationContext startSummaryService() {
-        return new SpringApplicationBuilder(SummaryServiceApplication.class)
+        return new SpringApplicationBuilder(LedgerServiceApplication.class)
                 .profiles("docker")
                 .web(WebApplicationType.SERVLET)
                 .run(
