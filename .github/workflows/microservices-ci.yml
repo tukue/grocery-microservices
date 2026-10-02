@@ -5,12 +5,19 @@ on:
     branches: [ main, develop ]
     paths:
       - 'microservices/**'
+      - 'pom.xml'
       - '.github/workflows/microservices-ci.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
       - 'microservices/**'
+      - 'pom.xml'
       - '.github/workflows/microservices-ci.yml'
+
+# dorny/test-reporter creates a check run from the PR head SHA.
+permissions:
+  contents: read
+  checks: write
 
 jobs:
   test:
@@ -35,16 +42,26 @@ jobs:
         distribution: 'temurin'
         java-version: '25'
 
+    # Per-service test profiles are gitignored, so the checkout has no
+    # application-test.properties on the test classpath. Recreate it from the
+    # committed example before running the suite.
     - name: Prepare test properties
       run: |
-        cp microservices/cart-service/src/test/resources/application-test.properties.example microservices/cart-service/src/test/resources/application-test.properties
-        cp microservices/order-service/src/test/resources/application-test.properties.example microservices/order-service/src/test/resources/application-test.properties
-        cp microservices/product-service/src/test/resources/application-test.properties.example microservices/product-service/src/test/resources/application-test.properties
-        cp microservices/ledger-service/src/test/resources/application-test.properties.example microservices/ledger-service/src/test/resources/application-test.properties
+        cp "microservices/${{ matrix.service }}/src/test/resources/application-test.properties.example" \
+           "microservices/${{ matrix.service }}/src/test/resources/application-test.properties"
 
     - name: Test microservice
       run: mvn -B test -Dspring.profiles.active=test --file microservices/${{ matrix.service }}/pom.xml
       working-directory: ${{ github.workspace }}
+
+    - name: Generate test report
+      uses: dorny/test-reporter@v2
+      if: ${{ !cancelled() }}
+      with:
+        name: ${{ matrix.service }} Tests
+        path: microservices/${{ matrix.service }}/target/surefire-reports/*.xml
+        reporter: java-junit
+        fail-on-empty: true
 
   health-check:
     runs-on: ubuntu-latest
@@ -124,6 +141,13 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '25'
+
+    - name: Prepare test properties
+      run: |
+        for service in cart-service order-service product-service ledger-service; do
+          cp "microservices/$service/src/test/resources/application-test.properties.example" \
+             "microservices/$service/src/test/resources/application-test.properties"
+        done
 
     - name: Run order-to-ledger e2e tests
       # Keep e2e-tests and its service dependencies in the same Maven reactor.
