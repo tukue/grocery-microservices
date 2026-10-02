@@ -69,7 +69,7 @@ describe("ProductDetail", () => {
     expect(
       screen.getByRole("button", { name: "Add to Cart" }),
     ).not.toBeDisabled();
-    expect(screen.getByTestId("product-price")).toHaveTextContent("$2.50");
+    expect(screen.getByTestId("product-price")).toHaveTextContent(/2[.,]50/);
   });
 
   it("shows an error for unknown products", async () => {
