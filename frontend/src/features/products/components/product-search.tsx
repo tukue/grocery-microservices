@@ -1,31 +1,36 @@
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { FormEvent, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 export function productsSearchPath(search: string): string {
   const normalized = search.trim();
   return normalized
-    ? `/products?search=${encodeURIComponent(normalized)}`
+    ? `/products?q=${encodeURIComponent(normalized)}`
     : "/products";
 }
 
 export function ProductSearch() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const initialSearch = searchParams.get("search") ?? "";
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialSearch = searchParams.get("q") ?? "";
   const [search, setSearch] = useState(initialSearch);
-
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    navigate(productsSearchPath(search));
-  }
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      const normalized = search.trim();
+      setSearchParams(normalized ? { q: normalized } : {}, { replace: true });
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [search, setSearchParams]);
 
   function clearSearch() {
     setSearch("");
-    navigate("/products");
+    setSearchParams({}, { replace: true });
   }
 
   return (
-    <form className="flex flex-wrap gap-2" onSubmit={submit} role="search">
+    <form
+      className="flex flex-wrap gap-2"
+      onSubmit={(event) => event.preventDefault()}
+      role="search"
+    >
       <label className="sr-only" htmlFor="product-search">
         Search products
       </label>
@@ -38,9 +43,6 @@ export function ProductSearch() {
         type="search"
         value={search}
       />
-      <button className="bg-zinc-900 px-4 py-2 text-white" type="submit">
-        Search
-      </button>
       {initialSearch ? (
         <button
           className="border border-zinc-300 px-4 py-2"

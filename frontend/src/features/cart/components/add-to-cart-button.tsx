@@ -1,11 +1,18 @@
-"use client";
-
 import { useState } from "react";
 
-import {
-  addToCartAction,
-  type AddToCartResult,
-} from "../api/add-to-cart.action";
+import { CartClient } from "../api/cart-client";
+
+export type AddToCartResult = { ok: boolean; message: string };
+
+async function addThroughBff(
+  productId: number,
+  quantity = 1,
+): Promise<AddToCartResult> {
+  const client = new CartClient();
+  const cart = (await client.getCurrentCart()) ?? (await client.createCart());
+  await client.addItem(cart.id, productId, quantity);
+  return { ok: true, message: "Added to cart" };
+}
 
 type AddToCartButtonProps = Readonly<{
   addItem?: (productId: number, quantity?: number) => Promise<AddToCartResult>;
@@ -14,7 +21,7 @@ type AddToCartButtonProps = Readonly<{
 }>;
 
 export function AddToCartButton({
-  addItem = addToCartAction,
+  addItem = addThroughBff,
   available,
   productId,
 }: AddToCartButtonProps) {

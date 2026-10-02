@@ -1,5 +1,3 @@
-import "server-only";
-
 import { serverEnv } from "@/shared/config/server-env";
 import { createServerHttpClient } from "@/shared/http/server-http-client";
 

@@ -1,0 +1,355 @@
+openapi: 3.1.0
+info:
+  title: Grocery Storefront BFF API
+  version: 1.0.0
+  description: Browser-facing contract for the authenticated grocery customer journey.
+servers:
+  - url: http://localhost:3000
+paths:
+  /api/auth/login:
+    post:
+      summary: Establish a browser session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Session established; an opaque HttpOnly cookie is set.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Session' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '502': { $ref: '#/components/responses/Unavailable' }
+  /api/auth/logout:
+    post:
+      summary: End the browser session
+      responses:
+        '204': { description: Session record and cookie cleared. }
+  /api/auth/me:
+    get:
+      summary: Read the current browser session
+      responses:
+        '200':
+          description: Current authenticated shopper.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Session' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/catalog/products:
+    get:
+      summary: List products
+      responses:
+        '200':
+          description: Current catalogue.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Product' }
+        '502': { $ref: '#/components/responses/Unavailable' }
+  /api/catalog/products/search:
+    get:
+      summary: Search products by name
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema: { type: string, minLength: 1 }
+      responses:
+        '200':
+          description: Matching products.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Product' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '502': { $ref: '#/components/responses/Unavailable' }
+  /api/catalog/products/{productId}:
+    get:
+      summary: Read product details
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '200':
+          description: Current product details.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/Unavailable' }
+  /api/customer/cart:
+    get:
+      security: [{ sessionCookie: [] }]
+      summary: Read the current shopper's open cart
+      responses:
+        '200':
+          description: Current cart.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cart' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      security: [{ sessionCookie: [] }]
+      summary: Create the current shopper's cart
+      responses:
+        '201':
+          description: Cart created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cart' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /api/customer/cart/{cartId}/items:
+    post:
+      security: [{ sessionCookie: [] }]
+      summary: Add a product to the shopper's cart
+      parameters:
+        - $ref: '#/components/parameters/CartId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AddItemRequest' }
+      responses:
+        '200':
+          description: Authoritative updated cart.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cart' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /api/customer/cart/{cartId}/items/{itemId}:
+    patch:
+      security: [{ sessionCookie: [] }]
+      summary: Change cart item quantity
+      parameters:
+        - $ref: '#/components/parameters/CartId'
+        - $ref: '#/components/parameters/ItemId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quantity]
+              properties:
+                quantity: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Authoritative updated cart.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cart' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+    delete:
+      security: [{ sessionCookie: [] }]
+      summary: Remove a cart item
+      parameters:
+        - $ref: '#/components/parameters/CartId'
+        - $ref: '#/components/parameters/ItemId'
+      responses:
+        '200':
+          description: Authoritative updated cart.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cart' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/customer/checkout:
+    post:
+      security: [{ sessionCookie: [] }]
+      summary: Convert the current cart to an order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CheckoutRequest' }
+      responses:
+        '201':
+          description: Order created, or original order returned for an idempotent replay.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/BadRequest' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /api/customer/orders:
+    get:
+      security: [{ sessionCookie: [] }]
+      summary: List orders owned by the current shopper
+      responses:
+        '200':
+          description: Orders, newest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Order' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/customer/orders/{orderId}:
+    get:
+      security: [{ sessionCookie: [] }]
+      summary: Read one order owned by the current shopper
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: Persisted order details.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: grocery_session
+  parameters:
+    ProductId: &idParameter
+      name: productId
+      in: path
+      required: true
+      schema: { type: integer, minimum: 1 }
+    CartId:
+      <<: *idParameter
+      name: cartId
+    ItemId:
+      <<: *idParameter
+      name: itemId
+    OrderId:
+      <<: *idParameter
+      name: orderId
+  schemas:
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [username, password]
+      properties:
+        username: { type: string, minLength: 1 }
+        password: { type: string, minLength: 1, writeOnly: true }
+    Session:
+      type: object
+      additionalProperties: false
+      required: [userId, email]
+      properties:
+        userId: { type: string, minLength: 1 }
+        email: { type: string, format: email }
+    Product:
+      type: object
+      required: [id, name, description, price, currency, available]
+      properties:
+        id: { type: integer, minimum: 1 }
+        name: { type: string, minLength: 1 }
+        description: { type: string, minLength: 1 }
+        price: { type: number, exclusiveMinimum: 0 }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        available: { type: boolean }
+        stockQuantity: { type: integer, minimum: 0 }
+        imageUrl: { type: [string, 'null'], format: uri }
+    CartItem:
+      type: object
+      required: [id, productId, productName, price, quantity]
+      properties:
+        id: { type: integer, minimum: 1 }
+        productId: { type: integer, minimum: 1 }
+        productName: { type: string, minLength: 1 }
+        price: { type: number, minimum: 0 }
+        quantity: { type: integer, minimum: 1 }
+    Cart:
+      type: object
+      required: [id, status, items]
+      properties:
+        id: { type: integer, minimum: 1 }
+        status: { type: string, enum: [OPEN, CHECKED_OUT] }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/CartItem' }
+    AddItemRequest:
+      type: object
+      additionalProperties: false
+      required: [productId, quantity]
+      properties:
+        productId: { type: integer, minimum: 1 }
+        quantity: { type: integer, minimum: 1 }
+    CheckoutRequest:
+      type: object
+      additionalProperties: false
+      required: [cartId, idempotencyKey]
+      properties:
+        cartId: { type: integer, minimum: 1 }
+        idempotencyKey: { type: string, minLength: 1, maxLength: 64 }
+    OrderLine:
+      type: object
+      required: [productId, productName, unitPrice, quantity, lineTotal]
+      properties:
+        productId: { type: integer, minimum: 1 }
+        productName: { type: string, minLength: 1 }
+        unitPrice: { type: number, minimum: 0 }
+        quantity: { type: integer, minimum: 1 }
+        lineTotal: { type: number, minimum: 0 }
+    Order:
+      type: object
+      required: [id, userId, status, orderDate, total, cartId, orderLines]
+      properties:
+        id: { type: integer, minimum: 1 }
+        userId: { type: string, minLength: 1 }
+        status: { type: string, enum: [PENDING, COMPLETED, CANCELLED] }
+        orderDate: { type: string, format: date-time }
+        total: { type: number, minimum: 0 }
+        cartId: { type: integer, minimum: 1 }
+        orderLines:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/OrderLine' }
+    Error:
+      type: object
+      required: [status, message]
+      properties:
+        status: { type: integer }
+        error: { type: string }
+        message: { type: string }
+        path: { type: string }
+        validationErrors:
+          type: object
+          additionalProperties: { type: string }
+  responses:
+    BadRequest: &errorResponse
+      description: Invalid request or domain validation failure.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      <<: *errorResponse
+      description: Missing, invalid, or expired session.
+    Forbidden:
+      <<: *errorResponse
+      description: Authenticated shopper does not own the resource.
+    NotFound:
+      <<: *errorResponse
+      description: Resource not found or hidden by ownership rules.
+    Conflict:
+      <<: *errorResponse
+      description: Resource state changed or checkout/cart conflict.
+    Unavailable:
+      <<: *errorResponse
+      description: Required upstream service is temporarily unavailable.

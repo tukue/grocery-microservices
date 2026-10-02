@@ -19,3 +19,8 @@ current product and cart foundation.
   installation stalled before `tsc` and Vitest became available.
 - [ ] Add browser-level coverage against an authenticated, deployed cart and
   product environment once the session flow exists.
+# Customer journey integration status
+
+The authenticated customer journey is implemented through the standalone BFF: catalogue list/search/detail, opaque-cookie sign-in, server-authoritative cart mutations, retry-safe checkout, reloadable confirmation, and order history. Canonical Vite components use kebab-case paths; the obsolete Next.js route tree and PascalCase duplicates were removed.
+
+The BFF now uses a shared Redis session store suitable for restarts and horizontal scaling. Remaining operational follow-up: replace the demo identity provider before production use and provision managed Redis with encryption, authentication, backups, and monitoring.

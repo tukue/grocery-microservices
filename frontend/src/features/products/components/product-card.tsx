@@ -1,8 +1,8 @@
-import type { Product } from "../domain/product";
+import type { ProductResponse } from "../api/product.schemas";
 import { Price } from "./price";
 
 type ProductCardProps = Readonly<{
-  product: Product;
+  product: ProductResponse;
 }>;
 
 export function ProductCard({ product }: ProductCardProps) {
@@ -34,6 +34,7 @@ export function ProductCard({ product }: ProductCardProps) {
             {product.available ? "Available" : "Unavailable"}
           </span>
         </div>
+        <a href={`/products/${product.id}`}>View product</a>
       </div>
     </article>
   );

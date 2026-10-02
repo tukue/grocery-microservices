@@ -8,6 +8,7 @@ export const productResponseSchema = z.object({
   currency: z.string().regex(/^[A-Z]{3}$/),
   description: z.string().trim().min(1),
   imageUrl: z.string().url().nullable().optional(),
+  stockQuantity: z.number().int().nonnegative().optional(),
 });
 
 export const productListResponseSchema = z.array(productResponseSchema);

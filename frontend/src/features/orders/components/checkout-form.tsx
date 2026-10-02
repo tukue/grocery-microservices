@@ -1,5 +1,3 @@
-"use client";
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -11,9 +9,9 @@ import {
 
 import type { CartSummary, Order } from "../domain/order";
 import {
-  clearIdempotencyKey,
-  getOrCreateIdempotencyKey,
-} from "../../../shared/utils/idempotency";
+  clearCheckoutAttempt,
+  setCheckoutAttemptState,
+} from "../../../shared/utils/checkout-attempt";
 import {
   checkoutFormSchema,
   type CheckoutFormValues,
@@ -51,12 +49,22 @@ export function CheckoutForm({
     try {
       const order = await submitOrder({
         cartId: cart.id,
-        idempotencyKey: getOrCreateIdempotencyKey(),
+        idempotencyKey: setCheckoutAttemptState(cart.id, "SUBMITTING")
+          .idempotencyKey,
         ...values,
       });
-      clearIdempotencyKey();
+      setCheckoutAttemptState(cart.id, "SUCCEEDED");
+      clearCheckoutAttempt(cart.id);
       onConfirmed(order);
     } catch (error) {
+      setCheckoutAttemptState(
+        cart.id,
+        error instanceof ApplicationError &&
+          error.kind !== "service-unavailable" &&
+          error.kind !== "timeout"
+          ? "FAILED"
+          : "AMBIGUOUS",
+      );
       const applicationError =
         error instanceof ApplicationError
           ? error
