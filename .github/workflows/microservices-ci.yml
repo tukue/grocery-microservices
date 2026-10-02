@@ -125,7 +125,7 @@ jobs:
         distribution: 'temurin'
         java-version: '25'
 
-    - name: Run order-to-summary e2e tests
+    - name: Run order-to-ledger e2e tests
       # Keep e2e-tests and its service dependencies in the same Maven reactor.
       # `install` repackages Spring Boot services as executable jars, whose
       # application classes under BOOT-INF/classes are not compiler-visible to
