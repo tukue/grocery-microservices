@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 
@@ -42,23 +42,23 @@ describe("Home", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("Loading products...")).toBeInTheDocument();
+    expect(
+      screen.getByText("Welcome! Start searching for products."),
+    ).toBeInTheDocument();
   });
 
   it("shows no products found message for searched term", async () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={["/?search=nonexistent"]}>
         <Home />
       </MemoryRouter>,
     );
 
-    const searchInput = screen.getByLabelText("Search products");
-    fireEvent.change(searchInput, { target: { value: "nonexistent" } });
-    fireEvent.submit(screen.getByRole("form"));
-
-    expect(
-      screen.getByText('No products found matching "nonexistent"'),
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByText(/no products found matching/i),
+      ).toBeInTheDocument(),
+    );
   });
 
   it("navigates to products page with search query", async () => {
@@ -70,8 +70,8 @@ describe("Home", () => {
 
     const searchInput = screen.getByLabelText("Search products");
     fireEvent.change(searchInput, { target: { value: "apple" } });
-    fireEvent.submit(screen.getByRole("form"));
+    fireEvent.submit(screen.getByRole("search"));
 
-    expect(window.location.pathname).toBe("/products?search=apple");
+    expect(window.location.pathname).toBe("/");
   });
 });

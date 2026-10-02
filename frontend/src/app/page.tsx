@@ -11,7 +11,7 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<readonly Product[]>([]);
   const [loading, setLoading] = useState(false);
-  const { params, setSearchParams } = useSearchParams();
+  const [params, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     const initialSearch = params.get("search") ?? "";
