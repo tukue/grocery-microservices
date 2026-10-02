@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [cart-service, order-service, product-service, summary-service]
+        service: [cart-service, order-service, product-service, ledger-service]
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -40,7 +40,7 @@ jobs:
         cp microservices/cart-service/src/test/resources/application-test.properties.example microservices/cart-service/src/test/resources/application-test.properties
         cp microservices/order-service/src/test/resources/application-test.properties.example microservices/order-service/src/test/resources/application-test.properties
         cp microservices/product-service/src/test/resources/application-test.properties.example microservices/product-service/src/test/resources/application-test.properties
-        cp microservices/summary-service/src/test/resources/application-test.properties.example microservices/summary-service/src/test/resources/application-test.properties
+        cp microservices/ledger-service/src/test/resources/application-test.properties.example microservices/ledger-service/src/test/resources/application-test.properties
 
     - name: Test microservice
       run: mvn -B test -Dspring.profiles.active=test --file microservices/${{ matrix.service }}/pom.xml
@@ -70,7 +70,7 @@ jobs:
       working-directory: microservices
       run: |
         export CORS_ALLOWED_ORIGINS="https://frontend.smoke.test"
-        docker compose up -d cart-db order-db product-db summary-db cart-service order-service product-service summary-service
+        docker compose up -d cart-db order-db product-db ledger-db cart-service order-service product-service ledger-service
 
     - name: Verify health endpoints
       env:
@@ -84,7 +84,7 @@ jobs:
         docker compose ps
         HEALTHCHECK_HOST=127.0.0.1 SKIP_START=true bash ../check_microservices_health.sh || {
           docker compose ps
-          docker compose logs --no-color cart-service order-service product-service summary-service
+          docker compose logs --no-color cart-service order-service product-service ledger-service
           exit 1
         }
 

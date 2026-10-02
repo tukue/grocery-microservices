@@ -26,7 +26,7 @@ public class SummaryController {
     }
 
     @GetMapping("/summary")
-    @PreAuthorize("hasAuthority('SCOPE_summary:read')")
+    @PreAuthorize("hasAuthority('SCOPE_ledger:read')")
     public CustomerSummaryDTO getMySummary(@AuthenticationPrincipal AuthenticatedCustomer customer) {
         String customerId = customer.customerId();
         CustomerSummaryDTO dto = new CustomerSummaryDTO();
@@ -41,7 +41,7 @@ public class SummaryController {
     }
 
     @GetMapping("/summary/orders/{orderId}/receipt")
-    @PreAuthorize("hasAuthority('SCOPE_summary:read')")
+    @PreAuthorize("hasAuthority('SCOPE_ledger:read')")
     public String getReceipt(@PathVariable Long orderId,
                              @AuthenticationPrincipal AuthenticatedCustomer customer) {
         return summaryQuery.getFormattedReceipt(customer.customerId(), orderId);

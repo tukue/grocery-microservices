@@ -91,7 +91,7 @@ jobs:
     
     strategy:
       matrix:
-        service: [cart-service, order-service, product-service, summary-service]
+        service: [cart-service, order-service, product-service, ledger-service]
     
     steps:
       - uses: actions/checkout@v4
