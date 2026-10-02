@@ -1,8 +1,8 @@
 package com.grocery.microservices.ledger.service;
 
-import com.grocery.microservices.ledger.exception.SummaryNotFoundException;
+import com.grocery.microservices.ledger.exception.LedgerNotFoundException;
 import com.grocery.microservices.ledger.model.Summary;
-import com.grocery.microservices.ledger.repository.SummaryRepository;
+import com.grocery.microservices.ledger.repository.LedgerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -19,13 +19,13 @@ import java.util.List;
 import java.util.Optional;
 
 @ActiveProfiles("test")
-class SummaryServiceTest {
+class LedgerServiceTest {
 
     @Mock
-    private SummaryRepository summaryRepository;
+    private LedgerRepository summaryRepository;
 
     @InjectMocks
-    private SummaryService summaryService;
+    private LedgerService summaryService;
 
     private Summary testSummary;
 
@@ -81,7 +81,7 @@ class SummaryServiceTest {
     void testGetSummaryByOrderIsNotFoundForAnotherCustomer() {
         when(summaryRepository.findByOrderIdAndUserId(1L, "customer-2")).thenReturn(Optional.empty());
 
-        assertThrows(SummaryNotFoundException.class, () -> summaryService.getSummaryByOrder("customer-2", 1L));
+        assertThrows(LedgerNotFoundException.class, () -> summaryService.getSummaryByOrder("customer-2", 1L));
         verify(summaryRepository).findByOrderIdAndUserId(1L, "customer-2");
     }
 

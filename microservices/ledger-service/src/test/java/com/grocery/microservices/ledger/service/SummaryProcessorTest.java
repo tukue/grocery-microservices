@@ -9,9 +9,9 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class SummaryProcessorTest {
+class LedgerProcessorTest {
 
-    private final SummaryProcessor processor = new SummaryProcessor();
+    private final LedgerProcessor processor = new LedgerProcessor();
 
     @Test
     void shouldCalculateTotalSpending() {

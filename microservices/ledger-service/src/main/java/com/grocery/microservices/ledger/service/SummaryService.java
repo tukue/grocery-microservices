@@ -1,22 +1,22 @@
 package com.grocery.microservices.ledger.service;
 
-import com.grocery.microservices.ledger.exception.SummaryNotFoundException;
+import com.grocery.microservices.ledger.exception.LedgerNotFoundException;
 import com.grocery.microservices.ledger.model.Summary;
 import com.grocery.microservices.ledger.port.SummaryQuery;
-import com.grocery.microservices.ledger.repository.SummaryRepository;
+import com.grocery.microservices.ledger.repository.LedgerRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 @Service
-public class SummaryService implements SummaryQuery {
-    private final SummaryRepository summaryRepository;
-    private final SummaryProcessor processor;
+public class LedgerService implements SummaryQuery {
+    private final LedgerRepository summaryRepository;
+    private final LedgerProcessor processor;
 
-    public SummaryService(SummaryRepository summaryRepository) {
+    public LedgerService(LedgerRepository summaryRepository) {
         this.summaryRepository = summaryRepository;
-        this.processor = new SummaryProcessor();
+        this.processor = new LedgerProcessor();
     }
 
     @Override
@@ -27,7 +27,7 @@ public class SummaryService implements SummaryQuery {
     @Override
     public Summary getSummaryByOrder(String customerId, Long orderId) {
         return summaryRepository.findByOrderIdAndUserId(orderId, customerId)
-                .orElseThrow(() -> new SummaryNotFoundException(orderId));
+                .orElseThrow(() -> new LedgerNotFoundException(orderId));
     }
 
     @Override

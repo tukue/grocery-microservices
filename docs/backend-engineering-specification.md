@@ -55,7 +55,7 @@ Implement only the behavior required for the next MVP customer outcome. Avoid in
 - `product-service` owns product identity, price, availability, and stock.
 - `cart-service` owns customer carts and mutable quantities.
 - `order-service` owns immutable order lines, trusted totals, and order state.
-- `summary-service` owns receipt and reporting views.
+- `ledger-service` owns receipt and reporting views.
 
 Store copies of data only when required for an immutable business record, such as the product snapshot stored in an order line.
 

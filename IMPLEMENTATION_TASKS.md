@@ -174,7 +174,7 @@
 
 ---
 
-## Summary Service Tasks
+## Ledger Service Tasks
 
 ### SS-1: Template Method for Report Generation
 **Priority**: Medium | **Effort**: 4 days | **Dependencies**: None
@@ -187,8 +187,8 @@
 - [ ] Implement report formatting
 
 **Files to Create/Modify**:
-- `summary-service/src/main/java/com/example/summary/template/ReportGenerationTemplate.java`
-- `summary-service/src/main/java/com/example/summary/service/SummaryService.java`
+- `ledger-service/src/main/java/com/example/summary/template/ReportGenerationTemplate.java`
+- `ledger-service/src/main/java/com/example/summary/service/LedgerService.java`
 
 ### SS-2: Strategy Pattern for Data Aggregation
 **Priority**: Medium | **Effort**: 3 days | **Dependencies**: SS-1
@@ -197,12 +197,12 @@
 - [ ] Create AggregationStrategy interface
 - [ ] Implement SumAggregationStrategy, AverageAggregationStrategy
 - [ ] Add CountAggregationStrategy
-- [ ] Integrate with SummaryService
+- [ ] Integrate with LedgerService
 - [ ] Add aggregation tests
 
 **Files to Create/Modify**:
-- `summary-service/src/main/java/com/example/summary/strategy/AggregationStrategy.java`
-- `summary-service/src/main/java/com/example/summary/service/SummaryService.java`
+- `ledger-service/src/main/java/com/example/summary/strategy/AggregationStrategy.java`
+- `ledger-service/src/main/java/com/example/summary/service/LedgerService.java`
 
 ---
 

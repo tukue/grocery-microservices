@@ -1,7 +1,7 @@
 package com.grocery.microservices.ledger.exception;
 
-public class SummaryNotFoundException extends RuntimeException {
-    public SummaryNotFoundException(Long id) {
+public class LedgerNotFoundException extends RuntimeException {
+    public LedgerNotFoundException(Long id) {
         super("Summary not found with id: " + id);
     }
 }

@@ -44,16 +44,16 @@ services:
       timeout: 10s
       retries: 3
 
-  summary-db:
+  ledger-db:
     image: postgres:15-alpine
     environment:
-      POSTGRES_DB: summary_db
-      POSTGRES_USER: summary_user
-      POSTGRES_PASSWORD: summary_pass
+      POSTGRES_DB: ledger_db
+      POSTGRES_USER: ledger_user
+      POSTGRES_PASSWORD: ledger_pass
     volumes:
-      - summary_data:/var/lib/postgresql/data
+      - ledger_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U summary_user -d summary_db"]
+      test: ["CMD-SHELL", "pg_isready -U ledger_user -d ledger_db"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -113,7 +113,7 @@ volumes:
   cart_data:
   order_data:
   product_data:
-  summary_data:
+  ledger_data:
   prometheus_data:
   grafana_data:
 

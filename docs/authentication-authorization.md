@@ -2,7 +2,7 @@
 
 ## Purpose and Boundaries
 
-All four microservices (`cart-service`, `order-service`, `product-service`, `summary-service`)
+All four microservices (`cart-service`, `order-service`, `product-service`, `ledger-service`)
 are **OAuth2 / OpenID Connect resource servers**. They never implement login themselves; they
 validate bearer access tokens issued by an identity provider and authorize each request based on
 the token's claims.
@@ -75,7 +75,7 @@ it renders actually require; scopes are checked per service.
 
 ## Scope and Endpoint Matrix
 
-Scopes across the platform: `cart:read`, `cart:write`, `order:read`, `order:write`, `summary:read`,
+Scopes across the platform: `cart:read`, `cart:write`, `order:read`, `order:write`, `ledger:read`,
 `product:admin`.
 
 ### Cart service
@@ -107,12 +107,12 @@ Scopes across the platform: `cart:read`, `cart:write`, `order:read`, `order:writ
 | `PUT /products/{id}` | `product:admin` | |
 | `DELETE /products/{id}` | `product:admin` | |
 
-### Summary service (read-only projection)
+### Ledger service (read-only projection)
 
 | Endpoint | Scope | Notes |
 | --- | --- | --- |
-| `GET /api/customer/summary` | `summary:read` | Aggregates `orderCount`, `totalSpending`, `averageOrderAmount`, `recentOrders`. |
-| `GET /api/customer/summary/orders/{orderId}/receipt` | `summary:read` | `404` if not ready or owned by another customer. |
+| `GET /api/customer/ledger` | `ledger:read` | Aggregates `orderCount`, `totalSpending`, `averageOrderAmount`, `recentOrders`. |
+| `GET /api/customer/ledger/orders/{orderId}/receipt` | `ledger:read` | `404` if not ready or owned by another customer. |
 
 ### Public endpoints on every service
 
@@ -146,7 +146,7 @@ and `security.jwt.demo-enabled=true`:
   `DEMO_USERNAME` / `DEMO_PASSWORD` environment variables.
 - `GET /.well-known/openid-configuration` and `GET /.well-known/jwks.json` serve OIDC discovery and the public key set.
 - Minted tokens: RS256, `sub=customer-f7b1b25c`, `aud=grocery-api`, TTL 300s, and all scopes
-  `cart:read cart:write order:read order:write summary:read product:admin`.
+  `cart:read cart:write order:read order:write ledger:read product:admin`.
 
 ```sh
 curl -s -X POST http://localhost:8080/auth/login -H 'Content-Type: application/json' \
@@ -197,7 +197,7 @@ it to the API. The microservices do not serve login pages.
 
 In production all four services validate against the same `JWT_ISSUER_URI`/`JWT_AUDIENCE`, so the
 single access token issued at login works against every service. Request the scopes your features
-need at login (typically `cart:read cart:write order:read order:write summary:read`, plus
+need at login (typically `cart:read cart:write order:read order:write ledger:read`, plus
 `product:admin` only for catalogue administration).
 
 ### 2. Local development with the demo IdP (single issuer)
@@ -230,9 +230,9 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8083/products           
   recalculate totals client-side.
 - After checkout, the summary is built asynchronously (Kafka). Show **Order confirmed** immediately
   and, only if the user asks for a receipt, poll
-  `GET /api/customer/summary/orders/{orderId}/receipt` with bounded retries; `404` means "pending or not
+  `GET /api/customer/ledger/orders/{orderId}/receipt` with bounded retries; `404` means "pending or not
   yours", never failure.
-- Receipt-triggered flow depends on the `summary:read` scope; include it in your token scopes.
+- Receipt-triggered flow depends on the `ledger:read` scope; include it in your token scopes.
 
 Example (fetch):
 

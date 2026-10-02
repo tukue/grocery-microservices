@@ -14,8 +14,8 @@ import java.util.Map;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
-    @ExceptionHandler(SummaryNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleSummaryNotFoundException(SummaryNotFoundException ex, HttpServletRequest request) {
+    @ExceptionHandler(LedgerNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleLedgerNotFoundException(LedgerNotFoundException ex, HttpServletRequest request) {
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.NOT_FOUND.value(),
                 HttpStatus.NOT_FOUND.getReasonPhrase(),

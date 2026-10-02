@@ -9,7 +9,7 @@ import java.util.List;
  * Pure domain logic for summary calculations.
  * Independent of Spring and Database.
  */
-public class SummaryProcessor {
+public class LedgerProcessor {
 
     public BigDecimal calculateTotalSpending(List<Summary> summaries) {
         return summaries.stream()

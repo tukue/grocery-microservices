@@ -41,9 +41,9 @@ This application is designed using the microservices architectural style, where 
 - **Product Service:** Manages the product catalog and exposes product-related APIs.
 - **Cart Service:** Handles shopping cart operations for users.
 - **Order Service:** Manages order creation and processing.
-- **Summary Service:** Generates purchase summaries and receipts.
+- **Ledger Service:** Generates purchase summaries and receipts.
 
-Services use REST for request-response operations and Kafka for asynchronous order-created events. Order Service persists `order.created.v1` with the order, then a leased publisher delivers it to Kafka. Summary Service consumes it to build its summary read model. For local development, each service has its own database, codebase, and can be tested and deployed independently.
+Services use REST for request-response operations and Kafka for asynchronous order-created events. Order Service persists `order.created.v1` with the order, then a leased publisher delivers it to Kafka. Ledger Service consumes it to build its summary read model. For local development, each service has its own database, codebase, and can be tested and deployed independently.
 
 ## Prerequisites
 
@@ -91,7 +91,7 @@ The services will be available at the following ports:
 - **cart-service:** 8081
 - **order-service:** 8082
 - **product-service:** 8083
-- **summary-service:** 8084
+- **ledger-service:** 8084
 
 ## Quick Start
 
@@ -104,7 +104,7 @@ Access services at:
 - Cart: `{CART_SERVICE_BASE_URL}`
 - Order: `{ORDER_SERVICE_BASE_URL}`
 - Product: `{PRODUCT_SERVICE_BASE_URL}`
-- Summary: `{SUMMARY_SERVICE_BASE_URL}`
+- Summary: `{LEDGER_SERVICE_BASE_URL}`
 
 ## Service Endpoints
 
@@ -115,7 +115,7 @@ Use the following placeholders for environment-specific service hosts:
 | Cart      | `{CART_SERVICE_BASE_URL}`    | `{CART_SERVICE_BASE_URL}/swagger-ui.html`     |
 | Order     | `{ORDER_SERVICE_BASE_URL}`   | `{ORDER_SERVICE_BASE_URL}/swagger-ui.html`    |
 | Product   | `{PRODUCT_SERVICE_BASE_URL}` | `{PRODUCT_SERVICE_BASE_URL}/swagger-ui.html`  |
-| Summary   | `{SUMMARY_SERVICE_BASE_URL}` | `{SUMMARY_SERVICE_BASE_URL}/swagger-ui.html`  |
+| Summary   | `{LEDGER_SERVICE_BASE_URL}` | `{LEDGER_SERVICE_BASE_URL}/swagger-ui.html`  |
 
 ## Environment Variables
 
@@ -128,7 +128,7 @@ Use the following placeholders for environment-specific service hosts:
 | JWT_AUDIENCE              | Required JWT audience claim | Required outside test |
 | KAFKA_BOOTSTRAP_SERVERS   | Kafka broker bootstrap address | Required in production |
 | KAFKA_ORDER_CREATED_TOPIC | Versioned order-created topic | `order.created.v1` |
-| KAFKA_SUMMARY_CONSUMER_GROUP | Summary consumer group | `summary-service` |
+| KAFKA_LEDGER_CONSUMER_GROUP | Summary consumer group | `ledger-service` |
 
 ## Architecture
 
@@ -149,11 +149,11 @@ flowchart LR
 
   EventPublisher -->|order.created.v1| Kafka[(Kafka)]
 
-  subgraph SummaryBoundary[Summary Service]
-    EventConsumer[Order-Created Consumer] --> SummaryDB[(Summary DB)]
+  subgraph SummaryBoundary[Ledger Service]
+    EventConsumer[Order-Created Consumer] --> SummaryDB[(Ledger DB)]
   end
 
-  Kafka -->|summary-service consumer group| EventConsumer
+  Kafka -->|ledger-service consumer group| EventConsumer
   Prometheus[Prometheus] --> CartService
   Prometheus --> OrderApi
   Prometheus --> ProductService
@@ -185,9 +185,9 @@ mvn test -pl microservices/cart-service -Dspring.profiles.active=test
 
 For the event flow, configuration reference, failure handling, local commands, and operational practices, see [Kafka Integration Guide](../docs/kafka-integration.md).
 
-Order Service writes a typed `OrderCreatedEvent` to its transactional event store with the order. A scheduled relay claims events with a time-limited lease, publishes them outside the database transaction, and records the result. This prevents Kafka latency from holding database locks and enables recovery after a publisher instance stops. Failed publishes are retried with a configurable delay and become terminal `FAILED` records after the configured maximum retries. Summary Service consumes the event with its own consumer group. A unique `summary.order_id` constraint and duplicate check make standard Kafka redelivery idempotent.
+Order Service writes a typed `OrderCreatedEvent` to its transactional event store with the order. A scheduled relay claims events with a time-limited lease, publishes them outside the database transaction, and records the result. This prevents Kafka latency from holding database locks and enables recovery after a publisher instance stops. Failed publishes are retried with a configurable delay and become terminal `FAILED` records after the configured maximum retries. Ledger Service consumes the event with its own consumer group. A unique `summary.order_id` constraint and duplicate check make standard Kafka redelivery idempotent.
 
-Configure the relay with `KAFKA_EVENT_STORE_BATCH_SIZE`, `KAFKA_EVENT_STORE_LEASE_DURATION`, `KAFKA_EVENT_STORE_RETRY_DELAY`, and `KAFKA_EVENT_STORE_MAXIMUM_RETRIES`. The initial publish is followed by at most the configured number of retries. Terminal failures must be monitored and replayed only after their cause is resolved. Summary Service retries consumer failures using `KAFKA_SUMMARY_MAXIMUM_RETRIES`, then publishes the original record to `order.created.v1.failed` for diagnosis and controlled replay.
+Configure the relay with `KAFKA_EVENT_STORE_BATCH_SIZE`, `KAFKA_EVENT_STORE_LEASE_DURATION`, `KAFKA_EVENT_STORE_RETRY_DELAY`, and `KAFKA_EVENT_STORE_MAXIMUM_RETRIES`. The initial publish is followed by at most the configured number of retries. Terminal failures must be monitored and replayed only after their cause is resolved. Ledger Service retries consumer failures using `KAFKA_LEDGER_MAXIMUM_RETRIES`, then publishes the original record to `order.created.v1.failed` for diagnosis and controlled replay.
 
 Docker Compose includes a single-node Kafka broker for development and initializes the order-created and failed-event topics explicitly. Production deployments must provide managed Kafka with at least three brokers, topic replication factor `3`, `min.insync.replicas=2`, and TLS/SASL configured at the platform level.
 
@@ -240,7 +240,7 @@ Each microservice exposes interactive API documentation via Swagger UI. You can 
 - **cart-service:** `{CART_SERVICE_BASE_URL}/swagger-ui.html` or `{CART_SERVICE_BASE_URL}/swagger-ui/index.html`
 - **order-service:** `{ORDER_SERVICE_BASE_URL}/swagger-ui.html` or `{ORDER_SERVICE_BASE_URL}/swagger-ui/index.html`
 - **product-service:** `{PRODUCT_SERVICE_BASE_URL}/swagger-ui.html` or `{PRODUCT_SERVICE_BASE_URL}/swagger-ui/index.html`
-- **summary-service:** `{SUMMARY_SERVICE_BASE_URL}/swagger-ui.html` or `{SUMMARY_SERVICE_BASE_URL}/swagger-ui/index.html`
+- **ledger-service:** `{LEDGER_SERVICE_BASE_URL}/swagger-ui.html` or `{LEDGER_SERVICE_BASE_URL}/swagger-ui/index.html`
 
 
 If the `/swagger-ui.html` path does not work, try `/swagger-ui/index.html`.
@@ -255,7 +255,7 @@ Each service exposes a health endpoint via Spring Boot Actuator:
 - **cart-service:** `{CART_SERVICE_BASE_URL}/actuator/health`
 - **order-service:** `{ORDER_SERVICE_BASE_URL}/actuator/health`
 - **product-service:** `{PRODUCT_SERVICE_BASE_URL}/actuator/health`
-- **summary-service:** `{SUMMARY_SERVICE_BASE_URL}/actuator/health`
+- **ledger-service:** `{LEDGER_SERVICE_BASE_URL}/actuator/health`
 
 If you get an empty reply or 401 error, make sure the service is running and that your security configuration allows unauthenticated access to `/actuator/health`.
 

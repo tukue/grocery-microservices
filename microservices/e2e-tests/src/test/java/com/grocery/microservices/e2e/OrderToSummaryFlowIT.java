@@ -12,7 +12,7 @@ import com.grocery.microservices.order.client.StockReservationSnapshot;
 import com.grocery.microservices.order.exception.InsufficientProductStockException;
 import com.grocery.microservices.order.exception.CheckoutCartAlreadyCheckedOutException;
 import com.grocery.microservices.ledger.LedgerServiceApplication;
-import com.grocery.microservices.ledger.dto.CustomerSummaryDTO;
+import com.grocery.microservices.ledger.dto.CustomerLedgerDTO;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -116,7 +116,7 @@ class OrderToSummaryFlowIT {
         createTopic(DLT_TOPIC);
 
         orderCtx = startOrderService();
-        summaryCtx = startSummaryService();
+        summaryCtx = startLedgerService();
 
         await().atMost(30, TimeUnit.SECONDS).until(() -> isUp(ORDER_BASE));
         await().atMost(30, TimeUnit.SECONDS).until(() -> isUp(SUMMARY_BASE));
@@ -132,7 +132,7 @@ class OrderToSummaryFlowIT {
     }
 
     @Test
-    void checkoutPublishesEventConsumedBySummaryService() throws Exception {
+    void checkoutPublishesEventConsumedByLedgerService() throws Exception {
         String orderToken = login(ORDER_BASE);
         String summaryToken = login(SUMMARY_BASE);
 
@@ -151,7 +151,7 @@ class OrderToSummaryFlowIT {
         assertThat(total).isCloseTo(26.25, offset(0.01));
 
         awaitSummaryContains(summaryToken, orderId);
-        CustomerSummaryDTO summary = getSummary(summaryToken);
+        CustomerLedgerDTO summary = getSummary(summaryToken);
         assertThat(summary.getOrderCount()).isGreaterThanOrEqualTo(1);
         assertThat(summary.getRecentOrders()).anyMatch(s -> s.getOrderId().equals(orderId));
         assertThat(summary.getTotalSpending()).isGreaterThanOrEqualTo(BigDecimal.valueOf(total));
@@ -171,7 +171,7 @@ class OrderToSummaryFlowIT {
         assertThat(secondOrderId).isEqualTo(firstOrderId);
 
         awaitSummaryContains(summaryToken, firstOrderId);
-        CustomerSummaryDTO summary = getSummary(summaryToken);
+        CustomerLedgerDTO summary = getSummary(summaryToken);
         long matchCount = summary.getRecentOrders().stream()
                 .filter(s -> s.getOrderId().equals(firstOrderId))
                 .count();
@@ -193,7 +193,7 @@ class OrderToSummaryFlowIT {
         duplicatePublish(orderId, payload);
 
         await().atMost(8, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).untilAsserted(() -> {
-            CustomerSummaryDTO summary = getSummary(summaryToken);
+            CustomerLedgerDTO summary = getSummary(summaryToken);
             long matchCount = summary.getRecentOrders().stream()
                     .filter(s -> s.getOrderId().equals(orderId))
                     .count();
@@ -244,7 +244,7 @@ class OrderToSummaryFlowIT {
     private void awaitSummaryContains(String token, long orderId) {
         await().atMost(25, TimeUnit.SECONDS).pollInterval(Duration.ofSeconds(1)).until(() -> {
             try {
-                CustomerSummaryDTO dto = getSummary(token);
+                CustomerLedgerDTO dto = getSummary(token);
                 return dto != null && dto.getRecentOrders().stream().anyMatch(s -> s.getOrderId().equals(orderId));
             } catch (Exception e) {
                 return false;
@@ -252,11 +252,11 @@ class OrderToSummaryFlowIT {
         });
     }
 
-    private CustomerSummaryDTO getSummary(String token) {
+    private CustomerLedgerDTO getSummary(String token) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
-        ResponseEntity<CustomerSummaryDTO> resp = http.exchange(SUMMARY_BASE + "/api/customer/summary",
-                HttpMethod.GET, new HttpEntity<>(headers), CustomerSummaryDTO.class);
+        ResponseEntity<CustomerLedgerDTO> resp = http.exchange(SUMMARY_BASE + "/api/customer/ledger",
+                HttpMethod.GET, new HttpEntity<>(headers), CustomerLedgerDTO.class);
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
         return resp.getBody();
     }
@@ -349,7 +349,7 @@ class OrderToSummaryFlowIT {
                         "--security.jwt.issuer-uri=" + ORDER_BASE);
     }
 
-    private static ConfigurableApplicationContext startSummaryService() {
+    private static ConfigurableApplicationContext startLedgerService() {
         return new SpringApplicationBuilder(LedgerServiceApplication.class)
                 .profiles("docker")
                 .web(WebApplicationType.SERVLET)

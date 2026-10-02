@@ -6,12 +6,12 @@ import java.util.List;
 /**
  * Read-only aggregate view of a single customer's order summary.
  */
-public class CustomerSummaryDTO {
+public class CustomerLedgerDTO {
     private String customerId;
     private long orderCount;
     private BigDecimal totalSpending;
     private BigDecimal averageOrderAmount;
-    private List<SummaryDTO> recentOrders;
+    private List<LedgerDTO> recentOrders;
 
     public String getCustomerId() { return customerId; }
 
@@ -29,7 +29,7 @@ public class CustomerSummaryDTO {
 
     public void setAverageOrderAmount(BigDecimal averageOrderAmount) { this.averageOrderAmount = averageOrderAmount; }
 
-    public List<SummaryDTO> getRecentOrders() { return recentOrders; }
+    public List<LedgerDTO> getRecentOrders() { return recentOrders; }
 
-    public void setRecentOrders(List<SummaryDTO> recentOrders) { this.recentOrders = recentOrders; }
+    public void setRecentOrders(List<LedgerDTO> recentOrders) { this.recentOrders = recentOrders; }
 }

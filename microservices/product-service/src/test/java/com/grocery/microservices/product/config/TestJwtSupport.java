@@ -24,14 +24,14 @@ import java.util.UUID;
 
 /**
  * Test-only asymmetric key fixture shared across cart, order, product and
- * summary service tests so that the same test issuer and customer identity are
+ * ledger service tests so that the same test issuer and customer identity are
  * validated consistently end to end.
  */
 public final class TestJwtSupport {
 
     public static final String TEST_ISSUER = "https://grocery-test.example.test";
     public static final String TEST_AUDIENCE = "grocery-api";
-    public static final String DEFAULT_SCOPES = "cart:read cart:write order:read order:write order:create summary:read product:admin";
+    public static final String DEFAULT_SCOPES = "cart:read cart:write order:read order:write order:create ledger:read product:admin";
 
     private static final KeyPair KEY_PAIR = generateKeyPair();
     private static final String KEY_ID = "test-rs256-key";

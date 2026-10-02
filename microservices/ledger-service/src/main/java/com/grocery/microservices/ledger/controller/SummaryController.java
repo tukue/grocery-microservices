@@ -1,8 +1,8 @@
 package com.grocery.microservices.ledger.controller;
 
 import com.grocery.microservices.ledger.config.AuthenticatedCustomer;
-import com.grocery.microservices.ledger.dto.CustomerSummaryDTO;
-import com.grocery.microservices.ledger.dto.SummaryDTO;
+import com.grocery.microservices.ledger.dto.CustomerLedgerDTO;
+import com.grocery.microservices.ledger.dto.LedgerDTO;
 import com.grocery.microservices.ledger.model.Summary;
 import com.grocery.microservices.ledger.port.SummaryQuery;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,19 +17,19 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/customer")
-public class SummaryController {
+public class LedgerController {
 
     private final SummaryQuery summaryQuery;
 
-    public SummaryController(SummaryQuery summaryQuery) {
+    public LedgerController(SummaryQuery summaryQuery) {
         this.summaryQuery = summaryQuery;
     }
 
     @GetMapping("/summary")
     @PreAuthorize("hasAuthority('SCOPE_ledger:read')")
-    public CustomerSummaryDTO getMySummary(@AuthenticationPrincipal AuthenticatedCustomer customer) {
+    public CustomerLedgerDTO getMySummary(@AuthenticationPrincipal AuthenticatedCustomer customer) {
         String customerId = customer.customerId();
-        CustomerSummaryDTO dto = new CustomerSummaryDTO();
+        CustomerLedgerDTO dto = new CustomerLedgerDTO();
         dto.setCustomerId(customerId);
         dto.setOrderCount(summaryQuery.getOrderCount(customerId));
         dto.setTotalSpending(summaryQuery.getTotalSpending(customerId));
@@ -47,8 +47,8 @@ public class SummaryController {
         return summaryQuery.getFormattedReceipt(customer.customerId(), orderId);
     }
 
-    private SummaryDTO convertToDto(Summary summary) {
-        SummaryDTO summaryDto = new SummaryDTO();
+    private LedgerDTO convertToDto(Summary summary) {
+        LedgerDTO summaryDto = new LedgerDTO();
         summaryDto.setId(summary.getId());
         summaryDto.setOrderId(summary.getOrderId());
         if (summary.getTotalAmount() != null) {

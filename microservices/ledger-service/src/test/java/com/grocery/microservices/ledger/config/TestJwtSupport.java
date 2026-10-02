@@ -24,7 +24,7 @@ import java.util.UUID;
 
 /**
  * Test-only asymmetric key fixture shared across cart, order, product and
- * summary service tests so that the same test issuer and customer identity are
+ * ledger service tests so that the same test issuer and customer identity are
  * validated consistently end to end.
  */
 public final class TestJwtSupport {

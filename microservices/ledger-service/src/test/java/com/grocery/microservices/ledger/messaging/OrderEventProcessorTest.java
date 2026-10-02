@@ -4,7 +4,7 @@ import com.grocery.microservices.ledger.event.OrderCreatedEvent;
 import com.grocery.microservices.ledger.model.ProcessedOrderEvent;
 import com.grocery.microservices.ledger.model.Summary;
 import com.grocery.microservices.ledger.repository.ProcessedOrderEventRepository;
-import com.grocery.microservices.ledger.repository.SummaryRepository;
+import com.grocery.microservices.ledger.repository.LedgerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
@@ -23,13 +23,13 @@ import static org.mockito.Mockito.when;
 @ActiveProfiles("test")
 class OrderEventProcessorTest {
 
-    private SummaryRepository summaryRepository;
+    private LedgerRepository summaryRepository;
     private ProcessedOrderEventRepository processedEventRepository;
     private OrderEventProcessor processor;
 
     @BeforeEach
     void setUp() {
-        summaryRepository = mock(SummaryRepository.class);
+        summaryRepository = mock(LedgerRepository.class);
         processedEventRepository = mock(ProcessedOrderEventRepository.class);
         processor = new OrderEventProcessor(summaryRepository, processedEventRepository);
     }

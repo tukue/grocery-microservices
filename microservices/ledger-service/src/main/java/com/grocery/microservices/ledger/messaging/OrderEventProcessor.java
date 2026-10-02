@@ -5,7 +5,7 @@ import com.grocery.microservices.ledger.model.ProcessedOrderEvent;
 import com.grocery.microservices.ledger.model.Summary;
 import com.grocery.microservices.ledger.port.SummaryProjectionUpdater;
 import com.grocery.microservices.ledger.repository.ProcessedOrderEventRepository;
-import com.grocery.microservices.ledger.repository.SummaryRepository;
+import com.grocery.microservices.ledger.repository.LedgerRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,10 +14,10 @@ import java.time.LocalDateTime;
 
 @Service
 public class OrderEventProcessor implements SummaryProjectionUpdater {
-    private final SummaryRepository summaryRepository;
+    private final LedgerRepository summaryRepository;
     private final ProcessedOrderEventRepository processedEventRepository;
 
-    public OrderEventProcessor(SummaryRepository summaryRepository,
+    public OrderEventProcessor(LedgerRepository summaryRepository,
                                ProcessedOrderEventRepository processedEventRepository) {
         this.summaryRepository = summaryRepository;
         this.processedEventRepository = processedEventRepository;

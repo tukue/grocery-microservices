@@ -33,7 +33,7 @@ security.jwt.audience=${JWT_AUDIENCE}
 
 ## Configuring the client-facing Identity Provider
 
-All four microservices are OAuth2 resource servers. In production/docker they fetch the IdP's signature keys from `JWT_ISSUER_URI` OIDC discovery and validate every token's signature, algorithm (RS256), issuer, audience, timestamps, and `sub` claim. Tokens must contain the negotiated scope claim; scopes such as `cart:read`, `cart:write`, `order:read`, `order:write`, `summary:read`, and `product:admin` gate endpoints via method security (`@PreAuthorize`).
+All four microservices are OAuth2 resource servers. In production/docker they fetch the IdP's signature keys from `JWT_ISSUER_URI` OIDC discovery and validate every token's signature, algorithm (RS256), issuer, audience, timestamps, and `sub` claim. Tokens must contain the negotiated scope claim; scopes such as `cart:read`, `cart:write`, `order:read`, `order:write`, `ledger:read`, and `product:admin` gate endpoints via method security (`@PreAuthorize`).
 
 Inter-service calls (order → cart) forward the caller's bearer token so the downstream service enforces the same ownership rules; no shared-secret internal headers are used.
 
