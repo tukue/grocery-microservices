@@ -6,13 +6,18 @@ on:
   pull_request:
     branches: [ main, develop ]
 
-env:
-  MAVEN_OPTS: -Dmaven.repo.local=.m2/repository
+permissions:
+  contents: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
+    permissions:
+      contents: read
+      # dorny/test-reporter publishes a check run against the commit SHA.
+      checks: write
+
     services:
       postgres:
         image: postgres:15-alpine
@@ -37,19 +42,14 @@ jobs:
       - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
-          java-version: '25'
           distribution: 'temurin'
+          java-version: '25'
+          # Caches ~/.m2/repository, the same path Trivy reads during scanning.
+          cache: maven
 
-      - name: Cache Maven dependencies
-        uses: actions/cache@v4
-        with:
-          path: .m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      # Per-service test profiles are gitignored; recreate them from the
-      # committed examples so the test classpath resolves a real datasource.
+      # Per-service test profiles are gitignored, so a fresh checkout has no
+      # application-test.properties on the test classpath. Recreate it from the
+      # committed example before running the suite.
       - name: Prepare test properties
         run: |
           for service in cart-service order-service product-service ledger-service; do
@@ -69,30 +69,45 @@ jobs:
           reporter: java-junit
           fail-on-empty: true
 
-      # No JaCoCo plugin is configured in any pom, so ./target/site/jacoco never
-      # exists. Uploading it only produced a "file not found" warning.
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./microservices/*/target/site/jacoco/jacoco.xml
-          flags: unittests
-          fail_ci_if_error: false
-
   security-scan:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      # Required to upload the SARIF report to the Security tab.
+      security-events: write
+
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: maven
+
+      # Trivy resolves the Maven dependency tree by reading ~/.m2/repository
+      # first and only falling back to Maven Central on a miss. GitHub-hosted
+      # runners share IP ranges, so those fallbacks hit HTTP 429 rate limiting
+      # and abort the scan with a non-zero exit. Resolving dependencies up front
+      # keeps the scan off the network.
+      - name: Resolve Maven dependencies
+        run: mvn -B -ntp dependency:go-offline
+
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
           format: 'sarif'
           output: 'trivy-results.sarif'
+          # Keep the scan bounded; a cold cache plus dependency resolution is slow.
+          timeout: '20m'
+          skip-dirs: '.git,target,frontend/node_modules'
 
       - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'
 
@@ -100,23 +115,26 @@ jobs:
     needs: [test, security-scan]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
+
+    permissions:
+      contents: read
+
     strategy:
       matrix:
         service: [cart-service, order-service, product-service, ledger-service]
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
