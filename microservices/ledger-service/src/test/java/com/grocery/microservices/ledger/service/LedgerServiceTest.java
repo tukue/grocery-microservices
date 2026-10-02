@@ -1,7 +1,7 @@
 package com.grocery.microservices.ledger.service;
 
 import com.grocery.microservices.ledger.exception.LedgerNotFoundException;
-import com.grocery.microservices.ledger.model.Summary;
+import com.grocery.microservices.ledger.model.Ledger;
 import com.grocery.microservices.ledger.repository.LedgerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,18 +22,18 @@ import java.util.Optional;
 class LedgerServiceTest {
 
     @Mock
-    private LedgerRepository summaryRepository;
+    private LedgerRepository ledgerRepository;
 
     @InjectMocks
-    private LedgerService summaryService;
+    private LedgerService ledgerService;
 
-    private Summary testSummary;
+    private Ledger testSummary;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
 
-        testSummary = new Summary();
+        testSummary = new Ledger();
         testSummary.setId(1L);
         testSummary.setUserId("customer-1");
         testSummary.setOrderId(1L);
@@ -44,109 +44,109 @@ class LedgerServiceTest {
 
     @Test
     void testGetSummariesByCustomer() {
-        when(summaryRepository.findByUserIdOrderByCreatedAtDesc("customer-1"))
+        when(ledgerRepository.findByUserIdOrderByCreatedAtDesc("customer-1"))
                 .thenReturn(Arrays.asList(testSummary));
 
-        List<Summary> results = summaryService.getSummariesByCustomer("customer-1");
+        List<Ledger> results = ledgerService.getSummariesByCustomer("customer-1");
 
         assertNotNull(results);
         assertEquals(1, results.size());
         assertEquals("customer-1", results.get(0).getUserId());
-        verify(summaryRepository, times(1)).findByUserIdOrderByCreatedAtDesc("customer-1");
+        verify(ledgerRepository, times(1)).findByUserIdOrderByCreatedAtDesc("customer-1");
     }
 
     @Test
     void testGetSummariesByCustomerNotFound() {
-        when(summaryRepository.findByUserIdOrderByCreatedAtDesc("nonexistent"))
+        when(ledgerRepository.findByUserIdOrderByCreatedAtDesc("nonexistent"))
                 .thenReturn(Arrays.asList());
 
-        List<Summary> results = summaryService.getSummariesByCustomer("nonexistent");
+        List<Ledger> results = ledgerService.getSummariesByCustomer("nonexistent");
 
         assertNotNull(results);
         assertTrue(results.isEmpty());
-        verify(summaryRepository, times(1)).findByUserIdOrderByCreatedAtDesc("nonexistent");
+        verify(ledgerRepository, times(1)).findByUserIdOrderByCreatedAtDesc("nonexistent");
     }
 
     @Test
     void testGetSummaryByOrder() {
-        when(summaryRepository.findByOrderIdAndUserId(1L, "customer-1")).thenReturn(Optional.of(testSummary));
+        when(ledgerRepository.findByOrderIdAndUserId(1L, "customer-1")).thenReturn(Optional.of(testSummary));
 
-        Summary result = summaryService.getSummaryByOrder("customer-1", 1L);
+        Ledger result = ledgerService.getSummaryByOrder("customer-1", 1L);
 
         assertEquals(testSummary, result);
-        verify(summaryRepository).findByOrderIdAndUserId(1L, "customer-1");
+        verify(ledgerRepository).findByOrderIdAndUserId(1L, "customer-1");
     }
 
     @Test
     void testGetSummaryByOrderIsNotFoundForAnotherCustomer() {
-        when(summaryRepository.findByOrderIdAndUserId(1L, "customer-2")).thenReturn(Optional.empty());
+        when(ledgerRepository.findByOrderIdAndUserId(1L, "customer-2")).thenReturn(Optional.empty());
 
-        assertThrows(LedgerNotFoundException.class, () -> summaryService.getSummaryByOrder("customer-2", 1L));
-        verify(summaryRepository).findByOrderIdAndUserId(1L, "customer-2");
+        assertThrows(LedgerNotFoundException.class, () -> ledgerService.getSummaryByOrder("customer-2", 1L));
+        verify(ledgerRepository).findByOrderIdAndUserId(1L, "customer-2");
     }
 
     @Test
     void testGetTotalSpending() {
-        Summary summary1 = new Summary();
+        Ledger summary1 = new Ledger();
         summary1.setUserId("customer-1");
         summary1.setTotalAmount(BigDecimal.valueOf(100.00));
 
-        Summary summary2 = new Summary();
+        Ledger summary2 = new Ledger();
         summary2.setUserId("customer-1");
         summary2.setTotalAmount(BigDecimal.valueOf(150.00));
 
-        when(summaryRepository.findByUserIdOrderByCreatedAtDesc("customer-1"))
+        when(ledgerRepository.findByUserIdOrderByCreatedAtDesc("customer-1"))
                 .thenReturn(Arrays.asList(summary1, summary2));
 
-        BigDecimal totalSpending = summaryService.getTotalSpending("customer-1");
+        BigDecimal totalSpending = ledgerService.getTotalSpending("customer-1");
 
         assertEquals(BigDecimal.valueOf(250.00), totalSpending);
     }
 
     @Test
     void testGetTotalSpendingNoOrders() {
-        when(summaryRepository.findByUserIdOrderByCreatedAtDesc("customer-1"))
+        when(ledgerRepository.findByUserIdOrderByCreatedAtDesc("customer-1"))
                 .thenReturn(Arrays.asList());
 
-        assertEquals(BigDecimal.ZERO, summaryService.getTotalSpending("customer-1"));
+        assertEquals(BigDecimal.ZERO, ledgerService.getTotalSpending("customer-1"));
     }
 
     @Test
     void testGetOrderCount() {
-        when(summaryRepository.countByUserId("customer-1")).thenReturn(5L);
+        when(ledgerRepository.countByUserId("customer-1")).thenReturn(5L);
 
-        assertEquals(5L, summaryService.getOrderCount("customer-1"));
-        verify(summaryRepository, times(1)).countByUserId("customer-1");
+        assertEquals(5L, ledgerService.getOrderCount("customer-1"));
+        verify(ledgerRepository, times(1)).countByUserId("customer-1");
     }
 
     @Test
     void testGetAverageOrderAmount() {
-        Summary summary1 = new Summary();
+        Ledger summary1 = new Ledger();
         summary1.setTotalAmount(BigDecimal.valueOf(100.00));
-        Summary summary2 = new Summary();
+        Ledger summary2 = new Ledger();
         summary2.setTotalAmount(BigDecimal.valueOf(200.00));
 
-        when(summaryRepository.findByUserIdOrderByCreatedAtDesc("customer-1"))
+        when(ledgerRepository.findByUserIdOrderByCreatedAtDesc("customer-1"))
                 .thenReturn(Arrays.asList(summary1, summary2));
 
-        BigDecimal averageAmount = summaryService.getAverageOrderAmount("customer-1");
+        BigDecimal averageAmount = ledgerService.getAverageOrderAmount("customer-1");
 
         assertEquals(0, BigDecimal.valueOf(150.00).compareTo(averageAmount));
     }
 
     @Test
     void testGetAverageOrderAmountNoOrders() {
-        when(summaryRepository.findByUserIdOrderByCreatedAtDesc("customer-1"))
+        when(ledgerRepository.findByUserIdOrderByCreatedAtDesc("customer-1"))
                 .thenReturn(Arrays.asList());
 
-        assertEquals(BigDecimal.ZERO, summaryService.getAverageOrderAmount("customer-1"));
+        assertEquals(BigDecimal.ZERO, ledgerService.getAverageOrderAmount("customer-1"));
     }
 
     @Test
     void testGetFormattedReceiptScopedToCustomer() {
-        when(summaryRepository.findByOrderIdAndUserId(1L, "customer-1")).thenReturn(Optional.of(testSummary));
+        when(ledgerRepository.findByOrderIdAndUserId(1L, "customer-1")).thenReturn(Optional.of(testSummary));
 
-        String receipt = summaryService.getFormattedReceipt("customer-1", 1L);
+        String receipt = ledgerService.getFormattedReceipt("customer-1", 1L);
 
         assertTrue(receipt.contains("Order ID: 1"));
         assertTrue(receipt.contains("Total: $99.99"));

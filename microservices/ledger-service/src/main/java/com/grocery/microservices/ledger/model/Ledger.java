@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
         @Index(name = "idx_ledger_user_id", columnList = "user_id"),
         @Index(name = "idx_summary_order_id", columnList = "order_id")
 })
-public class Summary {
+public class Ledger {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

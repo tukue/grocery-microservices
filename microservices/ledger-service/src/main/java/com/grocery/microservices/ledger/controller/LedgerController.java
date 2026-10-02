@@ -3,8 +3,8 @@ package com.grocery.microservices.ledger.controller;
 import com.grocery.microservices.ledger.config.AuthenticatedCustomer;
 import com.grocery.microservices.ledger.dto.CustomerLedgerDTO;
 import com.grocery.microservices.ledger.dto.LedgerDTO;
-import com.grocery.microservices.ledger.model.Summary;
-import com.grocery.microservices.ledger.port.SummaryQuery;
+import com.grocery.microservices.ledger.model.Ledger;
+import com.grocery.microservices.ledger.port.LedgerQuery;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,47 +16,47 @@ import java.util.Arrays;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/customer")
+@RequestMapping("/api/customer/ledger")
 public class LedgerController {
 
-    private final SummaryQuery summaryQuery;
+    private final LedgerQuery ledgerQuery;
 
-    public LedgerController(SummaryQuery summaryQuery) {
-        this.summaryQuery = summaryQuery;
+    public LedgerController(LedgerQuery ledgerQuery) {
+        this.ledgerQuery = ledgerQuery;
     }
 
-    @GetMapping("/summary")
+    @GetMapping
     @PreAuthorize("hasAuthority('SCOPE_ledger:read')")
-    public CustomerLedgerDTO getMySummary(@AuthenticationPrincipal AuthenticatedCustomer customer) {
+    public CustomerLedgerDTO getMyLedger(@AuthenticationPrincipal AuthenticatedCustomer customer) {
         String customerId = customer.customerId();
         CustomerLedgerDTO dto = new CustomerLedgerDTO();
         dto.setCustomerId(customerId);
-        dto.setOrderCount(summaryQuery.getOrderCount(customerId));
-        dto.setTotalSpending(summaryQuery.getTotalSpending(customerId));
-        dto.setAverageOrderAmount(summaryQuery.getAverageOrderAmount(customerId));
-        dto.setRecentOrders(summaryQuery.getSummariesByCustomer(customerId).stream()
+        dto.setOrderCount(ledgerQuery.getOrderCount(customerId));
+        dto.setTotalSpending(ledgerQuery.getTotalSpending(customerId));
+        dto.setAverageOrderAmount(ledgerQuery.getAverageOrderAmount(customerId));
+        dto.setRecentOrders(ledgerQuery.getSummariesByCustomer(customerId).stream()
                 .map(this::convertToDto)
                 .toList());
         return dto;
     }
 
-    @GetMapping("/summary/orders/{orderId}/receipt")
+    @GetMapping("/orders/{orderId}/receipt")
     @PreAuthorize("hasAuthority('SCOPE_ledger:read')")
     public String getReceipt(@PathVariable Long orderId,
                              @AuthenticationPrincipal AuthenticatedCustomer customer) {
-        return summaryQuery.getFormattedReceipt(customer.customerId(), orderId);
+        return ledgerQuery.getFormattedReceipt(customer.customerId(), orderId);
     }
 
-    private LedgerDTO convertToDto(Summary summary) {
-        LedgerDTO summaryDto = new LedgerDTO();
-        summaryDto.setId(summary.getId());
-        summaryDto.setOrderId(summary.getOrderId());
-        if (summary.getTotalAmount() != null) {
-            summaryDto.setTotal(summary.getTotalAmount().doubleValue());
+    private LedgerDTO convertToDto(Ledger ledger) {
+        LedgerDTO dto = new LedgerDTO();
+        dto.setId(ledger.getId());
+        dto.setOrderId(ledger.getOrderId());
+        if (ledger.getTotalAmount() != null) {
+            dto.setTotal(ledger.getTotalAmount().doubleValue());
         }
-        if (summary.getDetails() != null && !summary.getDetails().isBlank()) {
-            summaryDto.setItems(Arrays.asList(summary.getDetails().split(", ")));
+        if (ledger.getDetails() != null && !ledger.getDetails().isBlank()) {
+            dto.setItems(Arrays.asList(ledger.getDetails().split(", ")));
         }
-        return summaryDto;
+        return dto;
     }
 }

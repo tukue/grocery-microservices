@@ -1,6 +1,6 @@
 package com.grocery.microservices.ledger.service;
 
-import com.grocery.microservices.ledger.model.Summary;
+import com.grocery.microservices.ledger.model.Ledger;
 import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -15,39 +15,39 @@ class LedgerProcessorTest {
 
     @Test
     void shouldCalculateTotalSpending() {
-        Summary s1 = new Summary();
-        s1.setTotalAmount(new BigDecimal("10.50"));
-        Summary s2 = new Summary();
-        s2.setTotalAmount(new BigDecimal("20.00"));
-        
-        List<Summary> summaries = Arrays.asList(s1, s2);
-        
-        assertEquals(new BigDecimal("30.50"), processor.calculateTotalSpending(summaries));
+        Ledger l1 = new Ledger();
+        l1.setTotalAmount(new BigDecimal("10.50"));
+        Ledger l2 = new Ledger();
+        l2.setTotalAmount(new BigDecimal("20.00"));
+
+        List<Ledger> ledgers = Arrays.asList(l1, l2);
+
+        assertEquals(new BigDecimal("30.50"), processor.calculateTotalSpending(ledgers));
     }
 
     @Test
     void shouldCalculateAverageOrderAmount() {
-        Summary s1 = new Summary();
-        s1.setTotalAmount(new BigDecimal("10.00"));
-        Summary s2 = new Summary();
-        s2.setTotalAmount(new BigDecimal("20.00"));
-        
-        List<Summary> summaries = Arrays.asList(s1, s2);
-        
-        assertEquals(new BigDecimal("15.00"), processor.calculateAverageOrderAmount(summaries));
+        Ledger l1 = new Ledger();
+        l1.setTotalAmount(new BigDecimal("10.00"));
+        Ledger l2 = new Ledger();
+        l2.setTotalAmount(new BigDecimal("20.00"));
+
+        List<Ledger> ledgers = Arrays.asList(l1, l2);
+
+        assertEquals(new BigDecimal("15.00"), processor.calculateAverageOrderAmount(ledgers));
     }
 
     @Test
     void shouldFormatReceipt() {
-        Summary summary = new Summary();
-        summary.setOrderId(123L);
-        summary.setCreatedAt(LocalDateTime.of(2023, 10, 27, 10, 0));
-        summary.setItemCount(3);
-        summary.setTotalAmount(new BigDecimal("45.67"));
-        summary.setDetails("Apple, Banana, Carrot");
-        
-        String receipt = processor.formatReceipt(summary);
-        
+        Ledger ledger = new Ledger();
+        ledger.setOrderId(123L);
+        ledger.setCreatedAt(LocalDateTime.of(2023, 10, 27, 10, 0));
+        ledger.setItemCount(3);
+        ledger.setTotalAmount(new BigDecimal("45.67"));
+        ledger.setDetails("Apple, Banana, Carrot");
+
+        String receipt = processor.formatReceipt(ledger);
+
         assertTrue(receipt.contains("Order ID: 123"));
         assertTrue(receipt.contains("Items: 3"));
         assertTrue(receipt.contains("Total: $45.67"));

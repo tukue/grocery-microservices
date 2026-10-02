@@ -1,8 +1,8 @@
 package com.grocery.microservices.ledger.messaging;
 
 import com.grocery.microservices.ledger.event.OrderCreatedEvent;
+import com.grocery.microservices.ledger.model.Ledger;
 import com.grocery.microservices.ledger.model.ProcessedOrderEvent;
-import com.grocery.microservices.ledger.model.Summary;
 import com.grocery.microservices.ledger.repository.ProcessedOrderEventRepository;
 import com.grocery.microservices.ledger.repository.LedgerRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,15 +23,15 @@ import static org.mockito.Mockito.when;
 @ActiveProfiles("test")
 class OrderEventProcessorTest {
 
-    private LedgerRepository summaryRepository;
+    private LedgerRepository ledgerRepository;
     private ProcessedOrderEventRepository processedEventRepository;
     private OrderEventProcessor processor;
 
     @BeforeEach
     void setUp() {
-        summaryRepository = mock(LedgerRepository.class);
+        ledgerRepository = mock(LedgerRepository.class);
         processedEventRepository = mock(ProcessedOrderEventRepository.class);
-        processor = new OrderEventProcessor(summaryRepository, processedEventRepository);
+        processor = new OrderEventProcessor(ledgerRepository, processedEventRepository);
     }
 
     private OrderCreatedEvent event(Long orderId) {
@@ -45,7 +45,7 @@ class OrderEventProcessorTest {
 
         processor.process(event);
 
-        verify(summaryRepository).save(any(Summary.class));
+        verify(ledgerRepository).save(any(Ledger.class));
         verify(processedEventRepository).save(any(ProcessedOrderEvent.class));
     }
 
@@ -56,17 +56,17 @@ class OrderEventProcessorTest {
 
         processor.process(event);
 
-        verify(summaryRepository, never()).save(any(Summary.class));
+        verify(ledgerRepository, never()).save(any(Ledger.class));
     }
 
     @Test
     void ignoresEventWhenOrderAlreadySummarised() {
         OrderCreatedEvent event = event(42L);
-        when(summaryRepository.findByOrderId(42L)).thenReturn(Optional.of(new Summary()));
+        when(ledgerRepository.findByOrderId(42L)).thenReturn(Optional.of(new Ledger()));
 
         processor.process(event);
 
-        verify(summaryRepository, never()).save(any(Summary.class));
+        verify(ledgerRepository, never()).save(any(Ledger.class));
     }
 
     @Test
@@ -74,6 +74,6 @@ class OrderEventProcessorTest {
         OrderCreatedEvent event = new OrderCreatedEvent(UUID.randomUUID(), Instant.now(), null, "customer-1", 7L, 19.95);
 
         assertThrows(IllegalArgumentException.class, () -> processor.process(event));
-        verify(summaryRepository, never()).save(any(Summary.class));
+        verify(ledgerRepository, never()).save(any(Ledger.class));
     }
 }

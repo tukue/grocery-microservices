@@ -1,9 +1,9 @@
 package com.grocery.microservices.ledger.messaging;
 
 import com.grocery.microservices.ledger.event.OrderCreatedEvent;
+import com.grocery.microservices.ledger.model.Ledger;
 import com.grocery.microservices.ledger.model.ProcessedOrderEvent;
-import com.grocery.microservices.ledger.model.Summary;
-import com.grocery.microservices.ledger.port.SummaryProjectionUpdater;
+import com.grocery.microservices.ledger.port.LedgerProjectionUpdater;
 import com.grocery.microservices.ledger.repository.ProcessedOrderEventRepository;
 import com.grocery.microservices.ledger.repository.LedgerRepository;
 import org.springframework.stereotype.Service;
@@ -13,13 +13,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Service
-public class OrderEventProcessor implements SummaryProjectionUpdater {
-    private final LedgerRepository summaryRepository;
+public class OrderEventProcessor implements LedgerProjectionUpdater {
+    private final LedgerRepository ledgerRepository;
     private final ProcessedOrderEventRepository processedEventRepository;
 
-    public OrderEventProcessor(LedgerRepository summaryRepository,
+    public OrderEventProcessor(LedgerRepository ledgerRepository,
                                ProcessedOrderEventRepository processedEventRepository) {
-        this.summaryRepository = summaryRepository;
+        this.ledgerRepository = ledgerRepository;
         this.processedEventRepository = processedEventRepository;
     }
 
@@ -30,17 +30,17 @@ public class OrderEventProcessor implements SummaryProjectionUpdater {
         if (processedEventRepository.existsById(event.eventId().toString())) {
             return;
         }
-        if (summaryRepository.findByOrderId(event.orderId()).isPresent()) {
+        if (ledgerRepository.findByOrderId(event.orderId()).isPresent()) {
             return;
         }
-        Summary summary = new Summary();
-        summary.setOrderId(event.orderId());
-        summary.setUserId(event.userId());
-        summary.setTotalAmount(BigDecimal.valueOf(event.total()));
-        summary.setItemCount(0);
-        summary.setCreatedAt(LocalDateTime.now());
-        summary.setDetails("Order created");
-        summaryRepository.save(summary);
+        Ledger ledger = new Ledger();
+        ledger.setOrderId(event.orderId());
+        ledger.setUserId(event.userId());
+        ledger.setTotalAmount(BigDecimal.valueOf(event.total()));
+        ledger.setItemCount(0);
+        ledger.setCreatedAt(LocalDateTime.now());
+        ledger.setDetails("Order created");
+        ledgerRepository.save(ledger);
 
         ProcessedOrderEvent processed = new ProcessedOrderEvent();
         processed.setEventId(event.eventId().toString());

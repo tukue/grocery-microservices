@@ -1,17 +1,17 @@
 package com.grocery.microservices.ledger.repository;
 
-import com.grocery.microservices.ledger.model.Summary;
+import com.grocery.microservices.ledger.model.Ledger;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface LedgerRepository extends JpaRepository<Summary, Long> {
-    Optional<Summary> findByOrderId(Long orderId);
+public interface LedgerRepository extends JpaRepository<Ledger, Long> {
+    Optional<Ledger> findByOrderId(Long orderId);
 
-    Optional<Summary> findByOrderIdAndUserId(Long orderId, String userId);
+    Optional<Ledger> findByOrderIdAndUserId(Long orderId, String userId);
 
-    List<Summary> findByUserIdOrderByCreatedAtDesc(String userId);
+    List<Ledger> findByUserIdOrderByCreatedAtDesc(String userId);
 
     long countByUserId(String userId);
 }

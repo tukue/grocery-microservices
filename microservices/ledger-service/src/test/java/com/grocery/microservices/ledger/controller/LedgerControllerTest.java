@@ -3,7 +3,7 @@ package com.grocery.microservices.ledger.controller;
 import com.grocery.microservices.ledger.config.TestJwtSupport;
 import com.grocery.microservices.ledger.config.TestSecurityConfig;
 import com.grocery.microservices.ledger.exception.LedgerNotFoundException;
-import com.grocery.microservices.ledger.model.Summary;
+import com.grocery.microservices.ledger.model.Ledger;
 import com.grocery.microservices.ledger.service.LedgerService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +32,7 @@ public class LedgerControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private LedgerService summaryService;
+    private LedgerService ledgerService;
 
     private static String bearer(String token) {
         return "Bearer " + token;
@@ -53,19 +53,19 @@ public class LedgerControllerTest {
 
     @Test
     public void returnsAggregatedSummaryForAuthenticatedCustomer() throws Exception {
-        Summary summary = new Summary();
-        summary.setId(1L);
-        summary.setOrderId(42L);
-        summary.setUserId("customer-1");
-        summary.setItemCount(2);
-        summary.setDetails("Apple, Banana");
-        summary.setTotalAmount(new BigDecimal("12.5"));
-        summary.setCreatedAt(LocalDateTime.now());
+        Ledger ledger = new Ledger();
+        ledger.setId(1L);
+        ledger.setOrderId(42L);
+        ledger.setUserId("customer-1");
+        ledger.setItemCount(2);
+        ledger.setDetails("Apple, Banana");
+        ledger.setTotalAmount(new BigDecimal("12.5"));
+        ledger.setCreatedAt(LocalDateTime.now());
 
-        when(summaryService.getOrderCount("customer-1")).thenReturn(1L);
-        when(summaryService.getTotalSpending("customer-1")).thenReturn(new BigDecimal("12.5"));
-        when(summaryService.getAverageOrderAmount("customer-1")).thenReturn(new BigDecimal("12.5"));
-        when(summaryService.getSummariesByCustomer("customer-1")).thenReturn(java.util.List.of(summary));
+        when(ledgerService.getOrderCount("customer-1")).thenReturn(1L);
+        when(ledgerService.getTotalSpending("customer-1")).thenReturn(new BigDecimal("12.5"));
+        when(ledgerService.getAverageOrderAmount("customer-1")).thenReturn(new BigDecimal("12.5"));
+        when(ledgerService.getSummariesByCustomer("customer-1")).thenReturn(java.util.List.of(ledger));
 
         mockMvc.perform(get("/api/customer/ledger")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1"))))
@@ -80,10 +80,10 @@ public class LedgerControllerTest {
 
     @Test
     public void returnsEmptySummaryWhenCustomerHasNoOrders() throws Exception {
-        when(summaryService.getOrderCount("customer-1")).thenReturn(0L);
-        when(summaryService.getTotalSpending("customer-1")).thenReturn(BigDecimal.ZERO);
-        when(summaryService.getAverageOrderAmount("customer-1")).thenReturn(BigDecimal.ZERO);
-        when(summaryService.getSummariesByCustomer("customer-1")).thenReturn(java.util.List.of());
+        when(ledgerService.getOrderCount("customer-1")).thenReturn(0L);
+        when(ledgerService.getTotalSpending("customer-1")).thenReturn(BigDecimal.ZERO);
+        when(ledgerService.getAverageOrderAmount("customer-1")).thenReturn(BigDecimal.ZERO);
+        when(ledgerService.getSummariesByCustomer("customer-1")).thenReturn(java.util.List.of());
 
         mockMvc.perform(get("/api/customer/ledger")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1"))))
@@ -94,7 +94,7 @@ public class LedgerControllerTest {
 
     @Test
     public void returnsNotFoundWhenOtherCustomersOrderReceiptIsRequested() throws Exception {
-        when(summaryService.getFormattedReceipt("customer-2", 99L))
+        when(ledgerService.getFormattedReceipt("customer-2", 99L))
                 .thenThrow(new LedgerNotFoundException(99L));
 
         mockMvc.perform(get("/api/customer/ledger/orders/99/receipt")
@@ -104,7 +104,7 @@ public class LedgerControllerTest {
 
     @Test
     public void returnsReceiptForOwnedOrder() throws Exception {
-        when(summaryService.getFormattedReceipt("customer-1", 42L))
+        when(ledgerService.getFormattedReceipt("customer-1", 42L))
                 .thenReturn("--- RECEIPT ---\nOrder ID: 42\n---------------\n");
 
         mockMvc.perform(get("/api/customer/ledger/orders/42/receipt")
