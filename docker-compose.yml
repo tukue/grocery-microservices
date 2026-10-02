@@ -107,7 +107,7 @@ services:
       - cart-service
       - order-service
       - product-service
-      - summary-service
+      - ledger-service
 
 volumes:
   cart_data:
