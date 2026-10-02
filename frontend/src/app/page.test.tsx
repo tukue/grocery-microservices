@@ -1,10 +1,15 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 import Home from "./page";
 
 describe("Home", () => {
   it("renders the home page with search field", () => {
-    render(<Home />);
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>,
+    );
 
     expect(
       screen.getByRole("heading", { name: "Ecommerce Store" }),
@@ -13,7 +18,11 @@ describe("Home", () => {
   });
 
   it("shows welcome message initially", () => {
-    render(<Home />);
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>,
+    );
 
     expect(
       screen.getByText("Welcome! Start searching for products."),
@@ -21,13 +30,21 @@ describe("Home", () => {
   });
 
   it("shows loading state", async () => {
-    render(<Home />);
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>,
+    );
 
     expect(screen.getByText("Loading products...")).toBeInTheDocument();
   });
 
   it("shows no products found message for searched term", async () => {
-    render(<Home />);
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>,
+    );
 
     const searchInput = screen.getByLabelText("Search products");
     fireEvent.change(searchInput, { target: { value: "nonexistent" } });
@@ -39,7 +56,11 @@ describe("Home", () => {
   });
 
   it("navigates to products page with search query", async () => {
-    render(<Home />);
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>,
+    );
 
     const searchInput = screen.getByLabelText("Search products");
     fireEvent.change(searchInput, { target: { value: "apple" } });
