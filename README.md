@@ -30,16 +30,16 @@ flowchart TB
     Api --> Product[Product service\nCatalog and search]
     Api --> Cart[Cart service\nCart operations]
     Api --> Order[Order service\nCheckout and orders]
-    Api --> Summary[Summary service\nSummaries and receipts]
+    Api --> Summary[Ledger service\nSummaries and receipts]
 
     Product --> ProductDb[(Product DB)]
     Cart --> CartDb[(Cart DB)]
     Order --> OrderDb[(Order DB)]
     Order --> EventStore[(Order event store)]
     EventStore -->|order.created.v1\nkey: orderId| Kafka[(Kafka)]
-    Kafka -->|summary-service group| Summary
+    Kafka -->|ledger-service group| Summary
     Kafka -->|exhausted retries| FailedQueue[order.created.v1.failed\nFailed-letter queue]
-    Summary --> SummaryDb[(Summary DB)]
+    Summary --> SummaryDb[(Ledger DB)]
 
     Summary -.->|frontend polls by order ID\nuntil receipt exists| Customer
     Product -.-> Metrics[Metrics, logs, alerts]
@@ -51,7 +51,7 @@ flowchart TB
 
 - The frontend calls only public HTTP APIs; it never connects to Kafka or service databases.
 - `order-service` persists the order and event intent, then its relay publishes `order.created.v1`.
-- `summary-service` consumes idempotently. The frontend confirms checkout immediately and polls the summary endpoint while the receipt is pending.
+- `ledger-service` consumes idempotently. The frontend confirms checkout immediately and polls the summary endpoint while the receipt is pending.
 - Configure allowed browser origins with `CORS_ALLOWED_ORIGINS`; inject Kafka and database credentials only into backend deployments.
 
 ### Full-Stack MVP Decisions
@@ -76,7 +76,7 @@ generation when a frontend codebase is connected.
 ### Kafka Order Summary Flow
 
 ```text
-Order Service -- order.created.v1 --> Kafka --> Summary Service --> Summary DB
+Order Service -- order.created.v1 --> Kafka --> Ledger Service --> Ledger DB
                                       | failure
                                       v
                             order.created.retry.v1
@@ -86,7 +86,7 @@ Order Service -- order.created.v1 --> Kafka --> Summary Service --> Summary DB
 ```
 
 - `order-service` publishes JSON `order.created` v1 events keyed by order ID; this preserves ordering per order.
-- `summary-service` consumes as group `summary-service`; a unique summary order ID makes duplicate delivery safe.
+- `ledger-service` consumes as group `ledger-service`; a unique summary order ID makes duplicate delivery safe.
 - Events include ID, type, version, timestamp, correlation ID, aggregate ID, and an immutable payload while retaining v1 fields for compatibility.
 - Main-consumer retries are bounded with exponential backoff. Transient failures move to the retry topic; exhausted failures are preserved in the failed-letter queue without an infinite loop.
 - Run locally with `docker compose -f microservices/docker-compose.yml up --build`. Configure broker and topics through `KAFKA_BOOTSTRAP_SERVERS` and `KAFKA_*_TOPIC` variables.
@@ -117,7 +117,7 @@ Order Service -- order.created.v1 --> Kafka --> Summary Service --> Summary DB
    │           │           │              │
    ▼           ▼           ▼              ▼
 ┌────────┐ ┌────────┐ ┌────────────┐ ┌──────────────┐
-│Cart DB │ │Order DB│ │Product DB  │ │ Summary DB   │
+│Cart DB │ │Order DB│ │Product DB  │ │ Ledger DB   │
 │(PG)    │ │(PG)    │ │(PG)        │ │ (PG)         │
 └────────┘ └────────┘ └────────────┘ └──────────────┘
 ```
@@ -139,7 +139,7 @@ graph TB
             CART[Cart Service<br/>:8081]
             ORDER[Order Service<br/>:8082]
             PROD[Product Service<br/>:8083]
-            SUMM[Summary Service<br/>:8084]
+            SUMM[Ledger Service<br/>:8084]
         end
 
         subgraph "Data Layer"
@@ -147,7 +147,7 @@ graph TB
             ORDER_DB[(Order DB<br/>PostgreSQL)]
             EVENT_STORE[(Order Event Store<br/>Leased delivery records)]
             PROD_DB[(Product DB<br/>PostgreSQL)]
-            SUMM_DB[(Summary DB<br/>PostgreSQL)]
+            SUMM_DB[(Ledger DB<br/>PostgreSQL)]
         end
 
         subgraph "Event Streaming"
@@ -180,7 +180,7 @@ graph TB
     ORDER --> ORDER_DB
     ORDER -->|atomic order-created record| EVENT_STORE
     EVENT_STORE -->|leased publisher| KAFKA
-    KAFKA -->|summary-service consumer group| SUMM
+    KAFKA -->|ledger-service consumer group| SUMM
     PROD --> PROD_DB
     SUMM --> SUMM_DB
 
@@ -231,7 +231,7 @@ sequenceDiagram
     participant Product as Product Service
     participant EventStore as Order Event Store
     participant Kafka
-    participant Summary as Summary Service
+    participant Summary as Ledger Service
 
     Client->>Cart: POST /auth/login
     Cart-->>Client: JWT Token
@@ -252,7 +252,7 @@ sequenceDiagram
     Order-->>Client: Order (status=PENDING)
 
     EventStore->>Kafka: Publish leased order.created.v1
-    Kafka->>Summary: Consume with summary-service group
+    Kafka->>Summary: Consume with ledger-service group
     Summary-->>Kafka: Commit after idempotent persistence
 
     Client->>Summary: GET /summaries/{id}/receipt
@@ -268,7 +268,7 @@ sequenceDiagram
 | **Cart Service** | 8081 | Create carts, add/remove items, cart lifecycle | cart-db |
 | **Order Service** | 8082 | Create orders, manage order status (PENDING → COMPLETED/CANCELLED) | order-db |
 | **Product Service** | 8083 | CRUD product catalog, search by name, in-memory caching | product-db |
-| **Summary Service** | 8084 | Generate purchase summaries, formatted receipts, user spending analytics | summary-db |
+| **Ledger Service** | 8084 | Generate purchase summaries, formatted receipts, user spending analytics | ledger-db |
 
 ---
 
@@ -324,7 +324,7 @@ sequenceDiagram
 | Issue | Impact |
 |-------|--------|
 | `OrderDTO` includes `cartId` and `productIds` but these fields are **not persisted** in the `orders` table. | Cart-to-order linkage is lost after order creation. No way to trace which cart items became which order line items. |
-| `SummaryDTO` has `items` (List<String>) but the entity stores `itemCount` (Integer) + `details` (String). | DTO-to-entity mapping silently drops data — the actual items are never persisted, only a count and a details string. |
+| `LedgerDTO` has `items` (List<String>) but the entity stores `itemCount` (Integer) + `details` (String). | DTO-to-entity mapping silently drops data — the actual items are never persisted, only a count and a details string. |
 
 **Mitigation:** Align DTOs with entity schemas or introduce a proper mapping layer (MapStruct) to catch mismatches at compile time.
 
@@ -366,7 +366,7 @@ This application is designed using the microservices architectural style, where 
 - **Product Service:** Manages the product catalog and exposes product-related APIs.
 - **Cart Service:** Handles shopping cart operations for users.
 - **Order Service:** Manages order creation and processing.
-- **Summary Service:** Generates purchase summaries and receipts.
+- **Ledger Service:** Generates purchase summaries and receipts.
 
 All services expose REST APIs and are containerized for easy orchestration with Docker Compose. Each service has its own database, codebase, and can be tested and deployed independently.
 
@@ -427,7 +427,7 @@ The services will be available at the following ports:
 - **cart-service:** 8081
 - **order-service:** 8082
 - **product-service:** 8083
-- **summary-service:** 8084
+- **ledger-service:** 8084
 
 > **Tip:** Replace each `{*_BASE_URL}` placeholder with the full environment-specific service base URL.
 
@@ -442,7 +442,7 @@ Access services at:
 - Cart: `{CART_SERVICE_BASE_URL}`
 - Order: `{ORDER_SERVICE_BASE_URL}`
 - Product: `{PRODUCT_SERVICE_BASE_URL}`
-- Summary: `{SUMMARY_SERVICE_BASE_URL}`
+- Summary: `{LEDGER_SERVICE_BASE_URL}`
 
 ## Service Endpoints
 
@@ -451,7 +451,7 @@ Access services at:
 | Cart      | `{CART_SERVICE_BASE_URL}`    | `{CART_SERVICE_BASE_URL}/swagger-ui.html`     |
 | Order     | `{ORDER_SERVICE_BASE_URL}`   | `{ORDER_SERVICE_BASE_URL}/swagger-ui.html`    |
 | Product   | `{PRODUCT_SERVICE_BASE_URL}` | `{PRODUCT_SERVICE_BASE_URL}/swagger-ui.html`  |
-| Summary   | `{SUMMARY_SERVICE_BASE_URL}` | `{SUMMARY_SERVICE_BASE_URL}/swagger-ui.html`  |
+| Summary   | `{LEDGER_SERVICE_BASE_URL}` | `{LEDGER_SERVICE_BASE_URL}/swagger-ui.html`  |
 
 ## Environment Variables
 
@@ -543,7 +543,7 @@ Each microservice exposes interactive API documentation via Swagger UI. You can 
 - **cart-service:** `{CART_SERVICE_BASE_URL}/swagger-ui.html` or `{CART_SERVICE_BASE_URL}/swagger-ui/index.html`
 - **order-service:** `{ORDER_SERVICE_BASE_URL}/swagger-ui.html` or `{ORDER_SERVICE_BASE_URL}/swagger-ui/index.html`
 - **product-service:** `{PRODUCT_SERVICE_BASE_URL}/swagger-ui.html` or `{PRODUCT_SERVICE_BASE_URL}/swagger-ui/index.html`
-- **summary-service:** `{SUMMARY_SERVICE_BASE_URL}/swagger-ui.html` or `{SUMMARY_SERVICE_BASE_URL}/swagger-ui/index.html`
+- **ledger-service:** `{LEDGER_SERVICE_BASE_URL}/swagger-ui.html` or `{LEDGER_SERVICE_BASE_URL}/swagger-ui/index.html`
 
 If the `/swagger-ui.html` path does not work, try `/swagger-ui/index.html`.
 
@@ -557,7 +557,7 @@ Each service exposes a health endpoint via Spring Boot Actuator:
 - **cart-service:** `{CART_SERVICE_BASE_URL}/actuator/health`
 - **order-service:** `{ORDER_SERVICE_BASE_URL}/actuator/health`
 - **product-service:** `{PRODUCT_SERVICE_BASE_URL}/actuator/health`
-- **summary-service:** `{SUMMARY_SERVICE_BASE_URL}/actuator/health`
+- **ledger-service:** `{LEDGER_SERVICE_BASE_URL}/actuator/health`
 
 If you get an empty reply or 401 error, make sure the service is running and that your security configuration allows unauthenticated access to `/actuator/health`.
 

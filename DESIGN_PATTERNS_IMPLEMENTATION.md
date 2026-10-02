@@ -6,7 +6,7 @@ Your microservices architecture includes:
 - **cart-service**: Shopping cart management
 - **order-service**: Order processing
 - **product-service**: Product catalog
-- **summary-service**: Order summaries
+- **ledger-service**: Order summaries
 
 ### Design Patterns Implementation Plan
 

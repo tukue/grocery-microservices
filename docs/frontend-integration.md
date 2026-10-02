@@ -37,14 +37,14 @@ The MVP uses the existing service URLs directly. Add an API gateway or generated
 | Checkout | `POST /api/customer/checkout` | Order | Disable duplicate submission and render the returned order confirmation. |
 | View orders | `GET /api/customer/orders` and `GET /api/customer/orders/{id}` | Order | Show only orders belonging to the authenticated customer. |
 | Update order status | `PATCH /api/customer/orders/{id}/status` | Order | Restrict this control to the product-approved user role/flow. |
-| Load summary | `GET /api/customer/summary` | Summary | Render aggregate totals and recent orders for the authenticated customer. |
-| View a known receipt | `GET /api/customer/summary/orders/{orderId}/receipt` | Summary | Render a text/print receipt; `404` if the receipt is not ready or not owned by the customer. |
+| Load summary | `GET /api/customer/ledger` | Summary | Render aggregate totals and recent orders for the authenticated customer. |
+| View a known receipt | `GET /api/customer/ledger/orders/{orderId}/receipt` | Summary | Render a text/print receipt; `404` if the receipt is not ready or not owned by the customer. |
 
 The authoritative endpoint list remains in [API Documentation](api-documentation.md). The frontend client should be generated from published OpenAPI documents once those documents are made part of CI.
 
 ## Receipt Availability Behavior
 
-Checkout returns an order, while summary projection is asynchronous through Kafka. The frontend should display **Order confirmed** immediately after successful checkout, then poll `GET /api/customer/summary/orders/{orderId}/receipt` with bounded retries when the customer wants a receipt. A `404` means the summary is still pending or the order is not owned by the customer; it is not a checkout failure. Do not poll Kafka or an internal event-store table from the browser.
+Checkout returns an order, while summary projection is asynchronous through Kafka. The frontend should display **Order confirmed** immediately after successful checkout, then poll `GET /api/customer/ledger/orders/{orderId}/receipt` with bounded retries when the customer wants a receipt. A `404` means the summary is still pending or the order is not owned by the customer; it is not a checkout failure. Do not poll Kafka or an internal event-store table from the browser.
 
 ## Authentication and CORS
 

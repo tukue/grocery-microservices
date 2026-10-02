@@ -4,7 +4,7 @@
 This plan outlines the deployment of the Grocery E-Commerce Platform to AWS using containerized architecture with ECS, RDS, and supporting AWS services.
 
 ## Current Architecture Analysis
-- **4 Spring Boot Microservices**: cart-service, order-service, product-service, summary-service
+- **4 Spring Boot Microservices**: cart-service, order-service, product-service, ledger-service
 - **Technology Stack**: Java 21, Spring Boot 3.2.5, PostgreSQL, JWT Authentication
 - **Current Ports**: 8081-8084
 - **Monitoring**: Prometheus, Grafana, Spring Actuator
@@ -191,7 +191,7 @@ management.endpoints.web.exposure.include=health,info,metrics
 | cart-service | cart-service-ecs | 8080 | cart-rds |
 | order-service | order-service-ecs | 8080 | order-rds |
 | product-service | product-service-ecs | 8080 | product-rds |
-| summary-service | summary-service-ecs | 8080 | summary-rds |
+| ledger-service | ledger-service-ecs | 8080 | summary-rds |
 
 ### Load Balancer Routing
 ```
@@ -199,7 +199,7 @@ ALB Listener Rules:
 - /cart/* → cart-service-ecs
 - /order/* → order-service-ecs  
 - /product/* → product-service-ecs
-- /summary/* → summary-service-ecs
+- /summary/* → ledger-service-ecs
 ```
 
 ## Cost Estimation

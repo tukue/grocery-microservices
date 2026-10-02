@@ -2,9 +2,9 @@ package com.grocery.microservices.ledger.controller;
 
 import com.grocery.microservices.ledger.config.TestJwtSupport;
 import com.grocery.microservices.ledger.config.TestSecurityConfig;
-import com.grocery.microservices.ledger.exception.SummaryNotFoundException;
-import com.grocery.microservices.ledger.model.Summary;
-import com.grocery.microservices.ledger.service.SummaryService;
+import com.grocery.microservices.ledger.exception.LedgerNotFoundException;
+import com.grocery.microservices.ledger.model.Ledger;
+import com.grocery.microservices.ledger.service.LedgerService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -24,15 +24,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ActiveProfiles("test")
-@WebMvcTest(SummaryController.class)
+@WebMvcTest(LedgerController.class)
 @Import(TestSecurityConfig.class)
-public class SummaryControllerTest {
+public class LedgerControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
-    private SummaryService summaryService;
+    private LedgerService ledgerService;
 
     private static String bearer(String token) {
         return "Bearer " + token;
@@ -40,34 +40,34 @@ public class SummaryControllerTest {
 
     @Test
     public void rejectsRequestWithoutToken() throws Exception {
-        mockMvc.perform(get("/api/customer/summary"))
+        mockMvc.perform(get("/api/customer/ledger"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     public void rejectsRequestWhenTokenIsMissingScope() throws Exception {
-        mockMvc.perform(get("/api/customer/summary")
+        mockMvc.perform(get("/api/customer/ledger")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.tokenWithScopes("customer-1", "cart:read"))))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     public void returnsAggregatedSummaryForAuthenticatedCustomer() throws Exception {
-        Summary summary = new Summary();
-        summary.setId(1L);
-        summary.setOrderId(42L);
-        summary.setUserId("customer-1");
-        summary.setItemCount(2);
-        summary.setDetails("Apple, Banana");
-        summary.setTotalAmount(new BigDecimal("12.5"));
-        summary.setCreatedAt(LocalDateTime.now());
+        Ledger ledger = new Ledger();
+        ledger.setId(1L);
+        ledger.setOrderId(42L);
+        ledger.setUserId("customer-1");
+        ledger.setItemCount(2);
+        ledger.setDetails("Apple, Banana");
+        ledger.setTotalAmount(new BigDecimal("12.5"));
+        ledger.setCreatedAt(LocalDateTime.now());
 
-        when(summaryService.getOrderCount("customer-1")).thenReturn(1L);
-        when(summaryService.getTotalSpending("customer-1")).thenReturn(new BigDecimal("12.5"));
-        when(summaryService.getAverageOrderAmount("customer-1")).thenReturn(new BigDecimal("12.5"));
-        when(summaryService.getSummariesByCustomer("customer-1")).thenReturn(java.util.List.of(summary));
+        when(ledgerService.getOrderCount("customer-1")).thenReturn(1L);
+        when(ledgerService.getTotalSpending("customer-1")).thenReturn(new BigDecimal("12.5"));
+        when(ledgerService.getAverageOrderAmount("customer-1")).thenReturn(new BigDecimal("12.5"));
+        when(ledgerService.getSummariesByCustomer("customer-1")).thenReturn(java.util.List.of(ledger));
 
-        mockMvc.perform(get("/api/customer/summary")
+        mockMvc.perform(get("/api/customer/ledger")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.customerId").value("customer-1"))
@@ -80,12 +80,12 @@ public class SummaryControllerTest {
 
     @Test
     public void returnsEmptySummaryWhenCustomerHasNoOrders() throws Exception {
-        when(summaryService.getOrderCount("customer-1")).thenReturn(0L);
-        when(summaryService.getTotalSpending("customer-1")).thenReturn(BigDecimal.ZERO);
-        when(summaryService.getAverageOrderAmount("customer-1")).thenReturn(BigDecimal.ZERO);
-        when(summaryService.getSummariesByCustomer("customer-1")).thenReturn(java.util.List.of());
+        when(ledgerService.getOrderCount("customer-1")).thenReturn(0L);
+        when(ledgerService.getTotalSpending("customer-1")).thenReturn(BigDecimal.ZERO);
+        when(ledgerService.getAverageOrderAmount("customer-1")).thenReturn(BigDecimal.ZERO);
+        when(ledgerService.getSummariesByCustomer("customer-1")).thenReturn(java.util.List.of());
 
-        mockMvc.perform(get("/api/customer/summary")
+        mockMvc.perform(get("/api/customer/ledger")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.orderCount").value(0))
@@ -94,20 +94,20 @@ public class SummaryControllerTest {
 
     @Test
     public void returnsNotFoundWhenOtherCustomersOrderReceiptIsRequested() throws Exception {
-        when(summaryService.getFormattedReceipt("customer-2", 99L))
-                .thenThrow(new SummaryNotFoundException(99L));
+        when(ledgerService.getFormattedReceipt("customer-2", 99L))
+                .thenThrow(new LedgerNotFoundException(99L));
 
-        mockMvc.perform(get("/api/customer/summary/orders/99/receipt")
+        mockMvc.perform(get("/api/customer/ledger/orders/99/receipt")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-2"))))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     public void returnsReceiptForOwnedOrder() throws Exception {
-        when(summaryService.getFormattedReceipt("customer-1", 42L))
+        when(ledgerService.getFormattedReceipt("customer-1", 42L))
                 .thenReturn("--- RECEIPT ---\nOrder ID: 42\n---------------\n");
 
-        mockMvc.perform(get("/api/customer/summary/orders/42/receipt")
+        mockMvc.perform(get("/api/customer/ledger/orders/42/receipt")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TestJwtSupport.validToken("customer-1"))))
                 .andExpect(status().isOk())
                 .andExpect(content().string("--- RECEIPT ---\nOrder ID: 42\n---------------\n"));

@@ -1,6 +1,6 @@
 package com.grocery.microservices.ledger.port;
 
-import com.grocery.microservices.ledger.model.Summary;
+import com.grocery.microservices.ledger.model.Ledger;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -9,11 +9,11 @@ import java.util.List;
  * Read-side port for customer summary queries. Always scoped to a single
  * customer identifier taken from the authenticated JWT {@code sub} claim.
  */
-public interface SummaryQuery {
+public interface LedgerQuery {
 
-    List<Summary> getSummariesByCustomer(String customerId);
+    List<Ledger> getSummariesByCustomer(String customerId);
 
-    Summary getSummaryByOrder(String customerId, Long orderId);
+    Ledger getSummaryByOrder(String customerId, Long orderId);
 
     BigDecimal getTotalSpending(String customerId);
 

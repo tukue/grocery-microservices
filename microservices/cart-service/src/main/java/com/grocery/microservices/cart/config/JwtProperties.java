@@ -12,7 +12,7 @@ public record JwtProperties(
         @DefaultValue("customer-f7b1b25c") String demoSub,
         @DefaultValue("${DEMO_USERNAME:demo-user}") String demoUsername,
         @DefaultValue("${DEMO_PASSWORD:}") String demoPassword,
-        @DefaultValue("cart:read cart:write order:read order:write summary:read product:admin") String demoScopes,
+        @DefaultValue("cart:read cart:write order:read order:write ledger:read product:admin") String demoScopes,
         @DefaultValue("300") long demoTokenTtlSeconds) {
 
     public boolean hasIssuerUri() {

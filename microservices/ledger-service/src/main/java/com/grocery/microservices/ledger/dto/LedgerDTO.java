@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Positive;
 
-public class SummaryDTO {
+public class LedgerDTO {
     private Long id;
     @NotNull(message = "Order ID must not be null")
     private Long orderId;

@@ -58,7 +58,7 @@ Deliver a real authenticated customer journey:
 | product-service | 8083 | 8080 |
 | cart-service | 8081 | 8080 |
 | order-service | 8082 | 8080 |
-| summary-service | 8084 | 8080 |
+| ledger-service | 8084 | 8080 |
 | BFF (new) | 3000 | 3000 |
 
 ---

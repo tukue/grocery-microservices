@@ -13,7 +13,7 @@
 
     <artifactId>e2e-tests</artifactId>
     <name>e2e-tests</name>
-    <description>End-to-end integration tests across the order and summary services using Testcontainers.</description>
+    <description>End-to-end integration tests across the order and ledger services using Testcontainers.</description>
 
     <properties>
         <!-- Testcontainers 2.0.5 is managed by the Spring Boot 4.1.1 BOM; this module

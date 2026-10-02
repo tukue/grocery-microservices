@@ -50,12 +50,12 @@ All order endpoints require a bearer token with the `order:read` or `order:write
 
 Validation: `cartId` is required, `productIds` must not be empty.
 
-## Summary Service
+## Ledger Service
 
-Summary is a read-only projection produced asynchronously from `OrderCreatedEvent` messages. Endpoints require the `summary:read` scope and are always scoped to the authenticated customer.
+Summary is a read-only projection produced asynchronously from `OrderCreatedEvent` messages. Endpoints require the `ledger:read` scope and are always scoped to the authenticated customer.
 
-- `GET /api/customer/summary`: returns the customer's aggregate summary (`orderCount`, `totalSpending`, `averageOrderAmount`, `recentOrders`).
-- `GET /api/customer/summary/orders/{orderId}/receipt`: returns a formatted receipt, `404` if absent or owned by another customer.
+- `GET /api/customer/ledger`: returns the customer's aggregate summary (`orderCount`, `totalSpending`, `averageOrderAmount`, `recentOrders`).
+- `GET /api/customer/ledger/orders/{orderId}/receipt`: returns a formatted receipt, `404` if absent or owned by another customer.
 
 ## Error Response
 

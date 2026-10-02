@@ -12,9 +12,9 @@ vocabulary. Terms are explained in the context of this repo, not just in general
 | cart-service | Owns the customer shopping cart (`/api/customer/cart`). Port `8081` in the compose stack. |
 | order-service | Handles checkout and order lifecycle (`POST /checkout`, `/api/customer/orders`). Port `8082`. |
 | product-service | Catalogue and search; product and stock data. Port `8083`. |
-| summary-service | Read-side projection that aggregates order events into customer summaries, receipts, and trends. Port `8084`. |
+| ledger-service | Read-side projection that aggregates order events into customer summaries, receipts, and trends. Port `8084`. |
 | Compose smoke stack | The local environment defined in `microservices/docker-compose.yml`: all four services, Postgres per service, and Kafka. Used by local development and the CI `health-check` job. |
-| Event-driven | Services communicate by publishing/consuming events (Kafka) instead of synchronous calls where possible; the summary-service consumes order events to build read models. |
+| Event-driven | Services communicate by publishing/consuming events (Kafka) instead of synchronous calls where possible; the ledger-service consumes order events to build read models. |
 | Read model / projection | A pre-computed, denormalized view (e.g. summaries, trends) kept up to date by consuming events, so reads are cheap and fast. |
 | CORS | Cross-Origin Resource Sharing; `app.cors.allowed-origins` (`CORS_ALLOWED_ORIGINS`) lists browser origins allowed to call the APIs. |
 
@@ -31,7 +31,7 @@ vocabulary. Terms are explained in the context of this repo, not just in general
 | Issuer (`iss`) | Claim identifying the IdP that issued the token. Must match `security.jwt.issuer-uri` (`JWT_ISSUER_URI`). |
 | Audience (`aud`) | Claim identifying the intended recipient(s) of the token. Must contain `security.jwt.audience` (`JWT_AUDIENCE`), shared across all services. |
 | Claim | A named key/value in a JWT (e.g. `sub`, `scope`, `iss`, `aud`, `exp`, `iat`). |
-| Scope | An authorization permission, e.g. `cart:write`, `order:write`, `summary:read`. Endpoints require specific scopes via `@PreAuthorize`. Used scopes: `cart:read cart:write order:read order:write summary:read product:admin`. |
+| Scope | An authorization permission, e.g. `cart:write`, `order:write`, `ledger:read`. Endpoints require specific scopes via `@PreAuthorize`. Used scopes: `cart:read cart:write order:read order:write ledger:read product:admin`. |
 | Subject (`sub`) | Claim identifying the signed-in user; services use it as the ownership key (`customerId`) — a customer may only access data under their own `sub`. |
 | Resource server config | `SecurityConfig` + `JwtDecoder` in each service: validates signature (JWKS), issuer, audience, algorithm, and expiry/nbf timestamps before the request is allowed. |
 | Demo identity provider | `DemoIdentityProvider`/`DemoIdentityController` — an embedded, in-memory IdP that mints RS256 tokens for development. Activated only by the `dev` and `docker` profiles; never in production. |
@@ -49,7 +49,7 @@ vocabulary. Terms are explained in the context of this repo, not just in general
 | --- | --- |
 | Kafka | Distributed event broker used to decouple order creation from summary projection. |
 | Topic | A named event stream; streams live in `kafka.topics.*`. The primary topic is `order-created`. |
-| Producer / Consumer | Producer publishes events (order-service); consumer reads them (summary-service). |
+| Producer / Consumer | Producer publishes events (order-service); consumer reads them (ledger-service). |
 | Partition | A topic is split into ordered partitions; same-key events land in the same partition to preserve order. |
 | Event sourcing | order-service persists the sequence of facts about an order (`OrderEventStore`) rather than only a mutable state, enabling replay/audit. |
 | Retry / dead letter | `order-created-retry` and `order-created-failed` topics support retrying consumers and quarantining events that cannot be processed. |
@@ -60,7 +60,7 @@ vocabulary. Terms are explained in the context of this repo, not just in general
 
 | Term | Meaning in this repo |
 | --- | --- |
-| PostgreSQL (Postgres) | The production-grade database used by the `docker`/`prod` profiles (one database per service: `cart-db`, `order-db`, `product-db`, `summary-db`). |
+| PostgreSQL (Postgres) | The production-grade database used by the `docker`/`prod` profiles (one database per service: `cart-db`, `order-db`, `product-db`, `ledger-db`). |
 | H2 | Embedded in-memory database used by the `dev` and `test` profiles for zero-setup local development and tests. |
 | `ddl-auto` | Hibernate schema-management policy; `update`/`create-drop` in dev/test, controlled migrations in production. |
 | Repository | Spring Data JPA repository; the data-access entry point for an aggregate. |
@@ -75,7 +75,7 @@ vocabulary. Terms are explained in the context of this repo, not just in general
 | Product / Stock | Catalogue entry with price and available quantity; checkout reserves stock and rejects insufficient stock (`InsufficientProductStockException`). |
 | Checkout | `POST /checkout` — converts a verified, non-empty cart into an order and publishes the `order-created` event. Empty carts are rejected (`EmptyCartException`). |
 | Order | A confirmed purchase with line items, total, status, and owner. Statuses: `PENDING`, `COMPLETED`, `CANCELLED` (`OrderStatus`). |
-| Receipt | A customer-facing order summary served by summary-service (`/summary/orders/{orderId}/receipt`). |
+| Receipt | A customer-facing order summary served by ledger-service (`/summary/orders/{orderId}/receipt`). |
 | Summary / Trends | Read-side aggregates (per-customer totals, product trends) recomputed from order events. |
 | Query by ownership | Every customer- scoped read (`/api/customer/*`, `/summary`) filters by the caller's identity so users only ever see their own data. |
 

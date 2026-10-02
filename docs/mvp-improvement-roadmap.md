@@ -15,10 +15,10 @@ The platform contains four Spring Boot services:
 | `product-service` | Catalog, price, availability, and stock data | Product PostgreSQL database |
 | `cart-service` | Customer carts and product snapshots | Product Service over REST |
 | `order-service` | Checkout, order lines, lifecycle, and stored event intent | Cart Service over REST; Order PostgreSQL database |
-| `summary-service` | Asynchronous order summaries and receipts | Kafka; Summary PostgreSQL database |
+| `ledger-service` | Asynchronous order summaries and receipts | Kafka; Summary PostgreSQL database |
 
 Checkout reads a cart snapshot, writes an order and `order_event_store` record in one
-transaction, then a scheduled relay publishes `order.created.v1`. Summary Service
+transaction, then a scheduled relay publishes `order.created.v1`. Ledger Service
 consumes the event, retries bounded failures, sends exhausted records to
 `order.created.v1.failed`, and uses a unique order ID to tolerate normal redelivery.
 
@@ -39,7 +39,7 @@ consumes the event, retries bounded failures, sends exhausted records to
 | --- | --- | --- | --- |
 | P0 | Static `user`/`password` login exists in every service. | `microservices/*/controller/AuthController.java` | Remove service-issued demo tokens outside development and validate one approved identity source. |
 | P0 | Terraform creates different JWT secrets for each service although browser and service-to-service calls need the same bearer token accepted across services. | `terraform/secrets.tf`, `terraform/services.tf` | Use one shared issuer/JWKS; use one shared verification secret only as a temporary transition. |
-| P0 | Summary endpoints do not enforce ownership and allow authenticated clients to create summaries directly. | `summary-service/.../SummaryController.java` | Make writes internal/Kafka-only and authorize summary/receipt reads by customer identity. |
+| P0 | Summary endpoints do not enforce ownership and allow authenticated clients to create summaries directly. | `ledger-service/.../LedgerController.java` | Make writes internal/Kafka-only and authorize summary/receipt reads by customer identity. |
 | P0 for ECS deployment | ECS task definitions do not inject required CORS or Kafka bootstrap configuration. | `terraform/modules/ecs/main.tf`, `application-prod.properties` | Supply required runtime variables and select/provision a managed Kafka service before cloud release. |
 
 ## Important MVP Reliability Work
@@ -75,7 +75,7 @@ another customer cannot read or create that customer's summary.
 **Objective:** make ECS deployment configuration complete and deterministic.
 
 - Inject `CORS_ALLOWED_ORIGINS`, Kafka bootstrap/security settings, and service URLs.
-- Provision or explicitly select managed Kafka before enabling Order and Summary Services.
+- Provision or explicitly select managed Kafka before enabling Order and Ledger Services.
 - Add a cloud-like container startup smoke test.
 
 **Acceptance:** all services start healthy with production-like configuration.

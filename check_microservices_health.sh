@@ -3,7 +3,7 @@
 # Start each microservice in the background on different ports
 # (Assumes each service can be started with -Dserver.port=PORT)
 
-SERVICES=(cart-service order-service product-service summary-service)
+SERVICES=(cart-service order-service product-service ledger-service)
 PORTS=(8081 8082 8083 8084)
 
 if [[ -n "${GITHUB_ACTIONS:-}" && -z "${SKIP_START:-}" ]]; then

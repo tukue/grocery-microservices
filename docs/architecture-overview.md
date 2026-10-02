@@ -7,7 +7,7 @@ The production surface is a Maven multi-module Spring Boot 3.2 application with 
 - `product-service`: product catalog CRUD and search.
 - `cart-service`: cart aggregate and cart-item operations.
 - `order-service`: order lifecycle and status transitions.
-- `summary-service`: order summaries, spending calculations, and receipt formatting.
+- `ledger-service`: order summaries, spending calculations, and receipt formatting.
 
 Each service follows the same package style:
 
@@ -32,7 +32,7 @@ flowchart LR
     Entry --> Product[Product service\nCatalog and search]
     Entry --> Cart[Cart service\nCart mutations]
     Entry --> Order[Order service\nCheckout and orders]
-    Entry --> Summary[Summary service\nReceipt read model]
+    Entry --> Summary[Ledger service\nReceipt read model]
 
     Product --> ProductDb[(Product DB)]
     Cart --> CartDb[(Cart DB)]
@@ -40,9 +40,9 @@ flowchart LR
     Order --> EventStore[(Order event store)]
 
     EventStore -->|key: orderId\norder.created.v1| Kafka[(Kafka)]
-    Kafka -->|summary-service group\ncommit after persistence| Summary
+    Kafka -->|ledger-service group\ncommit after persistence| Summary
     Kafka -->|exhausted consumer retries| Failed[order.created.v1.failed\nFailed-letter queue]
-    Summary --> SummaryDb[(Summary DB\nunique orderId)]
+    Summary --> SummaryDb[(Ledger DB\nunique orderId)]
 
     Browser -.->|poll after checkout\nGET summaries/by-order/{orderId}| Summary
 ```
@@ -54,7 +54,7 @@ flowchart LR
    `order.created.v1` event record in one database transaction.
 3. A leased relay publishes the event to Kafka using `orderId` as the key, preserving ordering
    for a single order without holding the HTTP transaction open for broker delivery.
-4. `summary-service` processes the event idempotently and persists a receipt/summary read model.
+4. `ledger-service` processes the event idempotently and persists a receipt/summary read model.
 5. The frontend renders **Order confirmed** immediately, then treats a `404` from
    `GET /summaries/by-order/{orderId}` as pending rather than as checkout failure.
 
@@ -124,7 +124,7 @@ flowchart TB
     OrderApi --> OrderDb
     OrderApi --> EventRelay
     EventRelay -->|orderId key| Kafka
-    Kafka -->|summary-service consumer group| SummaryApi
+    Kafka -->|ledger-service consumer group| SummaryApi
     Kafka -->|bounded retries exhausted| FailedQueue
     SummaryApi --> SummaryDb
 
@@ -152,7 +152,7 @@ flowchart TB
 - Replaced field injection in production controllers/config/services with constructor injection. This makes required dependencies explicit and easier to test.
 - Added domain-specific not-found exceptions for products, orders, and summaries. API code no longer depends on parsing generic exception messages.
 - Kept cart item loading lazy at the entity level and added an `@EntityGraph` to repository reads. This avoids default eager loading while preventing lazy-loading surprises when returning a cart aggregate.
-- Fixed summary API mapping so `SummaryDTO.total/items` persist to `Summary.totalAmount/details`.
+- Fixed summary API mapping so `LedgerDTO.total/items` persist to `Summary.totalAmount/details`.
 - Added order persistence for `cartId` and `productIds`, matching the API contract.
 - Removed stale product-service scaffolding outside Maven's source tree.
 
