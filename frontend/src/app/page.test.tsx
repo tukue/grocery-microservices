@@ -1,6 +1,12 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
+
+vi.mock("@/shared", () => ({ createServerHttpClient: vi.fn(() => ({})) }));
+vi.mock("@/features/products/api/products-api", () => ({
+  createProductsApi: vi.fn(() => ({ list: vi.fn().mockResolvedValue([]) })),
+}));
+
 import Home from "./page";
 
 describe("Home", () => {
