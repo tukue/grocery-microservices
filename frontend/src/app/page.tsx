@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { ProductSearch } from "@/features/products/components/product-search";
 import { ProductGrid } from "@/features/products/components/product-grid";
 import { createProductsApi } from "@/features/products/api/products-api";
+import type { Product } from "@/features/products/domain/product";
 import { useIntersectionObserver } from "@/shared/hooks/use-intersection-observer";
 import { createServerHttpClient } from "@/shared";
 
