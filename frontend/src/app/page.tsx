@@ -1,10 +1,11 @@
 import { Storefront } from "@/features/orders";
 import { useSearchParams } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ProductSearch } from "@/features/products/components/product-search";
 import { ProductGrid } from "@/features/products/components/product-grid";
 import { createProductsApi } from "@/features/products/api/products-api";
 import { useIntersectionObserver } from "@/shared/hooks/use-intersection-observer";
+import { createServerHttpClient } from "@/shared";
 
 export default function Home() {
   const [search, setSearch] = useState("");
@@ -12,8 +13,10 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const { params, setSearchParams } = useSearchParams();
 
-  const initialSearch = params.get("search") ?? "";
-  setSearch(initialSearch);
+  useEffect(() => {
+    const initialSearch = params.get("search") ?? "";
+    setSearch(initialSearch);
+  }, [params]);
 
   const productsApi = createProductsApi(
     createServerHttpClient({
@@ -21,6 +24,8 @@ export default function Home() {
       timeoutMs: 10_000,
     }),
   );
+
+  const productGridRef = useRef<HTMLDivElement>(null);
 
   async function loadProducts(searchTerm?: string) {
     setLoading(true);
@@ -36,7 +41,7 @@ export default function Home() {
   }
 
   useIntersectionObserver(
-    ".product-grid",
+    productGridRef,
     (isIntersecting) => {
       if (isIntersecting && products.length === 0 && !search) {
         loadProducts();
@@ -46,13 +51,17 @@ export default function Home() {
   );
 
   async function handleSearch(event: Event) {
-    const target = event.target as HTMLInputElement;
-    setSearch(target.value);
-    await loadProducts(target.value || undefined);
-    setSearchParams({ search: target.value || undefined });
+    event.preventDefault();
+    const target = event.target as HTMLFormElement;
+    const searchValue = target.querySelector('input[name="search"]') as HTMLInputElement | null;
+    if (searchValue) {
+      setSearch(searchValue.value);
+      await loadProducts(searchValue.value || undefined);
+      setSearchParams(searchValue.value ? { search: searchValue.value } : {});
+    }
   }
 
-  function handleClearSearch() {
+function handleClearSearch() {
     setSearch("");
     setProducts([]);
     setSearchParams({});
@@ -89,7 +98,9 @@ export default function Home() {
             Welcome! Start searching for products.
           </p>
         ) : (
-          <ProductGrid products={products} />
+          <ProductGrid
+          ref={productGridRef}
+          products={products} />
         )}
       </section>
     </main>
