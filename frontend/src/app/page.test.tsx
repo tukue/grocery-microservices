@@ -7,6 +7,16 @@ vi.mock("@/features/products/api/products-api", () => ({
   createProductsApi: vi.fn(() => ({ list: vi.fn().mockResolvedValue([]) })),
 }));
 
+const mockSetSearchParams = vi.fn();
+const mockParams = new URLSearchParams();
+vi.mock("react-router-dom", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-router-dom")>();
+  return {
+    ...actual,
+    useSearchParams: vi.fn(() => [mockParams, mockSetSearchParams]),
+  };
+});
+
 import Home from "./page";
 
 describe("Home", () => {
@@ -48,6 +58,8 @@ describe("Home", () => {
   });
 
   it("shows no products found message for searched term", async () => {
+    mockParams.set("search", "nonexistent");
+
     render(
       <MemoryRouter initialEntries={["/?search=nonexistent"]}>
         <Home />
@@ -59,6 +71,8 @@ describe("Home", () => {
         screen.getByText(/no products found matching/i),
       ).toBeInTheDocument(),
     );
+
+    mockParams.delete("search");
   });
 
   it("navigates to products page with search query", async () => {

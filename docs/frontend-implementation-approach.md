@@ -5,6 +5,11 @@ security and reliability follow-up. Use it as a starting point for future
 frontend work in this repository. Keep endpoint details in the relevant API
 contracts; this document describes how to shape and deliver a feature.
 
+Use [the Grove design system](../frontend/docs/design-system.md) as the visual
+and interaction reference. It defines shared tokens, responsive layouts, the
+shopping journey, and recovery states. Keep screens consistent with this guide
+when extending the application.
+
 ## Start with the user journey and contracts
 
 Describe the customer-visible path first, including its success and recovery
@@ -31,6 +36,12 @@ boundary and keep transport DTOs out of domain and UI code.
 - Services remain authoritative. Replace local cart state with the response
   from each mutation, and reload confirmation and order history from persisted
   order endpoints.
+
+The receipt BFF route returns JSON with `status: "ready"` and plain-text
+`content`, or HTTP 202 with `status: "pending"`. A ledger 404 becomes pending
+only after the order service verifies the customer's owned order. Keep order
+status separate from receipt projection readiness, and bound browser polling
+with an explicit retry action after the wait budget.
 
 Follow the import and application boundaries in
 [`frontend/docs/architecture.md`](../frontend/docs/architecture.md).

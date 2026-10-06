@@ -1,164 +1,112 @@
-# Architecture Overview
+# Current application architecture
 
-## Current Shape
+This document describes the implementation on the current PR branch. Deployment
+roadmaps describe proposed infrastructure separately; they are not evidence of a
+running production deployment.
 
-The production surface is a Maven multi-module Spring Boot 3.2 application with four deployable services:
+## Components and ownership
 
-- `product-service`: product catalog CRUD and search.
-- `cart-service`: cart aggregate and cart-item operations.
-- `order-service`: order lifecycle and status transitions.
-- `summary-service`: order summaries, spending calculations, and receipt formatting.
+The customer storefront uses React 19, TypeScript, Vite, and React Router. An
+Express backend for frontend (BFF) handles browser API requests. The Maven reactor
+uses Spring Boot 4.1.1 and Java 25 and contains four services and an end-to-end test
+module.
 
-Each service follows the same package style:
+| Component | Responsibility | Source |
+| --- | --- | --- |
+| Frontend | Discovery, cart interaction, checkout, confirmation, and history | `frontend/src` |
+| BFF | Session handling, JWT verification, API routing, receipt response adaptation | `frontend/server` |
+| Product service | Product catalogue, prices, availability, stock reservations | `microservices/product-service` |
+| Cart service | Customer-owned cart, product snapshots, quantities, cart state | `microservices/cart-service` |
+| Order service | Checkout validation, recorded order lines/totals, idempotency, event persistence | `microservices/order-service` |
+| Ledger service | Order-event projection, spending summaries, receipt formatting | `microservices/ledger-service` |
 
-- `controller`: HTTP API layer.
-- `dto`: request/response models.
-- `service`: business logic and transaction boundary.
-- `repository`: Spring Data JPA persistence port.
-- `model`: JPA entities.
-- `exception`: API exception mapping.
-- `config`: security, JWT, and OpenAPI configuration.
-
-## Ecommerce MVP Architecture
-
-The frontend owns user interaction and calls the service APIs over HTTPS. The backend owns
-validation, pricing, authorization, and persistence. Kafka is an internal asynchronous
-integration mechanism; the browser never produces to or consumes from Kafka.
+Each service owns its database. PostgreSQL is used for the Docker-backed
+integration flow. Redis stores BFF runtime sessions. Kafka carries internal order
+events; the browser does not access Kafka or service databases.
 
 ```mermaid
 flowchart LR
-    Browser[Web frontend\nReact / TypeScript] -->|HTTPS REST\nBearer token| Entry[Public API entry\nALB or local service URLs]
-
-    Entry --> Product[Product service\nCatalog and search]
-    Entry --> Cart[Cart service\nCart mutations]
-    Entry --> Order[Order service\nCheckout and orders]
-    Entry --> Summary[Summary service\nReceipt read model]
-
-    Product --> ProductDb[(Product DB)]
-    Cart --> CartDb[(Cart DB)]
-    Order --> OrderDb[(Order DB)]
-    Order --> EventStore[(Order event store)]
-
-    EventStore -->|key: orderId\norder.created.v1| Kafka[(Kafka)]
-    Kafka -->|summary-service group\ncommit after persistence| Summary
-    Kafka -->|exhausted consumer retries| Failed[order.created.v1.failed\nFailed-letter queue]
-    Summary --> SummaryDb[(Summary DB\nunique orderId)]
-
-    Browser -.->|poll after checkout\nGET summaries/by-order/{orderId}| Summary
+    Browser[React storefront] -->|Relative /api requests and session cookie| BFF[Express BFF]
+    BFF --> Redis[(Redis sessions)]
+    BFF --> Product[Product service]
+    BFF --> Cart[Cart service]
+    BFF --> Order[Order service]
+    BFF --> Ledger[Ledger service]
+    Product --> ProductDB[(Product database)]
+    Cart --> CartDB[(Cart database)]
+    Order --> OrderDB[(Orders and stored events)]
+    OrderDB --> Relay[Scheduled event relay]
+    Relay -->|order.created.v1| Kafka[Kafka]
+    Kafka --> Ledger
+    Ledger --> LedgerDB[(Ledger and processed events)]
+    Ledger -.->|Exhausted consumer retries| Failed[order.created.v1.failed]
 ```
 
-### Checkout Mental Model
+## Shopping and checkout
 
-1. The frontend reads products, creates or updates a cart, and sends checkout to `order-service`.
-2. `order-service` validates the authenticated user and cart, persists the order and an
-   `order.created.v1` event record in one database transaction.
-3. A leased relay publishes the event to Kafka using `orderId` as the key, preserving ordering
-   for a single order without holding the HTTP transaction open for broker delivery.
-4. `summary-service` processes the event idempotently and persists a receipt/summary read model.
-5. The frontend renders **Order confirmed** immediately, then treats a `404` from
-   `GET /summaries/by-order/{orderId}` as pending rather than as checkout failure.
+A cart represents mutable purchase intent. An order records the accepted purchase;
+its lines and total are persisted rather than reconstructed from the current
+catalogue or browser state.
 
-### MVP Boundaries
+1. Customers browse products without signing in. Private cart and order operations
+   require an authenticated session.
+2. Cart-service validates selections against product-service data. The frontend
+   displays server-confirmed cart responses and a price preview.
+3. Checkout sends a cart ID and a retained idempotency key through the BFF. The BFF
+   forwards the key as the backend `Idempotency-Key` header.
+4. Order-service validates ownership and cart state, reserves stock, claims the
+   cart, and persists the order and event intent transactionally. Compensation
+   handles downstream failures; cross-service operations are not one shared
+   database transaction.
+5. A scheduled relay claims stored events using leases, publishes them with the
+   order ID as the Kafka key, and records success or retry/terminal failure state.
+6. Ledger-service validates events and applies its projection transactionally.
+   Processed-event records and a unique order ID prevent duplicate ledger entries.
+7. Confirmation loads the persisted owned order. Receipt readiness is separate:
+   ledger processing may complete after checkout returns.
 
-- Use direct service routes behind the public entry point; do not add a BFF or API gateway yet.
-- Keep each service database private. Cross-service reads use HTTP contracts; asynchronous
-  projections use Kafka events.
-- Publish versioned OpenAPI documents and generate or verify frontend types from them.
-- Configure the frontend origin through `CORS_ALLOWED_ORIGINS`; do not ship backend addresses,
-  Kafka endpoints, or secrets in browser bundles.
-- The failed-letter queue is for operations and controlled replay only, never for browser access.
+A missing receipt becomes BFF HTTP `202` with `status: "pending"` only after the
+order service verifies the requested order and its ownership. Ready receipts are
+returned as JSON containing plain-text content. The frontend polls with bounded
+backoff and offers retry after the wait budget. Receipt delay does not instruct
+the customer to submit checkout again.
 
-## Full-Stack Deployment View
+## Authentication and state boundaries
 
-This is the target shape for a deployable ecommerce MVP. The frontend is independently
-released static content; it holds only public configuration such as the API base URL. The
-backend and Kafka remain private behind the API entry point and platform network controls.
+The BFF calls the configured login endpoint, verifies the returned JWT using JWKS
+and RS256 with issuer/audience checks, and stores it in Redis. The browser receives
+public session identity and an opaque HttpOnly session cookie. The cookie is Secure
+in production configuration. Upstream tokens are not returned to browser JavaScript.
 
-```mermaid
-flowchart TB
-    Customer[Customer browser]
+Backend services enforce JWT authorization and resource ownership independently.
+Frontend route guards improve navigation but are not the authorization boundary.
+Browser requests use allowlisted BFF routes; the BFF forwards the stored bearer
+token for protected requests.
 
-    subgraph Frontend[Frontend delivery]
-        WebApp[React / TypeScript storefront]
-        Cdn[CDN and static hosting]
-        WebApp --> Cdn
-    end
+## Schema and integration verification
 
-    subgraph Edge[Public edge]
-        Tls[HTTPS and TLS]
-        Api[Public API entry\nALB path routing]
-    end
+Flyway migrations remain immutable once applied. Ledger V1 creates the legacy
+`summary` table; V2 renames it to `ledger`, preserving data and indexes for the
+current entity mapping. The migration regression test verifies retained entries
+and order uniqueness. The order-to-ledger tests use separate migration locations
+and explicitly activate the `docker` profile for their application contexts,
+independently of Maven's unit-test profile.
 
-    subgraph Backend[Spring Boot microservices]
-        ProductApi[Product API]
-        CartApi[Cart API]
-        OrderApi[Order API]
-        SummaryApi[Summary API]
-        EventRelay[Order event relay]
-    end
+Existing verification includes service tests, a migration upgrade regression,
+PostgreSQL/Redpanda integration tests, frontend/BFF tests, and mocked browser
+journeys. These checks establish different boundaries: mocked browser tests do
+not establish live backend connectivity or production deployment readiness.
 
-    subgraph Data[Private data and messaging]
-        ProductDb[(Product PostgreSQL)]
-        CartDb[(Cart PostgreSQL)]
-        OrderDb[(Order PostgreSQL\nand event store)]
-        Kafka[(Kafka\norder.created.v1)]
-        FailedQueue[(Kafka\norder.created.v1.failed)]
-        SummaryDb[(Summary PostgreSQL)]
-    end
+## Current limits and related documents
 
-    subgraph Operations[Operations]
-        Metrics[Metrics and dashboards]
-        Logs[Structured logs]
-        Alerts[Alerts and replay runbook]
-    end
+Checkout does not collect payment or delivery details. Ledger events do not carry
+itemized order snapshots, so persisted order lines remain the source of purchase
+details. Demo identity support is a development mechanism; production identity
+and infrastructure readiness require deployment-specific configuration and review.
 
-    Customer -->|loads storefront| Cdn
-    Customer -->|HTTPS REST + bearer token| Tls --> Api
-    Api -->|/products| ProductApi
-    Api -->|/carts| CartApi
-    Api -->|/orders| OrderApi
-    Api -->|/summaries| SummaryApi
-
-    ProductApi --> ProductDb
-    CartApi --> CartDb
-    OrderApi --> OrderDb
-    OrderApi --> EventRelay
-    EventRelay -->|orderId key| Kafka
-    Kafka -->|summary-service consumer group| SummaryApi
-    Kafka -->|bounded retries exhausted| FailedQueue
-    SummaryApi --> SummaryDb
-
-    ProductApi -.-> Metrics
-    CartApi -.-> Metrics
-    OrderApi -.-> Metrics
-    SummaryApi -.-> Metrics
-    Metrics --> Alerts
-    Logs --> Alerts
-    FailedQueue --> Alerts
-```
-
-### Frontend-to-Backend Contract
-
-| Concern | Frontend responsibility | Backend/platform responsibility |
-| --- | --- | --- |
-| API access | Use one typed client and the configured public API base URL. | Route APIs, enforce TLS, authenticate/authorize, and expose OpenAPI. |
-| Cart and checkout | Render server responses as canonical state; prevent duplicate clicks. | Validate prices and stock; persist order and event intent atomically. |
-| Receipt availability | Show order confirmation, then poll by order ID with a bounded retry UX. | Build the summary asynchronously and return `404` until it exists. |
-| Kafka | No direct browser connection or credentials. | Operate topics, retries, failed-letter queue, metrics, and controlled replay. |
-| Configuration | Ship public runtime configuration only. | Inject `CORS_ALLOWED_ORIGINS`, database/Kafka credentials, and secrets at deployment. |
-
-## Improvements Applied
-
-- Replaced field injection in production controllers/config/services with constructor injection. This makes required dependencies explicit and easier to test.
-- Added domain-specific not-found exceptions for products, orders, and summaries. API code no longer depends on parsing generic exception messages.
-- Kept cart item loading lazy at the entity level and added an `@EntityGraph` to repository reads. This avoids default eager loading while preventing lazy-loading surprises when returning a cart aggregate.
-- Fixed summary API mapping so `SummaryDTO.total/items` persist to `Summary.totalAmount/details`.
-- Added order persistence for `cartId` and `productIds`, matching the API contract.
-- Removed stale product-service scaffolding outside Maven's source tree.
-
-## Recommended Next Architecture Steps
-
-- Introduce mapper classes or MapStruct for each service once DTO/entity mapping grows beyond simple field copies.
-- Extract common error-response and JWT filter code only after service contracts stabilize. A shared library can reduce duplication, but it also couples independent deployments.
-- Split demo authentication from production authentication. Current `/auth/login` uses static credentials and should be replaced by an identity provider or Spring Authorization Server integration.
-- Add explicit bounded contexts in package names when domain logic grows, for example `product.catalog`, `cart.checkout`, `order.fulfillment`, and `summary.reporting`.
+- [Implementation guide for future changes](implementation-guide.md)
+- [Frontend implementation](../frontend/docs/current-implementation.md)
+- [Local setup and configuration](../frontend/README.md)
+- [Kafka integration](kafka-integration.md)
+- [Authentication and authorization](authentication-authorization.md)
+- [Production readiness review](production-readiness-review.md)

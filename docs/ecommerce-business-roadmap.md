@@ -19,7 +19,7 @@ The repository already has four Spring Boot services:
 | `product-service` | Product catalog CRUD and search | Product discovery and pricing source |
 | `cart-service` | Mutable cart items and quantities | Customer shopping session |
 | `order-service` | Order persistence and status transitions | Purchase record and order lifecycle |
-| `summary-service` | Receipts and spending summaries | Customer confirmation and reporting |
+| `ledger-service` | Receipts and spending summaries | Customer confirmation and reporting |
 
 The MVP currently supports catalog browsing and cart changes, but checkout is not yet trustworthy: cart items contain a product name and client-supplied price, while orders contain product IDs and a client-supplied total. Those contracts must be aligned before the application can process real purchases.
 
@@ -209,7 +209,7 @@ The MVP currently supports catalog browsing and cart changes, but checkout is no
 | `product-service` | Catalog data, current price, availability, stock | Carts and orders |
 | `cart-service` | Customer carts and cart item snapshots | Final order totals or payments |
 | `order-service` | Order lines, trusted totals, lifecycle | Product catalog or payment credentials |
-| `summary-service` | Receipts and customer reporting views | Source-of-truth order state |
+| `ledger-service` | Receipts and customer reporting views | Source-of-truth order state |
 | Future `payment-service` | Payment attempts and provider references | Order lifecycle ownership |
 | Future fulfilment capability | Packing, shipment, pickup, delivery | Payment processing |
 

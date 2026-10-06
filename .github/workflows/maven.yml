@@ -3,8 +3,12 @@ name: Java CI with Maven
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - '**/*.md'
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      - '**/*.md'
 
 jobs:
   test-monolith:
@@ -33,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [cart-service, order-service, product-service, summary-service]
+        service: [cart-service, order-service, product-service, ledger-service]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -56,7 +60,7 @@ jobs:
           cp microservices/cart-service/src/test/resources/application-test.properties.example microservices/cart-service/src/test/resources/application-test.properties
           cp microservices/order-service/src/test/resources/application-test.properties.example microservices/order-service/src/test/resources/application-test.properties
           cp microservices/product-service/src/test/resources/application-test.properties.example microservices/product-service/src/test/resources/application-test.properties
-          cp microservices/summary-service/src/test/resources/application-test.properties.example microservices/summary-service/src/test/resources/application-test.properties
+          cp microservices/ledger-service/src/test/resources/application-test.properties.example microservices/ledger-service/src/test/resources/application-test.properties
 
       - name: Test microservice
         run: mvn -B test -Dspring.profiles.active=test --file microservices/${{ matrix.service }}/pom.xml

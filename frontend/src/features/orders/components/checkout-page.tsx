@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { useCart } from "../../cart/components/cart-context";
+import { useCart } from "../../cart";
 import { submitCheckout } from "../api/checkout-client";
 import { toOrder } from "../api/order.mappers";
 import type { CartSummary, Order } from "../domain/order";
@@ -73,6 +73,11 @@ export function CheckoutPage() {
 
   return (
     <main>
+      <div className="steps" aria-label="Checkout progress">
+        <span>01 Cart</span>
+        <span className="current">02 Review &amp; place order</span>
+        <span>03 Confirmation</span>
+      </div>
       <CheckoutForm
         cart={summary}
         submitOrder={async (input) => toOrder(await submitCheckout(input))}

@@ -3,7 +3,7 @@ version: 0.2
 env:
   variables:
     # service-name:source-directory pairs
-    SERVICES: "cart:cart-service order:order-service product:product-service summary:summary-service"
+    SERVICES: "cart:cart-service order:order-service product:product-service ledger:ledger-service"
     PROJECT_NAME: "grocery-ecommerce-platform"
     TARGET_ENVIRONMENTS: "dev staging prod"
     SCAN_SEVERITY: "CRITICAL,HIGH"

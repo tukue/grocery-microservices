@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import {
@@ -31,6 +31,7 @@ export function CheckoutForm({
   onConfirmed,
   submitOrder,
 }: CheckoutFormProps) {
+  const submittingRef = useRef(false);
   const [failureMessage, setFailureMessage] = useState<string>();
   const [submissionLocked, setSubmissionLocked] = useState(false);
   const form = useForm<CheckoutFormValues>({
@@ -40,10 +41,11 @@ export function CheckoutForm({
   });
 
   async function onSubmit(values: CheckoutFormValues): Promise<void> {
-    if (submissionLocked) {
+    if (submittingRef.current) {
       return;
     }
 
+    submittingRef.current = true;
     setSubmissionLocked(true);
     setFailureMessage(undefined);
     try {
@@ -71,21 +73,35 @@ export function CheckoutForm({
           : createApplicationError("unexpected");
       setFailureMessage(applicationError.customerMessage);
     } finally {
+      submittingRef.current = false;
       setSubmissionLocked(false);
     }
   }
 
   return (
-    <form aria-label="Checkout" onSubmit={form.handleSubmit(onSubmit)}>
+    <form
+      className="checkout-panel"
+      aria-label="Checkout"
+      onSubmit={form.handleSubmit(onSubmit)}
+    >
+      <p className="eyebrow">ORDER REVIEW</p>
       <h2>Checkout</h2>
+      <p className="muted">Review your cart and place your order.</p>
       <p>Cart total: {cart.total.toFixed(2)}</p>
       <ul aria-label="Cart summary">
         {cart.items.map((item) => (
           <li key={item.productId}>
-            {item.productName} x {item.quantity}
+            <span>
+              {item.productName} x {item.quantity}
+            </span>
+            <strong>{item.lineTotal.toFixed(2)}</strong>
           </li>
         ))}
       </ul>
+      <p className="checkout-note">
+        The final amount is confirmed by the store. Your order is safe to retry
+        if the connection drops.
+      </p>
       {failureMessage && <p role="alert">{failureMessage}</p>}
       <button
         disabled={

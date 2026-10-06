@@ -66,9 +66,11 @@ describe("ProductDetail", () => {
         screen.getByRole("heading", { name: "Apple" }),
       ).toBeInTheDocument(),
     );
-    expect(
-      screen.getByRole("button", { name: "Add to Cart" }),
-    ).not.toBeDisabled();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Add to Cart" }),
+      ).not.toBeDisabled(),
+    );
     expect(screen.getByTestId("product-price")).toHaveTextContent(/2[.,]50/);
   });
 

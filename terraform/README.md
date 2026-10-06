@@ -124,7 +124,7 @@ terraform apply
 docker build -t cart-service ./microservices/cart-service
 docker build -t order-service ./microservices/order-service
 docker build -t product-service ./microservices/product-service
-docker build -t summary-service ./microservices/summary-service
+docker build -t ledger-service ./microservices/ledger-service
 
 # Tag and push to ECR (after terraform apply)
 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com
@@ -144,7 +144,7 @@ After deployment, services are accessible through the ALB:
 - Cart Service: `http://<alb-dns-name>/cart/`
 - Order Service: `http://<alb-dns-name>/order/`
 - Product Service: `http://<alb-dns-name>/product/`
-- Summary Service: `http://<alb-dns-name>/summary/`
+- Ledger Service: `http://<alb-dns-name>/summary/`
 
 ## Monitoring
 

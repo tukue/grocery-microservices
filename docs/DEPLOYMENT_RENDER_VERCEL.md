@@ -21,7 +21,7 @@ flowchart TB
     Cart["Public cart-service\n/api/customer/cart*\n/auth/login"]
     Product["Public product-service\n/products*"]
     Order["Public order-service\n/api/customer/checkout\n/api/customer/orders*"]
-    Summary["summary-service\nreceipt projection"]
+    Summary["ledger-service\nreceipt projection"]
 
     CartDb[(cart Postgres)]
     ProductDb[(product Postgres)]
@@ -60,7 +60,7 @@ The numbered arrows show the frontend/backend integration boundary: the browser
 only calls Vercel; the BFF selects the owning backend and injects the bearer
 token from its HTTP-only session cookie. Cart, product, and order must be
 reachable by that BFF, while order-to-cart/product and service-to-database
-traffic stays on Render's private network. The summary service is asynchronous:
+traffic stays on Render's private network. The ledger service is asynchronous:
 checkout succeeds after the order is persisted, and the receipt follows after
 Kafka consumption.
 
@@ -107,7 +107,7 @@ apply request-size/time limits, and return a generic 502 for upstream failures.
    `security.jwt.demo-enabled=false`; the embedded demo issuer is not a
    production identity provider.
 3. Provision a managed Kafka offering reachable from Render. The order and
-   summary services require it at startup (`spring.kafka.admin.fail-fast=true`).
+   ledger services require it at startup (`spring.kafka.admin.fail-fast=true`).
 4. Create separate Render Postgres databases: `grocery-cart`,
    `grocery-product`, `grocery-order`, and `grocery-summary`. Do not share one
    schema across services.
@@ -166,7 +166,7 @@ per-service configuration:
 | `grocery-cart-api` | `microservices/cart-service/Dockerfile` | `/actuator/health` | Required for the Vercel BFF | its cart DB variables |
 | `grocery-product-api` | `microservices/product-service/Dockerfile` | `/actuator/health` | Required for the Vercel BFF | its product DB variables |
 | `grocery-order-api` | `microservices/order-service/Dockerfile` | `/actuator/health` | Required for the Vercel BFF | its order DB, Kafka, cart and product URLs |
-| `grocery-summary-worker` | `microservices/summary-service/Dockerfile` | `/actuator/health` | Only public if the BFF reads receipts directly | its summary DB and Kafka variables |
+| `grocery-summary-worker` | `microservices/ledger-service/Dockerfile` | `/actuator/health` | Only public if the BFF reads receipts directly | its summary DB and Kafka variables |
 
 Set the start command to the Dockerfile `ENTRYPOINT`; do not override it.
 Use the shared environment group plus the service-specific database values.
@@ -190,7 +190,7 @@ Deploy in this order:
 1. Cart and product databases, then cart and product services.
 2. Order database, Kafka topics (`order.created.v1`, retry/failed topics if
    used by the configured consumer), then order service.
-3. Summary database, then summary service.
+3. Summary database, then ledger service.
 
 Every service must return HTTP 200 from `/actuator/health` before proceeding.
 Render uses the configured health check before directing traffic to a new

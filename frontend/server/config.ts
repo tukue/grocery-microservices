@@ -46,7 +46,7 @@ const envSchema = z.object({
 /**
  * Service URLs visible to the BFF.
  *
- * All three point at the gateway — the gateway's route table handles
+ * All four point at the gateway — the gateway's route table handles
  * dispatching to the real service. This keeps the BFF's routing concern simple:
  * it only needs to know the gateway address.
  */
@@ -57,6 +57,8 @@ export type ServiceUrls = {
   cart: string;
   /** Used for /api/customer/orders and /api/customer/checkout routes */
   order: string;
+  /** Used for /api/customer/ledger routes */
+  ledger: string;
 };
 
 export interface BffConfig {
@@ -86,11 +88,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BffConfig {
     },
     port: parsed.BFF_PORT,
     redisUrl: parsed.REDIS_URL,
-    // All three service URL slots point at the gateway — the gateway routes internally
+    // All service URL slots point at the gateway — the gateway routes internally
     serviceUrls: {
       cart: gatewayUrl,
       order: gatewayUrl,
       product: gatewayUrl,
+      ledger: gatewayUrl,
     },
   };
 }

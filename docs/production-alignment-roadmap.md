@@ -31,7 +31,7 @@ customer identity.
 | --- | --- | --- |
 | Backend boundaries | Four independently deployable Spring Boot services | Standardize external API contracts and error semantics across services. |
 | Checkout | Order service reads cart data and creates an immutable order | Define the browser-facing checkout contract and end-to-end acceptance path. |
-| Async processing | Order event store relays `order.created.v1` to summary service | Provision and operate Kafka outside local Docker; define failed-event ownership. |
+| Async processing | Order event store relays `order.created.v1` to ledger service | Provision and operate Kafka outside local Docker; define failed-event ownership. |
 | Security | JWT and per-service security configuration exist | Define browser token lifecycle, CORS policy, public routes, and authorization test matrix. |
 | Quality | Per-service Maven CI and Docker smoke tests | Add contract, end-to-end, accessibility, and browser workflow tests. |
 | Infrastructure | Terraform provisions ECS, RDS, ALB, secrets, and monitoring | Establish environment promotion, migrations, alert runbooks, and the managed Kafka decision. |
@@ -50,7 +50,7 @@ flowchart LR
   ALB --> Product[Product service]
   ALB --> Cart[Cart service]
   ALB --> Order[Order service]
-  ALB --> Summary[Summary service]
+  ALB --> Summary[Ledger service]
   Order -->|order.created.v1| Kafka[Managed Kafka]
   Kafka --> Summary
 ```

@@ -16,7 +16,7 @@ Repository constraints:
 - Deploy each service from its existing Dockerfile with the repository root as
   Docker build context.
 - Production uses `SPRING_PROFILES_ACTIVE=prod`; it requires Postgres, a real
-  OIDC issuer, CORS allowlists, and Kafka for order and summary services.
+  OIDC issuer, CORS allowlists, and Kafka for order and ledger services.
 - Use Render internal database URLs and private Render service URLs for
   backend-to-backend traffic.
 - The frontend is Vite, with root directory `frontend`, build command

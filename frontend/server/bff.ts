@@ -1,3 +1,4 @@
+import { z } from "zod";
 import cookieParser from "cookie-parser";
 import express, {
   type NextFunction,
@@ -176,6 +177,65 @@ export function createBff(
           signal: AbortSignal.timeout(TIMEOUT),
         },
       );
+      const receiptMatch = req.path.match(
+        /^\/api\/customer\/ledger\/orders\/(\d+)\/receipt$/,
+      );
+      if (receiptMatch && upstream.status === 404) {
+        const owned = await fetch(
+          `${config.serviceUrls.order}/api/customer/orders/${receiptMatch[1]}`,
+          { headers, signal: AbortSignal.timeout(TIMEOUT) },
+        );
+        if (!owned.ok) {
+          sendError(
+            res,
+            owned.status,
+            owned.status === 401
+              ? "Please sign in to continue"
+              : owned.status === 403
+                ? "Access denied"
+                : owned.status === 404
+                  ? "Order not found"
+                  : "Order service unavailable",
+            req.path,
+          );
+          return;
+        }
+        const order = z
+          .object({
+            id: z.number().int().positive(),
+            userId: z.string().min(1),
+          })
+          .safeParse(await owned.json());
+        if (!order.success || order.data.id !== Number(receiptMatch[1])) {
+          sendError(
+            res,
+            502,
+            "Order service returned an invalid response",
+            req.path,
+          );
+          return;
+        }
+        if (order.data.userId !== session?.userId) {
+          sendError(res, 403, "Access denied", req.path);
+          return;
+        }
+        res.status(202).json({ status: "pending" });
+        return;
+      }
+      if (receiptMatch && upstream.ok) {
+        const content = await upstream.text();
+        if (!content.trim()) {
+          sendError(
+            res,
+            502,
+            "Receipt service returned an invalid response",
+            req.path,
+          );
+          return;
+        }
+        res.json({ status: "ready", content });
+        return;
+      }
       res
         .status(upstream.status)
         .type(upstream.headers.get("content-type") ?? "application/json")

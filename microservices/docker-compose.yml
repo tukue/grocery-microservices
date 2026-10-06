@@ -53,11 +53,11 @@ services:
     networks:
       - backend
 
-  summary-db:
+  ledger-db:
     <<: *postgres-common
-    container_name: summary-db
+    container_name: ledger-db
     volumes:
-      - summary-db-data:/var/lib/postgresql/data
+      - ledger-db-data:/var/lib/postgresql/data
     networks:
       - backend
 
@@ -230,13 +230,14 @@ services:
     networks:
       - backend
 
-  summary-service:
+  ledger-service:
     build:
       context: ..
-      dockerfile: microservices/summary-service/Dockerfile
-    container_name: summary-service
+      dockerfile: microservices/ledger-service/Dockerfile
+    container_name: ledger-service
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      SPRING_FLYWAY_LOCATIONS: classpath:db/migration/ledger
       SPRING_APPLICATION_JSON: ${SPRING_APPLICATION_JSON:-}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
       JWT_ISSUER_URI: ${JWT_ISSUER_URI:-http://cart-service:8080}
@@ -253,7 +254,7 @@ services:
       - /tmp
       - /app/logs
     depends_on:
-      summary-db:
+      ledger-db:
         condition: service_healthy
       kafka-init:
         condition: service_completed_successfully
@@ -273,7 +274,7 @@ services:
       - cart-db
       - order-db
       - product-db
-      - summary-db
+      - ledger-db
     networks:
       - backend
       - observability
@@ -293,7 +294,7 @@ volumes:
   cart-db-data:
   order-db-data:
   product-db-data:
-  summary-db-data:
+  ledger-db-data:
 
 networks:
   backend:

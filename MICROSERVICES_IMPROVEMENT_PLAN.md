@@ -39,8 +39,8 @@ This document outlines the high-value, low-complexity improvements planned for e
 - [x] **Simple Search**: Implement basic keyword filtering using standard JPA methods. (Implemented `searchProducts`).
 - [x] **Demo Assets**: Use placeholder/SVG image strategies to keep the repo visually complete without external dependencies. (Added `imageUrl` and updated `import.sql`).
 
-## 5. Summary Service
+## 5. Ledger Service
 *Focus: Reporting and Decoupling.*
 - [x] **Clear Reporting**: Format receipts for maximum readability (Date, Items, Total, Tax). (Implemented `getFormattedReceipt`).
-- [x] **Pure Domain Logic**: Decouple calculation logic into testable Java classes, independent of the web layer. (Extracted into `SummaryProcessor`).
+- [x] **Pure Domain Logic**: Decouple calculation logic into testable Java classes, independent of the web layer. (Extracted into `LedgerProcessor`).
 - [x] **Traceability**: Link every summary to its parent Order ID for easy cross-referencing.

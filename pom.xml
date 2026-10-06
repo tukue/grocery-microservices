@@ -18,7 +18,7 @@
         <module>microservices/cart-service</module>
         <module>microservices/order-service</module>
         <module>microservices/product-service</module>
-        <module>microservices/summary-service</module>
+        <module>microservices/ledger-service</module>
         <module>microservices/gateway-service</module>
         <module>microservices/e2e-tests</module>
     </modules>

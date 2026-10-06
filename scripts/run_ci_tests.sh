@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SERVICES=(cart-service order-service product-service summary-service)
+SERVICES=(cart-service order-service product-service ledger-service)
 SMOKE_LOG_PATH="${ROOT_DIR}/microservice-smoke.log"
 SMOKE_STATUS_PATH="${ROOT_DIR}/microservice-smoke-status.log"
 SMOKE_STACK_STARTED=false
@@ -54,10 +54,10 @@ run_smoke_tests() {
   trap 'capture_smoke_diagnostics; cleanup_smoke_stack' RETURN
   pushd "${ROOT_DIR}/microservices" >/dev/null
   rm -f "${SMOKE_LOG_PATH}" "${SMOKE_STATUS_PATH}"
-  docker compose up -d cart-db order-db product-db summary-db cart-service order-service product-service summary-service
+  docker compose up -d cart-db order-db product-db ledger-db cart-service order-service product-service ledger-service
   SMOKE_STACK_STARTED=true
 
-  for target in "cart-service:8081" "order-service:8082" "product-service:8083" "summary-service:8084"; do
+  for target in "cart-service:8081" "order-service:8082" "product-service:8083" "ledger-service:8084"; do
     service="${target%%:*}"
     port="${target##*:}"
     echo "Waiting for ${service} on port ${port}..."

@@ -20,6 +20,7 @@ Validated request -> Controller -> Service rule -> Repository/downstream client 
 - Service URLs and timeouts are externalized; deployed calls do not depend on localhost defaults.
 - Central exception handlers expose customer-safe `400`, `403`, `404`, `409`, and `503` responses.
 - Tests cover success, validation/business failures, authorization denial, and no persistence after rejected operations.
+- Preserve applied Flyway migrations; use a new migration for schema renames and verify existing data and constraints survive the upgrade.
 
 ## Implementation Rules
 

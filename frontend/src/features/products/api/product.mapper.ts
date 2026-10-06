@@ -12,5 +12,8 @@ export function toProduct(response: unknown): Product {
     imageUrl: product.imageUrl ?? undefined,
     name: product.name,
     price: product.price,
+    ...(product.stockQuantity !== undefined
+      ? { stockQuantity: product.stockQuantity }
+      : {}),
   };
 }

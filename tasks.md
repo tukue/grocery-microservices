@@ -9,7 +9,7 @@
 
 The local development environment is managed using `docker-compose`. The `microservices/docker-compose.yml` file defines the backing services required to run the application, including:
 
-*   **Databases**: A separate PostgreSQL database for each microservice (`cart-db`, `order-db`, `product-db`, `summary-db`).
+*   **Databases**: A separate PostgreSQL database for each microservice (`cart-db`, `order-db`, `product-db`, `ledger-db`).
 *   **Monitoring**: A `Prometheus` instance for metrics collection and a `Grafana` instance for visualization.
 
 To start the local development environment, run `docker-compose up` from the `microservices` directory. The Spring Boot applications can then be started from your IDE, and they will connect to the services running in Docker.
