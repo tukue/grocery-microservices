@@ -6,11 +6,13 @@ on:
     paths:
       - 'monolith/**'
       - '.github/workflows/monolith-ci.yml'
+      - '!**/*.md'
   pull_request:
     branches: [ main ]
     paths:
       - 'monolith/**'
       - '.github/workflows/monolith-ci.yml'
+      - '!**/*.md'
 
 jobs:
   test:
