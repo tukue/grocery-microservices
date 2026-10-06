@@ -3,7 +3,8 @@ export type Product = Readonly<{
   currency: string;
   description: string;
   id: number;
-  imageUrl?: string;
+  imageUrl?: string | null;
   name: string;
   price: number;
+  stockQuantity?: number;
 }>;

@@ -341,6 +341,7 @@ class OrderToSummaryFlowIT {
                 .web(WebApplicationType.SERVLET)
                 .run(
                         "--spring.config.name=order-e2e",
+                        "--spring.profiles.active=docker",
                         "--server.port=" + ORDER_PORT,
                         "--spring.datasource.url=" + orderDb.getJdbcUrl(),
                         "--spring.datasource.username=" + orderDb.getUsername(),
@@ -354,7 +355,8 @@ class OrderToSummaryFlowIT {
                 .profiles("docker")
                 .web(WebApplicationType.SERVLET)
                 .run(
-                        "--spring.config.name=summary-e2e",
+                        "--spring.config.name=ledger-e2e",
+                        "--spring.profiles.active=docker",
                         "--server.port=" + SUMMARY_PORT,
                         "--spring.datasource.url=" + summaryDb.getJdbcUrl(),
                         "--spring.datasource.username=" + summaryDb.getUsername(),

@@ -18,6 +18,18 @@ type RouteRule = {
 const rules: readonly RouteRule[] = [
   {
     methods: ["GET"],
+    pattern: /^\/api\/customer\/ledger$/,
+    service: "ledger",
+    protected: true,
+  },
+  {
+    methods: ["GET"],
+    pattern: /^\/api\/customer\/ledger\/orders\/\d+\/receipt$/,
+    service: "ledger",
+    protected: true,
+  },
+  {
+    methods: ["GET"],
     pattern: /^\/api\/catalog\/products$/,
     service: "product",
     protected: false,

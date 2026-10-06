@@ -10,5 +10,9 @@ export function Price({ amount, currency, locale }: PriceProps) {
     style: "currency",
   }).format(amount);
 
-  return <span aria-label={formatted}>{formatted}</span>;
+  return (
+    <span className="price" aria-label={formatted}>
+      {formatted}
+    </span>
+  );
 }

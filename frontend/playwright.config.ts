@@ -6,6 +6,9 @@ export default defineConfig({
   testDir: "./e2e",
   use: {
     baseURL,
+    launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+      ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
+      : {},
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
   },

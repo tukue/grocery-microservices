@@ -28,6 +28,7 @@ export async function mockApi(page: Page) {
   } | null = null;
   let nextItemId = 1;
   let nextOrderId = 1;
+  let receiptReads = 0;
   const orders: Array<Record<string, unknown>> = [];
 
   await page.route("**/api/**", async (route) => {
@@ -152,6 +153,20 @@ export async function mockApi(page: Page) {
     }
     if (path === "/api/customer/orders" && method === "GET") {
       await json(route, 200, orders);
+      return;
+    }
+    if (
+      /^\/api\/customer\/ledger\/orders\/\d+\/receipt$/.test(path) &&
+      method === "GET"
+    ) {
+      receiptReads++;
+      await json(
+        route,
+        receiptReads === 1 ? 202 : 200,
+        receiptReads === 1
+          ? { status: "pending" }
+          : { status: "ready", content: "Grove receipt — Apple — Total: 2.29" },
+      );
       return;
     }
     const orderPath = path.match(/^\/api\/customer\/orders\/(\d+)$/);

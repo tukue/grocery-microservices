@@ -13,6 +13,7 @@ import { CheckoutPage } from "./features/orders/components/checkout-page";
 import { OrderHistory } from "./features/orders/components/order-history";
 import { ProductDetail } from "./features/products/components/product-detail";
 import { ProductList } from "./features/products/components/product-list";
+import { StoreLayout } from "./app/store-layout";
 
 function ProtectedRoute() {
   const { session, loading } = useSession();
@@ -39,18 +40,23 @@ function NotFound() {
 }
 
 export const router = createBrowserRouter([
-  { path: "/", element: <Navigate to="/products" replace /> },
-  { path: "/login", element: <LoginPage /> },
-  { path: "/products", element: <ProductList /> },
-  { path: "/products/:id", element: <ProductDetail /> },
   {
-    element: <ProtectedRoute />,
+    element: <StoreLayout />,
     children: [
-      { path: "/cart", element: <CartPage /> },
-      { path: "/checkout", element: <CheckoutPage /> },
-      { path: "/confirmation/:orderId", element: <ConfirmationPage /> },
-      { path: "/orders", element: <OrderHistory /> },
+      { path: "/", element: <Navigate to="/products" replace /> },
+      { path: "/login", element: <LoginPage /> },
+      { path: "/products", element: <ProductList /> },
+      { path: "/products/:id", element: <ProductDetail /> },
+      {
+        element: <ProtectedRoute />,
+        children: [
+          { path: "/cart", element: <CartPage /> },
+          { path: "/checkout", element: <CheckoutPage /> },
+          { path: "/confirmation/:orderId", element: <ConfirmationPage /> },
+          { path: "/orders", element: <OrderHistory /> },
+        ],
+      },
+      { path: "*", element: <NotFound /> },
     ],
   },
-  { path: "*", element: <NotFound /> },
 ]);

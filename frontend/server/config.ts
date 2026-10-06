@@ -5,6 +5,7 @@ const envSchema = z.object({
   BFF_PORT: z.coerce.number().int().positive().max(65535).default(3000),
   CART_SERVICE_URL: url.default("http://localhost:8081"),
   ORDER_SERVICE_URL: url.default("http://localhost:8082"),
+  LEDGER_SERVICE_URL: url.default("http://localhost:8084"),
   PRODUCT_SERVICE_URL: url.default("http://localhost:8083"),
   NODE_ENV: z
     .enum(["development", "test", "production"])
@@ -15,7 +16,12 @@ const envSchema = z.object({
   REDIS_URL: url.optional(),
 });
 
-export type ServiceUrls = { cart: string; order: string; product: string };
+export type ServiceUrls = {
+  cart: string;
+  order: string;
+  product: string;
+  ledger: string;
+};
 export interface BffConfig {
   cookieSecure: boolean;
   jwt: { audience: string; issuer: string; jwksUri: string };
@@ -40,6 +46,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BffConfig {
       cart: parsed.CART_SERVICE_URL,
       order: parsed.ORDER_SERVICE_URL,
       product: parsed.PRODUCT_SERVICE_URL,
+      ledger: parsed.LEDGER_SERVICE_URL,
     },
   };
 }

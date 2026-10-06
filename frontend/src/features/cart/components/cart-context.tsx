@@ -9,9 +9,11 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 
-import { useSession } from "../../auth/components/auth-context";
+import { useSession } from "../../auth";
 import { CartAdapter } from "../api/cart-adapter";
 import type { CartDTO } from "../api/cart-adapter";
+import { toCart } from "../api/cart.mapper";
+import type { Cart } from "../domain/cart";
 import { CartClient } from "../api/cart-client";
 
 type CartPort = Pick<
@@ -25,7 +27,7 @@ type CartPort = Pick<
 
 export interface CartContextValue {
   readonly adapter: CartPort;
-  readonly cart: CartDTO | null;
+  readonly cart: Cart | null;
   readonly loading: boolean;
   readonly error: string | null;
   readonly itemCount: number;
@@ -50,13 +52,17 @@ export function CartProvider({
 }: CartProviderProps) {
   const { session, loading: sessionLoading } = useSession();
   const adapter = useMemo(() => adapterProp ?? new CartClient(), [adapterProp]);
-  const [cart, setCart] = useState<CartDTO | null>(null);
+  const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingItems, setPendingItems] = useState<ReadonlySet<number>>(
     new Set(),
   );
   const mountedRef = useRef(true);
+  const mutationLock = useRef(false);
+  const sessionRef = useRef(session?.userId);
+  sessionRef.current = session?.userId;
+  const refreshId = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -66,6 +72,8 @@ export function CartProvider({
   }, []);
 
   const refresh = useCallback(async () => {
+    const requestId = ++refreshId.current;
+    const owner = session?.userId;
     if (sessionLoading) return;
     if (!session) {
       if (mountedRef.current) {
@@ -83,15 +91,18 @@ export function CartProvider({
       const current = await adapter.getCurrentCart();
       if (mountedRef.current) {
         // getCurrentCart resolves null (404) when the customer has no cart yet.
-        setCart(current);
+        if (requestId === refreshId.current && sessionRef.current === owner)
+          setCart(current ? toCart(current) : null);
       }
     } catch {
       if (mountedRef.current) {
-        setError("Failed to load cart");
+        if (requestId === refreshId.current && sessionRef.current === owner)
+          setError("Failed to load cart");
       }
     } finally {
       if (mountedRef.current) {
-        setLoading(false);
+        if (requestId === refreshId.current && sessionRef.current === owner)
+          setLoading(false);
       }
     }
   }, [adapter, session, sessionLoading]);
@@ -102,6 +113,12 @@ export function CartProvider({
 
   const addItem = useCallback(
     async (productId: number, quantity = 1): Promise<CartDTO> => {
+      if (loading) throw new Error("Your cart is still loading.");
+      if (!sessionRef.current) throw new Error("Please sign in to continue.");
+      if (mutationLock.current)
+        throw new Error("Your cart is updating. Please try again.");
+      mutationLock.current = true;
+      const owner = sessionRef.current;
       setPendingItems((current) => new Set(current).add(productId));
       setError(null);
       try {
@@ -111,12 +128,15 @@ export function CartProvider({
           productId,
           quantity,
         );
-        if (mountedRef.current) setCart(authoritative);
+        if (mountedRef.current && sessionRef.current === owner)
+          setCart(toCart(authoritative));
         return authoritative;
       } catch (cause) {
-        if (mountedRef.current) setError("Failed to add item");
+        if (mountedRef.current && sessionRef.current === owner)
+          setError("Failed to add item");
         throw cause;
       } finally {
+        mutationLock.current = false;
         setPendingItems((current) => {
           const next = new Set(current);
           next.delete(productId);
@@ -124,13 +144,18 @@ export function CartProvider({
         });
       }
     },
-    [adapter, cart],
+    [adapter, cart, loading],
   );
 
   const updateItem = useCallback(
     async (itemId: number, quantity: number): Promise<CartDTO> => {
       if (!cart) throw new Error("No cart loaded.");
+      if (mutationLock.current)
+        throw new Error("Your cart is updating. Please try again.");
+      mutationLock.current = true;
+      const owner = sessionRef.current;
       setPendingItems((current) => new Set(current).add(itemId));
+      setError(null);
       const previous = cart;
       setCart({
         ...cart,
@@ -145,15 +170,19 @@ export function CartProvider({
           quantity,
         );
         if (mountedRef.current) {
-          setCart(authoritative);
+          if (sessionRef.current === owner) setCart(toCart(authoritative));
         }
         return authoritative;
       } catch (error) {
         if (mountedRef.current) {
-          setCart(previous);
+          if (sessionRef.current === owner) {
+            setCart(previous);
+            setError("Could not update your cart. Please try again.");
+          }
         }
         throw error;
       } finally {
+        mutationLock.current = false;
         setPendingItems((current) => {
           const next = new Set(current);
           next.delete(itemId);
@@ -167,7 +196,12 @@ export function CartProvider({
   const removeItem = useCallback(
     async (itemId: number): Promise<CartDTO> => {
       if (!cart) throw new Error("No cart loaded.");
+      if (mutationLock.current)
+        throw new Error("Your cart is updating. Please try again.");
+      mutationLock.current = true;
+      const owner = sessionRef.current;
       setPendingItems((current) => new Set(current).add(itemId));
+      setError(null);
       const previous = cart;
       setCart({
         ...cart,
@@ -176,15 +210,19 @@ export function CartProvider({
       try {
         const authoritative = await adapter.removeItem(cart.id, itemId);
         if (mountedRef.current) {
-          setCart(authoritative);
+          if (sessionRef.current === owner) setCart(toCart(authoritative));
         }
         return authoritative;
       } catch (error) {
         if (mountedRef.current) {
-          setCart(previous);
+          if (sessionRef.current === owner) {
+            setCart(previous);
+            setError("Could not update your cart. Please try again.");
+          }
         }
         throw error;
       } finally {
+        mutationLock.current = false;
         setPendingItems((current) => {
           const next = new Set(current);
           next.delete(itemId);

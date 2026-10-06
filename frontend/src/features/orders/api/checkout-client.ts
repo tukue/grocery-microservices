@@ -1,3 +1,4 @@
+import { notifySessionExpired } from "../../../shared/http/session-expired";
 import {
   ApplicationError,
   createApplicationError,
@@ -25,6 +26,7 @@ export async function submitCheckout(
       headers: { "content-type": "application/json" },
       body: JSON.stringify(request),
     });
+    notifySessionExpired(response.status);
     if (!response.ok) throw checkoutErrorForStatus(response.status);
     return orderResponseSchema.parse(await response.json());
   } catch (error) {

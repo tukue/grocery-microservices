@@ -15,6 +15,7 @@ const config = {
     cart: "http://cart",
     order: "http://order",
     product: "http://product",
+    ledger: "http://ledger",
   },
 };
 describe("order proxy ownership boundary", () => {
