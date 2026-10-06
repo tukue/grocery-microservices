@@ -1,5 +1,7 @@
 # Implementation guide
 
+Last updated: 2026-10-06.
+
 Use this guide when extending or fixing the grocery application. Start with the
 [current architecture](architecture-overview.md) and
 [current frontend implementation](../frontend/docs/current-implementation.md).
