@@ -7,6 +7,9 @@ retry-safe checkout, persisted confirmation, order history, and eventual receipt
 Use [the design system](docs/design-system.md) for visual and interaction
 consistency and [the architecture guide](docs/architecture.md) for code boundaries.
 
+See [the current implementation](docs/current-implementation.md) for routes,
+state management, checkout, receipts, and current limitations.
+
 ## Local development
 
 Use Node 24 and install the locked dependencies with `npm ci`. Java 25, Maven,

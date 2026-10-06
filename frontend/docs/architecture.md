@@ -4,6 +4,10 @@ Use [the storefront design system](design-system.md) for visual tokens,
 responsive layouts, customer screens, and recovery behavior. Use the repository
 frontend implementation approach for API validation and delivery practices.
 
+See [the current implementation](current-implementation.md) for runtime behavior
+and [the application overview](../../docs/architecture-overview.md) for service
+ownership and event flow.
+
 ## Import Boundaries
 
 - `src/app` may import feature and shared modules.
