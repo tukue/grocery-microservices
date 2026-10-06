@@ -7,12 +7,14 @@ on:
       - 'microservices/**'
       - 'pom.xml'
       - '.github/workflows/microservices-ci.yml'
+      - '!**/*.md'
   pull_request:
     branches: [ main, develop ]
     paths:
       - 'microservices/**'
       - 'pom.xml'
       - '.github/workflows/microservices-ci.yml'
+      - '!**/*.md'
 
 # dorny/test-reporter creates a check run from the PR head SHA.
 permissions:
