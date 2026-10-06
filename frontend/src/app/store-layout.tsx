@@ -27,23 +27,23 @@ export function StoreLayout() {
         Skip to content
       </a>
       <div className="announcement">
-        Good food. Everyday essentials. One happy basket.
+        Good food. Everyday essentials. One happy cart.
       </div>
       <header className="store-header">
-        <Link to="/products" className="brand" aria-label="Grove Grocery home">
+        <Link to="/products" className="brand" aria-label="Fresh Cart home">
           <span className="brand-mark" aria-hidden="true">
-            g.
+            f.
           </span>{" "}
-          grove<span className="brand-caption">GROCERY</span>
+          fresh cart<span className="brand-caption">GROCERY</span>
         </Link>
         <nav aria-label="Main navigation">
           <NavLink to="/products">Shop</NavLink>
           {session && <NavLink to="/orders">My orders</NavLink>}
-          <NavLink to="/cart" className="basket-link">
-            Basket{" "}
+          <NavLink to="/cart" className="cart-link">
+            Cart{" "}
             <span
-              className="basket-count"
-              aria-label={`${itemCount} items in basket`}
+              className="cart-count"
+              aria-label={`${itemCount} items in cart`}
             >
               {itemCount}
             </span>
@@ -79,12 +79,12 @@ export function StoreLayout() {
       </div>
       <footer className="store-footer">
         <Link className="brand" to="/products">
-          grove.
+          fresh cart.
         </Link>
         <p>A little fresh inspiration for your everyday.</p>
         <nav aria-label="Footer navigation">
           <Link to="/products">Shop groceries</Link>
-          <Link to="/cart">Your basket</Link>
+          <Link to="/cart">Your cart</Link>
           <Link to="/orders">Your orders</Link>
         </nav>
       </footer>

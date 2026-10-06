@@ -50,7 +50,7 @@ export function ProductList() {
   return (
     <main>
       {!query && (
-        <section className="hero-banner" aria-label="Welcome to Grove">
+        <section className="hero-banner" aria-label="Welcome to Fresh Cart">
           <div className="hero-copy">
             <p className="eyebrow">YOUR EVERYDAY, A LITTLE FRESHER</p>
             <h2>
@@ -93,13 +93,13 @@ export function ProductList() {
                 strokeWidth="5"
               />
             </svg>
-            <span className="hero-tag">FILL YOUR BASKET WITH GOOD THINGS</span>
+            <span className="hero-tag">FILL YOUR CART WITH GOOD THINGS</span>
           </div>
         </section>
       )}
       <div id="catalog" className="catalog-heading">
         <div>
-          <p className="eyebrow">THE GROVE SHOP</p>
+          <p className="eyebrow">THE FRESH CART SHOP</p>
           <h1>Products</h1>
           <p className="muted">
             {query
@@ -173,14 +173,14 @@ export function ProductList() {
           ))}
         </section>
       )}
-      <section className="benefit-strip" aria-label="Shopping with Grove">
+      <section className="benefit-strip" aria-label="Shopping with Fresh Cart">
         <div>
-          <strong>A basket that stays with you</strong>
+          <strong>A cart that stays with you</strong>
           <p>Sign in to keep your groceries across visits.</p>
         </div>
         <div>
           <strong>Current prices, clear choices</strong>
-          <p>Review your basket before placing an order.</p>
+          <p>Review your cart before placing an order.</p>
         </div>
         <div>
           <strong>Your orders, all in one place</strong>

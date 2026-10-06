@@ -226,12 +226,12 @@ p {
 .button-quiet:hover {
   background: #edf2e8;
 }
-.basket-link {
+.cart-link {
   display: inline-flex;
   align-items: center;
   gap: 8px;
 }
-.basket-count {
+.cart-count {
   display: inline-flex;
   align-items: center;
   justify-content: center;

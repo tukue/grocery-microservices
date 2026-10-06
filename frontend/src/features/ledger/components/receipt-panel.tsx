@@ -73,7 +73,7 @@ export function ReceiptPanel({
               );
               const link = document.createElement("a");
               link.href = url;
-              link.download = `grove-receipt-${orderId}.txt`;
+              link.download = `fresh-cart-receipt-${orderId}.txt`;
               link.click();
               setTimeout(() => URL.revokeObjectURL(url), 1_000);
             }}

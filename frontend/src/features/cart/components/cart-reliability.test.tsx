@@ -49,7 +49,7 @@ function mockSession() {
       ),
   );
 }
-describe("basket consistency", () => {
+describe("cart consistency", () => {
   it("guards overlapping adds before React can disable the button", async () => {
     mockSession();
     const pending = deferred<typeof cart>();

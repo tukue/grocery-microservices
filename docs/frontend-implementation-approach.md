@@ -5,7 +5,7 @@ security and reliability follow-up. Use it as a starting point for future
 frontend work in this repository. Keep endpoint details in the relevant API
 contracts; this document describes how to shape and deliver a feature.
 
-Use [the Grove design system](../frontend/docs/design-system.md) as the visual
+Use [the Fresh Cart design system](../frontend/docs/design-system.md) as the visual
 and interaction reference. It defines shared tokens, responsive layouts, the
 shopping journey, and recovery states. Keep screens consistent with this guide
 when extending the application.

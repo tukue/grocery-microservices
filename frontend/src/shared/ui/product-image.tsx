@@ -39,7 +39,7 @@ export function ProductImage({
           strokeLinecap="round"
         />
       </svg>
-      <span>Good things from Grove</span>
+      <span>Good things from Fresh Cart</span>
     </div>
   );
 }

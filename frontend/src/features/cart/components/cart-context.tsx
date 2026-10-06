@@ -113,10 +113,10 @@ export function CartProvider({
 
   const addItem = useCallback(
     async (productId: number, quantity = 1): Promise<CartDTO> => {
-      if (loading) throw new Error("Your basket is still loading.");
+      if (loading) throw new Error("Your cart is still loading.");
       if (!sessionRef.current) throw new Error("Please sign in to continue.");
       if (mutationLock.current)
-        throw new Error("Your basket is updating. Please try again.");
+        throw new Error("Your cart is updating. Please try again.");
       mutationLock.current = true;
       const owner = sessionRef.current;
       setPendingItems((current) => new Set(current).add(productId));
@@ -151,7 +151,7 @@ export function CartProvider({
     async (itemId: number, quantity: number): Promise<CartDTO> => {
       if (!cart) throw new Error("No cart loaded.");
       if (mutationLock.current)
-        throw new Error("Your basket is updating. Please try again.");
+        throw new Error("Your cart is updating. Please try again.");
       mutationLock.current = true;
       const owner = sessionRef.current;
       setPendingItems((current) => new Set(current).add(itemId));
@@ -177,7 +177,7 @@ export function CartProvider({
         if (mountedRef.current) {
           if (sessionRef.current === owner) {
             setCart(previous);
-            setError("Could not update your basket. Please try again.");
+            setError("Could not update your cart. Please try again.");
           }
         }
         throw error;
@@ -197,7 +197,7 @@ export function CartProvider({
     async (itemId: number): Promise<CartDTO> => {
       if (!cart) throw new Error("No cart loaded.");
       if (mutationLock.current)
-        throw new Error("Your basket is updating. Please try again.");
+        throw new Error("Your cart is updating. Please try again.");
       mutationLock.current = true;
       const owner = sessionRef.current;
       setPendingItems((current) => new Set(current).add(itemId));
@@ -217,7 +217,7 @@ export function CartProvider({
         if (mountedRef.current) {
           if (sessionRef.current === owner) {
             setCart(previous);
-            setError("Could not update your basket. Please try again.");
+            setError("Could not update your cart. Please try again.");
           }
         }
         throw error;

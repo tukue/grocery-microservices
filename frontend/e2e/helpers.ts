@@ -165,7 +165,10 @@ export async function mockApi(page: Page) {
         receiptReads === 1 ? 202 : 200,
         receiptReads === 1
           ? { status: "pending" }
-          : { status: "ready", content: "Grove receipt — Apple — Total: 2.29" },
+          : {
+              status: "ready",
+              content: "Fresh Cart receipt — Apple — Total: 2.29",
+            },
       );
       return;
     }

@@ -77,7 +77,7 @@ export function OrderHistory() {
   return (
     <main>
       <div className="page-title">
-        <p className="eyebrow">YOUR GROVE ACCOUNT</p>
+        <p className="eyebrow">YOUR FRESH CART ACCOUNT</p>
         <h1>Order History</h1>
         <p>All your everyday favourites, saved in one place.</p>
       </div>

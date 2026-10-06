@@ -31,7 +31,7 @@ describe("receipt BFF boundary", () => {
     const { app, cookie } = await fixture();
     const fetcher = vi
       .fn()
-      .mockResolvedValue(new Response("Grove receipt\nTotal: 12.00"));
+      .mockResolvedValue(new Response("Fresh Cart receipt\nTotal: 12.00"));
     vi.stubGlobal("fetch", fetcher);
     const result = await request(app)
       .get(path)
@@ -39,7 +39,7 @@ describe("receipt BFF boundary", () => {
       .expect(200);
     expect(result.body).toEqual({
       status: "ready",
-      content: "Grove receipt\nTotal: 12.00",
+      content: "Fresh Cart receipt\nTotal: 12.00",
     });
     expect(fetcher.mock.calls[0][1].headers.authorization).toBe(
       "Bearer owner-token",

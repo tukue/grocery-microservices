@@ -15,8 +15,8 @@ test("mobile navigation and signed-out product return", async ({ page }) => {
   await page.getByRole("button", { name: "Sign In" }).click();
   await expect(page).toHaveURL(/\/products\/1$/);
   await page.getByRole("button", { name: "Add to Cart" }).click();
-  await expect(page.getByText("Added to your basket.")).toBeVisible();
-  await expect(page.getByLabel("1 items in basket")).toBeVisible();
+  await expect(page.getByText("Added to your cart.")).toBeVisible();
+  await expect(page.getByLabel("1 items in cart")).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -36,7 +36,7 @@ test("confirmed checkout polls for an eventual receipt", async ({ page }) => {
     page.getByRole("button", { name: "Download receipt" }),
   ).toBeVisible();
   await expect(
-    page.getByText("Grove receipt — Apple — Total: 2.29"),
+    page.getByText("Fresh Cart receipt — Apple — Total: 2.29"),
   ).toBeVisible();
 });
 
@@ -52,13 +52,13 @@ test("search is restored after navigating back from product details", async ({
   await expect(page).toHaveURL(/q=apple/);
   await expect(page.getByRole("searchbox")).toHaveValue("apple");
 });
-test("a failed basket removal restores the line and displays recovery feedback", async ({
+test("a failed cart removal restores the line and displays recovery feedback", async ({
   page,
 }) => {
   await placeOrder(page);
   await page.goto("/products/1");
   await page.getByRole("button", { name: "Add to Cart" }).click();
-  await expect(page.getByText("Added to your basket.")).toBeVisible();
+  await expect(page.getByText("Added to your cart.")).toBeVisible();
   await page.goto("/cart");
   await page.route("**/api/customer/cart/42/items/*", (route) =>
     route.request().method() === "DELETE"
@@ -71,7 +71,7 @@ test("a failed basket removal restores the line and displays recovery feedback",
   );
   await page.getByRole("button", { name: "Remove Apple" }).click();
   await expect(page.getByRole("alert")).toContainText(
-    "Could not update your basket",
+    "Could not update your cart",
   );
   await expect(
     page.getByRole("button", { name: "Remove Apple" }),

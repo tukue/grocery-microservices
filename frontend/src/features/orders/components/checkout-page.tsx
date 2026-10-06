@@ -74,7 +74,7 @@ export function CheckoutPage() {
   return (
     <main>
       <div className="steps" aria-label="Checkout progress">
-        <span>01 Basket</span>
+        <span>01 Cart</span>
         <span className="current">02 Review &amp; place order</span>
         <span>03 Confirmation</span>
       </div>
