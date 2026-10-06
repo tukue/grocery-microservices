@@ -26,7 +26,7 @@ export function CartPage() {
           <h1>Your Cart</h1>
         </div>
         <div className="state-panel">
-          <h2>A good basket starts here</h2>
+          <h2>A good cart starts here</h2>
           <p>Your cart is empty.</p>
           <Link className="button" to="/products">
             Browse products
@@ -62,18 +62,18 @@ export function CartPage() {
             <Link to="/products">← Continue shopping</Link>
           </p>
         </section>
-        <aside className="summary-card" aria-label="Basket summary">
-          <h2>Your basket</h2>
+        <aside className="summary-card" aria-label="Cart summary">
+          <h2>Your cart</h2>
           <p>
             {cart.items.reduce((sum, item) => sum + item.quantity, 0)} items
           </p>
           <p className="summary-total">Cart total: {total.toFixed(2)}</p>
           <small>
-            Based on the prices in your basket. Your final total is confirmed
-            when you place your order.
+            Based on the prices in your cart. Your final total is confirmed when
+            you place your order.
           </small>
           {pendingItems.size > 0 ? (
-            <button disabled>Updating basket...</button>
+            <button disabled>Updating cart...</button>
           ) : (
             <Link className="button" to="/checkout">
               Proceed to Checkout →

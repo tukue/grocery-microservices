@@ -93,7 +93,7 @@ export function ProductList() {
                 strokeWidth="5"
               />
             </svg>
-            <span className="hero-tag">FILL YOUR BASKET WITH GOOD THINGS</span>
+            <span className="hero-tag">FILL YOUR CART WITH GOOD THINGS</span>
           </div>
         </section>
       )}
@@ -175,12 +175,12 @@ export function ProductList() {
       )}
       <section className="benefit-strip" aria-label="Shopping with Grove">
         <div>
-          <strong>A basket that stays with you</strong>
+          <strong>A cart that stays with you</strong>
           <p>Sign in to keep your groceries across visits.</p>
         </div>
         <div>
           <strong>Current prices, clear choices</strong>
-          <p>Review your basket before placing an order.</p>
+          <p>Review your cart before placing an order.</p>
         </div>
         <div>
           <strong>Your orders, all in one place</strong>

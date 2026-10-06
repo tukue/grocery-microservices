@@ -46,13 +46,12 @@ export function LoginPage() {
           <br />A lot to love.
         </h2>
         <p>
-          Your basket, your favourites, and your everyday groceries. All
-          together.
+          Your cart, your favourites, and your everyday groceries. All together.
         </p>
       </section>
       <section className="login-form">
         <h1>Sign In</h1>
-        <p className="muted">Welcome back. Let’s fill your basket.</p>
+        <p className="muted">Welcome back. Let’s fill your cart.</p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label

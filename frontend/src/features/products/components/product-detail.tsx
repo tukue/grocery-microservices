@@ -63,7 +63,7 @@ export function ProductDetail() {
     setFailure(undefined);
     try {
       await addItem(product.id, quantity);
-      setFeedback("Added to your basket.");
+      setFeedback("Added to your cart.");
     } catch {
       setFailure("Could not add this item. Check availability and try again.");
     } finally {
@@ -99,7 +99,7 @@ export function ProductDetail() {
       <div className="detail-layout">
         <ProductImage name={product.name} src={product.imageUrl} />
         <section className="detail-info">
-          <p className="eyebrow">A GOOD THING FOR YOUR BASKET</p>
+          <p className="eyebrow">A GOOD THING FOR YOUR CART</p>
           <h1>{product.name}</h1>
           <p className="muted">{product.description}</p>
           <div data-testid="product-price">
@@ -150,7 +150,7 @@ export function ProductDetail() {
           )}
           {failure && <p role="alert">{failure}</p>}
           <p className="muted">
-            Your basket uses the latest product prices and availability.
+            Your cart uses the latest product prices and availability.
           </p>
         </section>
       </div>

@@ -86,7 +86,7 @@ export function CheckoutForm({
     >
       <p className="eyebrow">ONE LAST LOOK</p>
       <h2>Checkout</h2>
-      <p className="muted">Review your basket and place your order.</p>
+      <p className="muted">Review your cart and place your order.</p>
       <p>Cart total: {cart.total.toFixed(2)}</p>
       <ul aria-label="Cart summary">
         {cart.items.map((item) => (

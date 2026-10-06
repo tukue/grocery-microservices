@@ -8,12 +8,12 @@ and validation status belong in the delivery notes, not in this specification.
 ## Product principles
 
 Make everyday grocery shopping calm, clear, and easy to complete. Let customers
-browse before signing in, retain their basket after sign-in, and recover an
+browse before signing in, retain their cart after sign-in, and recover an
 order from its URL. Show real backend data and explain failures with an action
 the customer can take. Do not invent delivery promises, discounts, stock,
 ratings, payment success, or order completion.
 
-The customer path is catalogue → product detail → sign-in when needed → basket
+The customer path is catalogue → product detail → sign-in when needed → cart
 → review and checkout → persisted confirmation → receipt and order history.
 The current backend checkout does not take delivery details or payment data;
 do not present working address, payment, or delivery controls without their API
@@ -34,7 +34,7 @@ the shop; the product grid and shopping actions remain the main content.
 | Text                 | `#223b2c`             | Main copy                            |
 | Muted text           | `#6a746b`             | Supporting copy                      |
 | Border               | `#e3e7dc`             | Panels and separators                |
-| Soft surface         | `#edf1e5`             | Basket summary and supportive panels |
+| Soft surface         | `#edf1e5`             | Cart summary and supportive panels |
 | Focus                | `#db9a41`             | Visible keyboard focus               |
 | Error surface / text | `#fff1ed` / `#8c3927` | Customer-facing failures             |
 
@@ -53,14 +53,14 @@ decorative animation when reduced motion is requested.
 ## Layout and responsive behavior
 
 The shared shell contains a concise brand message, brand/home link, main
-navigation, basket count, account action, content area, and footer. Provide a
+navigation, cart count, account action, content area, and footer. Provide a
 keyboard skip link and labelled navigation landmarks. Highlight the current
 route. Show sign-out and order history after authentication; do not expose the
 upstream JWT in the UI or browser storage.
 
 The content width is at most 1280px. Use 40px horizontal desktop padding, 24px
 on tablet, and 16px on mobile. Below 1000px reduce the catalogue to three
-columns; below 720px use two columns, stack the hero, detail, basket summary,
+columns; below 720px use two columns, stack the hero, detail, cart summary,
 and sign-in panels, and give navigation its own row. Product card content must
 wrap without clipping. Order tables have an accessible horizontal scrolling
 container when necessary. Do not hide essential controls on narrow screens.
@@ -79,7 +79,7 @@ were a backend product image.
 | Product card       | Image, name, description, price with currency, availability, detail link     |
 | Availability badge | Text plus color; unavailable products remain inspectable                     |
 | Quantity control   | Labelled decrement/increment controls, current value, disabled pending state |
-| Basket summary     | Item count and price preview; persisted order is the final authority         |
+| Cart summary     | Item count and price preview; persisted order is the final authority         |
 | Empty state        | Explain absence and offer a relevant next action                             |
 | Error state        | Customer-safe message, recovery action, no raw internal error or stack trace |
 | Loading state      | Visible status text; decorative skeletons hidden from assistive technology   |
@@ -108,10 +108,10 @@ service failure. Never silently render stale results as current.
 
 Use a two-column image/details layout on desktop and a stacked mobile layout.
 Show the backend name, description, currency-formatted price, availability,
-quantity input, add action, and basket link. Validate positive integer
+quantity input, add action, and cart link. Validate positive integer
 quantity and known stock limits. A signed-out add action leads to sign-in and
 returns to the product; require an explicit add after authentication. Explain
-mutation failure without falsely claiming the basket changed.
+mutation failure without falsely claiming the cart changed.
 
 ### Sign-in and session
 
@@ -121,28 +121,28 @@ destinations. Disable duplicate submission. Surface failed sign-in and failed
 sign-out. Expired-session responses must lead to authentication without
 displaying another customer's data. Public browsing stays available.
 
-### Basket
+### Cart
 
 Show current server-confirmed lines, price previews, quantity controls, remove
-actions, and a summary beside the lines. Use an empty basket panel with a shop
+actions, and a summary beside the lines. Use an empty cart panel with a shop
 link when there are no mutable lines. Mutations replace local data with the
 server response. On optimistic failure restore or reload authoritative state
 and show actionable feedback. Serialize or guard overlapping mutations so
 late responses cannot lose another change. Disable checkout during mutation.
 
-The basket API currently exposes line prices without a currency or aggregate
-total. Until the backend contract supplies them, display the numeric basket
+The cart API currently exposes line prices without a currency or aggregate
+total. Until the backend contract supplies them, display the numeric cart
 preview without inventing a currency. Submit only cart ID and idempotency key;
 the backend calculates and persists the authoritative order total.
 
 ### Checkout
 
-Show basket/review/confirmation progress, line names and quantities, amount
+Show cart/review/confirmation progress, line names and quantities, amount
 preview, and one place-order action. No fabricated address or card form.
 Retain the same idempotency key when the outcome is ambiguous, and prevent
 double submission. Distinguish expired session, ownership denial, missing
 cart, stock/state conflict, and temporary outage. On success clear the mutable
-basket and navigate to the persisted order URL.
+cart and navigate to the persisted order URL.
 
 ### Confirmation and receipt
 

@@ -11,7 +11,7 @@ export function CartItem({ item }: { item: CartLine }) {
     try {
       await operation();
     } catch {
-      setError("Could not update your basket. Please try again.");
+      setError("Could not update your cart. Please try again.");
     }
   }
   return (

@@ -1,7 +1,7 @@
 # Grove Grocery frontend
 
 React 19 + TypeScript + Vite storefront with an Express BFF. The customer flow
-covers public catalogue/search, product details, sign-in, persistent basket,
+covers public catalogue/search, product details, sign-in, persistent cart,
 retry-safe checkout, persisted confirmation, order history, and eventual receipts.
 
 Use [the design system](docs/design-system.md) for visual and interaction
@@ -89,7 +89,7 @@ Run the backend integration suite and a real checkout-to-receipt request before
 claiming deployment readiness.
 
 The current cart/order contracts do not contain currency or checkout payment,
-address, or delivery data. Basket amounts are previews from server line prices;
+address, or delivery data. Cart amounts are previews from server line prices;
 checkout submits only cart ID and an idempotency key, and the persisted order
 supplies its authoritative total. Product prices show the currency supplied
 by the catalogue. Payment and delivery screens require backend contracts first.
