@@ -19,6 +19,11 @@ The current backend checkout does not take delivery details or payment data;
 do not present working address, payment, or delivery controls without their API
 contracts and implementations.
 
+Use concise, professional customer-facing language. Prefer direct labels such as
+“Review your order” and “Sign in to continue shopping” over conversational slogans.
+Describe only supported features; do not imply favourites or other unavailable
+account capabilities. Use “cart” consistently throughout the shopping journey.
+
 ## Visual identity
 
 The storefront name is **Grove Grocery**. Use a warm cream canvas, forest-green

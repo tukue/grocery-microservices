@@ -26,9 +26,7 @@ export function StoreLayout() {
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
-      <div className="announcement">
-        Good food. Everyday essentials. One happy cart.
-      </div>
+      <div className="announcement">Manage your grocery purchases.</div>
       <header className="store-header">
         <Link to="/products" className="brand" aria-label="Grove Grocery home">
           <span className="brand-mark" aria-hidden="true">
@@ -81,7 +79,7 @@ export function StoreLayout() {
         <Link className="brand" to="/products">
           grove.
         </Link>
-        <p>A little fresh inspiration for your everyday.</p>
+        <p>Browse groceries and manage your orders.</p>
         <nav aria-label="Footer navigation">
           <Link to="/products">Shop groceries</Link>
           <Link to="/cart">Your cart</Link>

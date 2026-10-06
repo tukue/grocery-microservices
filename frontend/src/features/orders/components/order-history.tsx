@@ -66,7 +66,7 @@ export function OrderHistory() {
       <main>
         <h1>Order History</h1>
         <div className="state-panel">
-          <h2>Your next good meal starts here</h2>
+          <h2>No previous orders</h2>
           <p>You have no orders yet.</p>
           <Link className="button" to="/products">
             Browse products
@@ -79,7 +79,7 @@ export function OrderHistory() {
       <div className="page-title">
         <p className="eyebrow">YOUR GROVE ACCOUNT</p>
         <h1>Order History</h1>
-        <p>All your everyday favourites, saved in one place.</p>
+        <p>View your previous orders and purchase details.</p>
       </div>
       <div className="table-scroll">
         <table className="order-table">

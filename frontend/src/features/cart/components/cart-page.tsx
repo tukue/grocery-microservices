@@ -22,12 +22,12 @@ export function CartPage() {
     return (
       <main>
         <div className="page-title">
-          <p className="eyebrow">YOUR EVERYDAY ESSENTIALS</p>
+          <p className="eyebrow">SHOPPING CART</p>
           <h1>Your Cart</h1>
         </div>
         <div className="state-panel">
-          <h2>A good cart starts here</h2>
-          <p>Your cart is empty.</p>
+          <h2>Your cart is currently empty.</h2>
+          <p>Browse products to add items to your cart.</p>
           <Link className="button" to="/products">
             Browse products
           </Link>
@@ -46,9 +46,9 @@ export function CartPage() {
   return (
     <main>
       <div className="page-title">
-        <p className="eyebrow">YOUR EVERYDAY ESSENTIALS</p>
+        <p className="eyebrow">SHOPPING CART</p>
         <h1>Your Cart</h1>
-        <p>Review your favourites before you check out.</p>
+        <p>Review your selected products before proceeding to checkout.</p>
       </div>
       {error && <p role="alert">{error}</p>}
       <div className="shopping-layout">

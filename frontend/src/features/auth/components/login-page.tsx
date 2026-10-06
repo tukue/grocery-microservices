@@ -42,16 +42,15 @@ export function LoginPage() {
       <section className="login-story">
         <p className="eyebrow">WELCOME TO GROVE</p>
         <h2>
-          A little fresh.
-          <br />A lot to love.
+          Access your account.
+          <br />
+          Manage your purchases.
         </h2>
-        <p>
-          Your cart, your favourites, and your everyday groceries. All together.
-        </p>
+        <p>Access your saved cart and order history.</p>
       </section>
       <section className="login-form">
         <h1>Sign In</h1>
-        <p className="muted">Welcome back. Let’s fill your cart.</p>
+        <p className="muted">Sign in to continue shopping.</p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label

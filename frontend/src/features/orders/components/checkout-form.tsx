@@ -84,7 +84,7 @@ export function CheckoutForm({
       aria-label="Checkout"
       onSubmit={form.handleSubmit(onSubmit)}
     >
-      <p className="eyebrow">ONE LAST LOOK</p>
+      <p className="eyebrow">ORDER REVIEW</p>
       <h2>Checkout</h2>
       <p className="muted">Review your cart and place your order.</p>
       <p>Cart total: {cart.total.toFixed(2)}</p>

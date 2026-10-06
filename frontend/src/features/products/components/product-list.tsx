@@ -52,16 +52,13 @@ export function ProductList() {
       {!query && (
         <section className="hero-banner" aria-label="Welcome to Grove">
           <div className="hero-copy">
-            <p className="eyebrow">YOUR EVERYDAY, A LITTLE FRESHER</p>
+            <p className="eyebrow">GROCERY SHOPPING</p>
             <h2>
-              Good food.
+              Browse groceries.
               <br />
-              Great everyday.
+              Shop with confidence.
             </h2>
-            <p>
-              Find your kitchen staples and your next favourite ingredient, all
-              in one place.
-            </p>
+            <p>Browse available products and select the items you need.</p>
             <a className="button" href="#catalog">
               Explore the shop <span aria-hidden="true">→</span>
             </a>
@@ -93,7 +90,7 @@ export function ProductList() {
                 strokeWidth="5"
               />
             </svg>
-            <span className="hero-tag">FILL YOUR CART WITH GOOD THINGS</span>
+            <span className="hero-tag">SELECT PRODUCTS FOR YOUR CART</span>
           </div>
         </section>
       )}
@@ -104,7 +101,7 @@ export function ProductList() {
           <p className="muted">
             {query
               ? `Results for “${query}”`
-              : "Fresh inspiration. Everyday favourites."}
+              : "Browse products, prices, and availability."}
           </p>
         </div>
         {state === "ready" && (
@@ -175,16 +172,16 @@ export function ProductList() {
       )}
       <section className="benefit-strip" aria-label="Shopping with Grove">
         <div>
-          <strong>A cart that stays with you</strong>
-          <p>Sign in to keep your groceries across visits.</p>
+          <strong>Saved cart</strong>
+          <p>Sign in to access your cart across visits.</p>
         </div>
         <div>
-          <strong>Current prices, clear choices</strong>
+          <strong>Product pricing</strong>
           <p>Review your cart before placing an order.</p>
         </div>
         <div>
-          <strong>Your orders, all in one place</strong>
-          <p>Find your purchase details whenever you need them.</p>
+          <strong>Order records</strong>
+          <p>Access your order history and purchase details.</p>
         </div>
       </section>
     </main>

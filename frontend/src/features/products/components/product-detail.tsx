@@ -99,7 +99,7 @@ export function ProductDetail() {
       <div className="detail-layout">
         <ProductImage name={product.name} src={product.imageUrl} />
         <section className="detail-info">
-          <p className="eyebrow">A GOOD THING FOR YOUR CART</p>
+          <p className="eyebrow">PRODUCT DETAILS</p>
           <h1>{product.name}</h1>
           <p className="muted">{product.description}</p>
           <div data-testid="product-price">
