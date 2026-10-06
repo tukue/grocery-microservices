@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+        gateway-service: Spring Cloud Gateway (WebFlux/Netty) acting as the single
+        entry point for all browser and BFF traffic.
+
+        Responsibilities:
+          - Path-based routing to cart, order, product, and summary services
+          - JWT relay: forwards Authorization header to every upstream
+          - Centralised CORS policy
+          - Redis-backed rate limiting (token-bucket per client IP)
+          - Actuator health / metrics endpoint
+    -->
+    <parent>
+        <groupId>com.grocery.microservices</groupId>
+        <artifactId>grocery-store</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>gateway-service</artifactId>
+
+    <properties>
+        <!--
+            Spring Cloud 2025.x is the release train aligned with Spring Boot 4.1.
+            spring-cloud-dependencies BOM manages spring-cloud-gateway-server-mvc and
+            the WebFlux variant automatically.
+        -->
+        <spring-cloud.version>2025.0.0</spring-cloud.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- ── Core Gateway (Reactor Netty, WebFlux) ───────────────────────── -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-gateway</artifactId>
+            <!--
+                spring-cloud-starter-gateway pulls in:
+                  • spring-cloud-gateway-server (WebFlux variant)
+                  • spring-webflux, reactor-netty
+                Do NOT add spring-boot-starter-web here; it conflicts with WebFlux.
+            -->
+        </dependency>
+
+        <!-- ── Redis-backed rate limiting ───────────────────────────────────── -->
+        <!--
+            RequestRateLimiterGatewayFilterFactory requires Spring Data Redis Reactive.
+            The Redis Lua scripts bundled in spring-cloud-gateway-server implement a
+            token-bucket algorithm keyed by the resolved principal / IP address.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
+        </dependency>
+
+        <!-- ── Security / JWT resource-server ──────────────────────────────── -->
+        <!--
+            The gateway validates inbound JWTs from the browser (RS256, audience
+            check, issuer check). Validated tokens are forwarded downstream unchanged
+            via the RelayRequestHeaders filter; no new token is minted here.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+
+        <!-- ── Observability ────────────────────────────────────────────────── -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
+        <!-- ── Test ─────────────────────────────────────────────────────────── -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--
+            spring-security-test is the WebFlux-aware variant when spring-webflux is
+            on the classpath; it provides WebTestClient SecurityMockServerConfigurers.
+        -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--
+            MockWebServer lets tests spin up a real HTTP server on a dynamic port
+            to act as a mock upstream (product-service, cart-service, etc.).
+            This avoids WireMock's servlet dependency and keeps the test stack
+            fully reactive.
+        -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>mockwebserver</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.grocery.microservices.gateway.GatewayApplication</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
