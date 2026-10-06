@@ -1,40 +1,25 @@
-import type { ProductResponse } from "../api/product.schemas";
+import type { Product } from "../domain/product";
+import { ProductImage } from "../../../shared/ui/product-image";
 import { Price } from "./price";
 
-type ProductCardProps = Readonly<{
-  product: ProductResponse;
-}>;
-
+type ProductCardProps = Readonly<{ product: Product }>;
 export function ProductCard({ product }: ProductCardProps) {
+  const available = product.available && (product.stockQuantity ?? 1) > 0;
   return (
-    <article className="flex min-h-72 flex-col gap-3 border border-zinc-200 bg-white p-4 shadow-sm">
-      {product.imageUrl ? (
-        <img
-          alt={product.name}
-          className="h-40 w-full object-cover"
-          src={product.imageUrl}
-        />
-      ) : (
-        <div
-          aria-label={`No image available for ${product.name}`}
-          className="flex h-40 items-center justify-center bg-zinc-100 text-sm text-zinc-600"
-          role="img"
-        >
-          No image available
-        </div>
-      )}
-      <div className="flex flex-1 flex-col gap-2">
-        <h2 className="text-lg font-semibold text-zinc-950">{product.name}</h2>
-        <p className="text-sm text-zinc-600">{product.description}</p>
-        <div className="mt-auto flex items-center justify-between gap-3">
+    <article className="product-card">
+      <ProductImage name={product.name} src={product.imageUrl} />
+      <div className="product-card-body">
+        <h2>{product.name}</h2>
+        <p>{product.description}</p>
+        <div className="product-card-bottom">
           <Price amount={product.price} currency={product.currency} />
-          <span
-            className={product.available ? "text-emerald-700" : "text-rose-700"}
-          >
-            {product.available ? "Available" : "Unavailable"}
+          <span className={`badge ${available ? "" : "badge-unavailable"}`}>
+            {available ? "Available" : "Unavailable"}
           </span>
         </div>
-        <a href={`/products/${product.id}`}>View product</a>
+        <a className="product-link" href={`/products/${product.id}`}>
+          View product
+        </a>
       </div>
     </article>
   );

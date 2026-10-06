@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { fetchProducts, searchProducts } from "../api/product-client";
-import type { ProductResponse } from "../api/product.schemas";
+import type { Product } from "../domain/product";
+import { toProduct } from "../api/product.mapper";
 import { ProductCard } from "./product-card";
 import { ProductSearch } from "./product-search";
 
 export function ProductList() {
   const [params] = useSearchParams();
   const query = params.get("q")?.trim() ?? "";
-  const [products, setProducts] = useState<ProductResponse[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [retry, setRetry] = useState(0);
+  const [sort, setSort] = useState("name");
+  const [availableOnly, setAvailableOnly] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
     setState("loading");
@@ -18,32 +22,171 @@ export function ProductList() {
       : fetchProducts(controller.signal);
     operation
       .then((data) => {
-        setProducts(data);
+        if (controller.signal.aborted) return;
+        setProducts(data.map(toProduct));
         setState("ready");
       })
       .catch((error) => {
-        if (error?.name !== "AbortError") setState("error");
+        if (!controller.signal.aborted && error?.name !== "AbortError")
+          setState("error");
       });
     return () => controller.abort();
-  }, [query]);
+  }, [query, retry]);
+  const mixedCurrencies =
+    new Set(products.map((product) => product.currency)).size > 1;
+  const visible = products
+    .filter(
+      (product) =>
+        !availableOnly ||
+        (product.available && (product.stockQuantity ?? 1) > 0),
+    )
+    .sort((a, b) =>
+      !mixedCurrencies && sort === "price-low"
+        ? a.price - b.price
+        : !mixedCurrencies && sort === "price-high"
+          ? b.price - a.price
+          : a.name.localeCompare(b.name),
+    );
   return (
     <main>
-      <h1>Products</h1>
-      <ProductSearch />
-      {state === "loading" && <p role="status">Loading products...</p>}
+      {!query && (
+        <section className="hero-banner" aria-label="Welcome to Fresh Cart">
+          <div className="hero-copy">
+            <p className="eyebrow">YOUR EVERYDAY, A LITTLE FRESHER</p>
+            <h2>
+              Good food.
+              <br />
+              Great everyday.
+            </h2>
+            <p>
+              Find your kitchen staples and your next favourite ingredient, all
+              in one place.
+            </p>
+            <a className="button" href="#catalog">
+              Explore the shop <span aria-hidden="true">→</span>
+            </a>
+          </div>
+          <div className="hero-art" aria-hidden="true">
+            <svg viewBox="0 0 360 280">
+              <ellipse cx="180" cy="250" rx="100" ry="12" fill="#b9c5a1" />
+              <path d="M104 139h158l-21 107H128Z" fill="#af8155" />
+              <path
+                d="M133 144c0-96 103-96 103 0"
+                fill="none"
+                stroke="#89603d"
+                strokeWidth="9"
+              />
+              <path
+                d="M157 153c-23-23-23-70 5-94 35 22 29 71-5 94Z"
+                fill="#3a7446"
+              />
+              <path
+                d="M172 151c-5-37 17-74 50-70 6 43-17 63-50 70Z"
+                fill="#71955c"
+              />
+              <ellipse cx="216" cy="137" rx="29" ry="26" fill="#c16b42" />
+              <path d="m211 106 8-14" stroke="#426d38" strokeWidth="7" />
+              <ellipse cx="136" cy="143" rx="24" ry="23" fill="#dda840" />
+              <path
+                d="M148 176h96M143 196h96M137 216h98"
+                stroke="#cba67f"
+                strokeWidth="5"
+              />
+            </svg>
+            <span className="hero-tag">FILL YOUR CART WITH GOOD THINGS</span>
+          </div>
+        </section>
+      )}
+      <div id="catalog" className="catalog-heading">
+        <div>
+          <p className="eyebrow">THE FRESH CART SHOP</p>
+          <h1>Products</h1>
+          <p className="muted">
+            {query
+              ? `Results for “${query}”`
+              : "Fresh inspiration. Everyday favourites."}
+          </p>
+        </div>
+        {state === "ready" && (
+          <p className="muted">
+            {visible.length} {visible.length === 1 ? "product" : "products"}
+          </p>
+        )}
+      </div>
+      <div className="catalog-toolbar">
+        <ProductSearch />
+        <div className="catalog-controls">
+          <label>
+            <input
+              type="checkbox"
+              checked={availableOnly}
+              onChange={(event) => setAvailableOnly(event.target.checked)}
+            />
+            In stock only
+          </label>
+          <label>
+            Sort by
+            <select
+              value={sort}
+              onChange={(event) => setSort(event.target.value)}
+            >
+              <option value="name">Name</option>
+              <option disabled={mixedCurrencies} value="price-low">
+                Price: low to high
+              </option>
+              <option disabled={mixedCurrencies} value="price-high">
+                Price: high to low
+              </option>
+            </select>
+          </label>
+        </div>
+      </div>
+      {state === "loading" && (
+        <>
+          <p role="status">Loading products...</p>
+          <div className="loading-grid" aria-hidden="true">
+            {[1, 2, 3, 4].map((id) => (
+              <div className="skeleton" key={id} />
+            ))}
+          </div>
+        </>
+      )}
       {state === "error" && (
-        <p role="alert">We could not load products. Please try again.</p>
+        <div className="state-panel">
+          <p role="alert">We could not load products. Please try again.</p>
+          <button onClick={() => setRetry((value) => value + 1)}>
+            Try again
+          </button>
+        </div>
       )}
-      {state === "ready" && products.length === 0 && (
-        <p role="status">No products found.</p>
+      {state === "ready" && visible.length === 0 && (
+        <div className="state-panel">
+          <h2>Nothing here just yet</h2>
+          <p role="status">No products found.</p>
+          <p>Try another search or turn off the stock filter.</p>
+        </div>
       )}
-      {state === "ready" && products.length > 0 && (
-        <section aria-label="Products">
-          {products.map((product) => (
+      {state === "ready" && visible.length > 0 && (
+        <section className="product-grid" aria-label="Products">
+          {visible.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </section>
       )}
+      <section className="benefit-strip" aria-label="Shopping with Fresh Cart">
+        <div>
+          <strong>A cart that stays with you</strong>
+          <p>Sign in to keep your groceries across visits.</p>
+        </div>
+        <div>
+          <strong>Current prices, clear choices</strong>
+          <p>Review your cart before placing an order.</p>
+        </div>
+        <div>
+          <strong>Your orders, all in one place</strong>
+          <p>Find your purchase details whenever you need them.</p>
+        </div>
+      </section>
     </main>
   );
 }

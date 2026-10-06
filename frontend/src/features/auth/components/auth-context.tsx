@@ -3,9 +3,11 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
+import { SESSION_EXPIRED } from "../../../shared/http/session-expired";
 import type { Session } from "../domain/session";
 import {
   getSession,
@@ -23,22 +25,50 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const requestVersion = useRef(0);
   const [session, setSession] = useState<Session>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const expire = () => {
+      requestVersion.current++;
+      setSession(null);
+      setLoading(false);
+    };
+    window.addEventListener(SESSION_EXPIRED, expire);
+    return () => window.removeEventListener(SESSION_EXPIRED, expire);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const version = requestVersion.current;
     getSession()
-      .then(setSession)
-      .catch(() => setSession(null))
-      .finally(() => setLoading(false));
+      .then((value) => {
+        if (active && version === requestVersion.current) setSession(value);
+      })
+      .catch(() => {
+        if (active && version === requestVersion.current) setSession(null);
+      })
+      .finally(() => {
+        if (active && version === requestVersion.current) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
-    const s = await apiLogin(username, password);
-    setSession(s);
+    const version = ++requestVersion.current;
+    try {
+      const nextSession = await apiLogin(username, password);
+      if (version === requestVersion.current) setSession(nextSession);
+    } finally {
+      if (version === requestVersion.current) setLoading(false);
+    }
   }, []);
 
   const logout = useCallback(async () => {
+    requestVersion.current++;
     await apiLogout();
     setSession(null);
   }, []);

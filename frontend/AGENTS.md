@@ -1,3 +1,13 @@
+# Grocery frontend guidance
+
+The customer storefront runs React + TypeScript with Vite and an Express BFF.
+Before changing its UI, read [docs/design-system.md](docs/design-system.md) and
+[docs/architecture.md](docs/architecture.md). Follow
+[the frontend implementation approach](../docs/frontend-implementation-approach.md)
+for API validation, session security, checkout idempotency, and verification.
+Keep future screens consistent with the shared storefront design. The legacy
+Next.js files are not the active Vite customer entrypoint.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

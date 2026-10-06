@@ -1,3 +1,4 @@
+import { notifySessionExpired } from "../../../shared/http/session-expired";
 import {
   orderResponseSchema,
   ordersListResponseSchema,
@@ -16,9 +17,16 @@ async function request(path: string): Promise<unknown> {
   const response = await fetch(path, {
     headers: { accept: "application/json" },
   });
+  notifySessionExpired(response.status);
   if (!response.ok)
     throw new OrderClientError(
-      response.status === 404 ? "Order not found" : "Unable to load orders",
+      response.status === 401
+        ? "Your session has expired. Please sign in again."
+        : response.status === 403
+          ? "You do not have access to this order."
+          : response.status === 404
+            ? "Order not found"
+            : "Unable to load orders",
       response.status,
     );
   return response.json();
