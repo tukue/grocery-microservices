@@ -5,7 +5,7 @@ import { useCart } from "./cart-context";
 export function CartItem({ item }: { item: CartLine }) {
   const { pendingItems, removeItem, updateItem } = useCart();
   const [error, setError] = useState<string>();
-  const pending = pendingItems.size > 0;
+  const pending = pendingItems.has(item.id);
   async function mutate(operation: () => Promise<unknown>) {
     setError(undefined);
     try {
