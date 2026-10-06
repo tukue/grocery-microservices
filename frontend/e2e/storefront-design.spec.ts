@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { mockApi, placeOrder } from "./helpers";
+import { addProductToCart, mockApi, placeOrder, signIn } from "./helpers";
 test("mobile navigation and signed-out product return", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockApi(page);
@@ -28,10 +28,30 @@ test("mobile navigation and signed-out product return", async ({ page }) => {
   ).toBeVisible();
 });
 test("confirmed checkout polls for an eventual receipt", async ({ page }) => {
-  await placeOrder(page);
+  await signIn(page);
+  let ready = false;
+  await page.route("**/api/customer/ledger/orders/*/receipt", (route) =>
+    route.fulfill({
+      status: ready ? 200 : 202,
+      contentType: "application/json",
+      body: JSON.stringify(
+        ready
+          ? {
+              status: "ready",
+              content: "Fresh Cart receipt — Apple — Total: 2.29",
+            }
+          : { status: "pending" },
+      ),
+    }),
+  );
+  await addProductToCart(page);
+  await page.goto("/checkout");
+  await page.getByRole("button", { name: "Submit order" }).click();
+  await expect(page).toHaveURL(/\/confirmation\/\d+$/);
   await expect(
     page.getByText("Your order is saved. We’re preparing your receipt."),
   ).toBeVisible();
+  ready = true;
   await expect(
     page.getByRole("button", { name: "Download receipt" }),
   ).toBeVisible();
