@@ -4,7 +4,7 @@
 
 Keep customer commands on HTTP and use Kafka to project committed orders into the ledger. The order database owns order state; the ledger owns an eventually consistent receipt and spending view. The browser uses the existing Express BFF and never connects to brokers or databases.
 
-Repository inspection confirms an order transaction plus database-backed event store, a leased publisher, `order.created.v1`, the `ledger-service` consumer group, and `order.created.v1.failed`. The BFF currently routes only product, cart, and order APIs. Receipt polling and ledger routes are proposed additions, not current functionality.
+The backend has an order transaction plus database-backed event store, a leased publisher, `order.created.v1`, the `ledger-service` consumer group, and `order.created.v1.failed`. The storefront BFF now routes product, cart, order, and authenticated ledger APIs. The frontend implements bounded receipt polling separately from persisted order confirmation. The v2 event contract and relay hardening described below remain proposed work.
 
 ## Integrated flow
 
@@ -53,9 +53,9 @@ The current event uses a double total and contains no line-item snapshot. For an
 
 ## Browser and BFF contract
 
-Add `LEDGER_SERVICE_URL` to BFF configuration and authenticated GET routing for the existing backend paths `/api/customer/ledger` and `/api/customer/ledger/orders/{orderId}/receipt`. Keep upstream access tokens server-side and use the existing session and JWT validation mechanisms. Require `ledger:read` and enforce customer ownership in the backend.
+The BFF uses `LEDGER_SERVICE_URL` and authenticated GET routing for the existing backend paths `/api/customer/ledger` and `/api/customer/ledger/orders/{orderId}/receipt`. Upstream access tokens remain server-side through the existing session and JWT validation mechanisms. The backend requires `ledger:read` and enforces customer ownership.
 
-Define a stable BFF receipt response: ready with receipt content, pending only after verifying the customer owns a committed order, and an explicit unavailable response for a transient upstream failure. An arbitrary ledger 404 must not become pending, because it can mean an invalid or unauthorized order. Preserve the distinction between order lifecycle status and receipt projection status.
+The BFF receipt response is JSON: `{ status: "ready", content: "..." }`, or HTTP 202 with `{ status: "pending" }` only after verifying the customer owns a committed order. Transient upstream failures retain an error response. An arbitrary ledger 404 cannot become pending, because it can mean an invalid or unauthorized order. Order lifecycle status stays separate from receipt projection status.
 
 On confirmation, show the committed order immediately. Poll receipt with bounded exponential delay and jitter, stop on completion or navigation, and after a configurable wait budget show 'Receipt is still being prepared' with a retry action. A delayed receipt must never trigger checkout resubmission. Persist/reuse the checkout idempotency key across HTTP retries and verify its backend contract before relying on it.
 

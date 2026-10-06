@@ -1,3 +1,4 @@
+import { notifySessionExpired } from "../../../shared/http/session-expired";
 import { cartResponseSchema, type CartResponse } from "./cart.schemas";
 
 const BASE = "/api/customer";
@@ -17,6 +18,7 @@ async function request(
     ...init,
     headers: { "content-type": "application/json", ...init?.headers },
   });
+  notifySessionExpired(response.status);
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
       message?: string;

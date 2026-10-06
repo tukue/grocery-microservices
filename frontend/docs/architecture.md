@@ -1,5 +1,9 @@
 # Frontend Architecture
 
+Use [the storefront design system](design-system.md) for visual tokens,
+responsive layouts, customer screens, and recovery behavior. Use the repository
+frontend implementation approach for API validation and delivery practices.
+
 ## Import Boundaries
 
 - `src/app` may import feature and shared modules.

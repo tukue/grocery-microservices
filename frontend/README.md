@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Grove Grocery frontend
 
-## Getting Started
+React 19 + TypeScript + Vite storefront with an Express BFF. The customer flow
+covers public catalogue/search, product details, sign-in, persistent basket,
+retry-safe checkout, persisted confirmation, order history, and eventual receipts.
 
-First, run the development server:
+Use [the design system](docs/design-system.md) for visual and interaction
+consistency and [the architecture guide](docs/architecture.md) for code boundaries.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Local development
+
+Use Node 24 and install the locked dependencies with `npm ci`. Java 25, Maven,
+and the backend services are required for real application requests. Each
+service must trust the same demo issuer during local development.
+
+For a native Spring `dev` setup, start each backend in a separate terminal from
+repository root. Explicit ports avoid the differing defaults in dev profiles:
+
+```sh
+export CORS_ALLOWED_ORIGINS=http://localhost:5173
+export DEMO_IDENTITY_BASE_URL=http://localhost:8081
+export CART_SERVICE_BASE_URL=http://localhost:8081
+export PRODUCT_SERVICE_BASE_URL=http://localhost:8083
+export KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+
+mvn -pl microservices/cart-service spring-boot:run -Dspring-boot.run.profiles=dev -Dspring-boot.run.arguments=--server.port=8081
+mvn -pl microservices/product-service spring-boot:run -Dspring-boot.run.profiles=dev -Dspring-boot.run.arguments=--server.port=8083
+mvn -pl microservices/order-service spring-boot:run -Dspring-boot.run.profiles=dev -Dspring-boot.run.arguments=--server.port=8082
+mvn -pl microservices/ledger-service spring-boot:run -Dspring-boot.run.profiles=dev -Dspring-boot.run.arguments=--server.port=8084
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Kafka must be available to both native services at the configured bootstrap
+address **and advertised broker address**. The existing Compose Kafka broker
+advertises its internal `kafka:9092` address and has no published host port;
+it cannot be used unchanged for native clients. Use a broker configured for
+host access, or run all services inside the existing Compose network following
+[the Kafka integration guide](../docs/kafka-integration.md). Do not mix native
+service URLs with container-only hostnames.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Start the existing Redis service with
+`docker compose -f microservices/docker-compose.yml up -d redis`. From the
+`frontend` directory, create a local ignored `.env` file with the appropriate
+service addresses (these defaults are for the native ports above):
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```dotenv
+BFF_PORT=3000
+CART_SERVICE_URL=http://localhost:8081
+ORDER_SERVICE_URL=http://localhost:8082
+PRODUCT_SERVICE_URL=http://localhost:8083
+LEDGER_SERVICE_URL=http://localhost:8084
+JWT_ISSUER_URI=http://localhost:8081
+JWT_JWKS_URI=http://localhost:8081/.well-known/jwks.json
+JWT_AUDIENCE=grocery-api
+REDIS_URL=redis://localhost:6379
+NODE_ENV=development
+```
 
-## Learn More
+Run `npm run dev` to start Vite and the BFF. The dev-only backend identity
+provider accepts `user` / `password`. Runtime identity and Redis credentials
+belong in deployment secret configuration, never source files.
 
-To learn more about Next.js, take a look at the following resources:
+The browser talks only to relative `/api` URLs. Vite forwards these to the BFF.
+Redis is mandatory for runtime session storage. Authentication tokens remain
+in that server-side store and are never returned to browser JavaScript.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The BFF wraps receipt results as `{ status: "ready", content: "..." }` or
+returns HTTP 202 with `{ status: "pending" }`. A pending receipt is returned
+only after the order service confirms that the current customer owns the order.
+The UI polls for up to 30 seconds, then offers an explicit retry. An unavailable
+receipt does not invalidate a saved order or trigger a new checkout.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Verification
 
-## Deploy on Vercel
+```sh
+npm run format
+npm run lint
+npm run type-check
+npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+For a preinstalled Chromium, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to its
+executable path instead of downloading another browser. Playwright starts Vite
+and uses stateful BFF API fixtures. These tests verify the browser customer
+journey; they do not establish that a deployed backend or Kafka is healthy.
+Run the backend integration suite and a real checkout-to-receipt request before
+claiming deployment readiness.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The current cart/order contracts do not contain currency or checkout payment,
+address, or delivery data. Basket amounts are previews from server line prices;
+checkout submits only cart ID and an idempotency key, and the persisted order
+supplies its authoritative total. Product prices show the currency supplied
+by the catalogue. Payment and delivery screens require backend contracts first.

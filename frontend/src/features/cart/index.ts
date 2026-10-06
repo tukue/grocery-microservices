@@ -6,3 +6,4 @@ export {
 } from "./api/cart.schemas";
 export type { Cart, CartItem, CartStatus } from "./domain/cart";
 export { AddToCartButton } from "./components/add-to-cart-button";
+export { CartProvider, useCart } from "./components/cart-context";

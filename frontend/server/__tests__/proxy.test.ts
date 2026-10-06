@@ -5,8 +5,16 @@ const urls = {
   cart: "http://cart",
   order: "http://order",
   product: "http://product",
+  ledger: "http://ledger",
 };
 const operations = [
+  ["GET", "/api/customer/ledger", "ledger", "/api/customer/ledger"],
+  [
+    "GET",
+    "/api/customer/ledger/orders/7/receipt",
+    "ledger",
+    "/api/customer/ledger/orders/7/receipt",
+  ],
   ["GET", "/api/catalog/products", "product", "/products"],
   [
     "GET",
