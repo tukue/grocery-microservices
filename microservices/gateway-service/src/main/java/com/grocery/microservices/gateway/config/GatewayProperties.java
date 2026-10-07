@@ -25,15 +25,18 @@ import java.util.List;
 @ConfigurationProperties(prefix = "gateway")
 public record GatewayProperties(
 
-        /**
-         * Origins the gateway will include in CORS allow-origin responses.
-         * Must contain at least one entry — startup fails otherwise (see SecurityConfig).
-         * Example: {@code http://localhost:5173,http://localhost:3000}
-         */
-        List<String> corsAllowedOrigins,
+/**
+     * Origins the gateway will include in CORS allow-origin responses.
+     * Must contain at least one entry — startup fails otherwise (see SecurityConfig).
+     * Example: {@code http://localhost:5173,http://localhost:3000}
+     */
+    List<String> corsAllowedOrigins,
 
-        /** Downstream service base URLs. */
-        Services services,
+    /** IP addresses of trusted reverse proxies that may set X-Forwarded-For. */
+    List<String> trustedProxies,
+
+    /** Downstream service base URLs. */
+    Services services,
 
         /** JWT validation settings (mirrors the resource-server services). */
         Jwt jwt,

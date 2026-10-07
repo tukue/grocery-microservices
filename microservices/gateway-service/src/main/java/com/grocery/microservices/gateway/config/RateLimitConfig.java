@@ -10,6 +10,7 @@ import reactor.core.publisher.Mono;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -30,7 +31,14 @@ import java.util.Optional;
  * Trusting {@code X-Forwarded-For} is safe only when the gateway is unreachable
  * directly from the internet — it must accept traffic only from the load
  * balancer's security group. An attacker reaching the gateway directly could
- * spoof the header to bypass per-IP limits.
+ * spoof the header to bypass per-IP limits. XFF is only trusted when it comes
+ * from a configured trusted proxy IP; otherwise the remote address is used.
+ *
+ * <h3>Configuration</h3>
+ * Set {@code gateway.trusted-proxies} to a comma-separated list of trusted
+ * proxy IP addresses (e.g. the load balancer or nginx ingress IP). When
+ * {@code trusted-proxies} is empty or not configured, XFF is not trusted and
+ * the remote address is always used as a safety default for untrusted deployments.
  *
  * <h3>Future enhancement</h3>
  * Swap IP-based keying for the authenticated user's {@code sub} claim when
@@ -60,6 +68,8 @@ public class RateLimitConfig {
     @Bean
     @Primary
     public KeyResolver ipKeyResolver() {
+        List<String> trustedProxies = props.trustedProxies();
+
         return exchange -> {
             String xForwardedFor = exchange.getRequest()
                     .getHeaders()
@@ -68,7 +78,11 @@ public class RateLimitConfig {
             if (xForwardedFor != null && !xForwardedFor.isBlank()) {
                 // XFF is comma-separated; leftmost value is the original client IP
                 String clientIp = xForwardedFor.split(",")[0].trim();
-                return Mono.just(clientIp);
+                // Only trust XFF when it comes from a configured trusted proxy
+                if (trustedProxies != null && !trustedProxies.isEmpty() && trustedProxies.contains(clientIp)) {
+                    return Mono.just(clientIp);
+                }
+                // Untrusted XFF — fall through to remote address
             }
 
             String remoteAddress = Optional

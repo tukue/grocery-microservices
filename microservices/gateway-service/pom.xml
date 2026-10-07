@@ -30,7 +30,27 @@
             spring-cloud-dependencies BOM manages spring-cloud-gateway-server-mvc and
             the WebFlux variant automatically.
         -->
-        <spring-cloud.version>2025.0.0</spring-cloud.version>
+        <spring-cloud.version>2025.0.1</spring-cloud.version>
+
+        <!--
+            Fixed vulnerability spring-cloud-gateway-server CVE-2025-41253
+            (Expression Language Injection). Fixed in 4.3.2, 4.2.6.
+        -->
+        <spring-cloud-gateway-server.version>4.3.2</spring-cloud-gateway-server.version>
+
+        <!--
+            Fixed bouncycastle vulnerabilities (CVE-2025-14813, CVE-2026-8763,
+            CVE-2026-13506, CVE-2026-0636). Fixed in 1.85.
+        -->
+        <bouncycastle.version>1.85</bouncycastle.version>
+
+        <!--
+            Fixed jackson vulnerabilities (CVE-2026-89407, CVE-2026-91776,
+            CVE-2026-91777, CVE-2026-19032, CVE-2026-83557). Fixed in 3.1.7, 3.2.2.
+        -->
+        <jackson-core.version>3.1.7</jackson-core.version>
+        <jackson-databind.version>3.1.7</jackson-databind.version>
+        <jackson-activation.version>2.0.1</jackson-activation.version>
     </properties>
 
     <dependencyManagement>
@@ -41,6 +61,32 @@
                 <version>${spring-cloud.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+
+            <!-- Override spring-cloud-gateway-server version to fix CVE-2025-41253 -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-gateway-server</artifactId>
+                <version>${spring-cloud-gateway-server.version}</version>
+            </dependency>
+
+            <!-- Override bouncycastle version to fix multiple CVEs -->
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk18on</artifactId>
+                <version>${bouncycastle.version}</version>
+            </dependency>
+
+            <!-- Override jackson versions to fix multiple CVEs -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson-databind.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
