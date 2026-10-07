@@ -2,10 +2,10 @@
 setlocal
 set "JAVA_HOME=C:\Program Files\Java\jdk-22"
 set "PATH=%JAVA_HOME%\bin;%PATH%"
-cd /d C:\Users\tukue\grocery-microservices\microservices\ledger-service
+cd /d C:\Users\tukue\ecommerce-microservices\microservices\ledger-service
 "%JAVA_HOME%\bin\java.exe" -jar target\ledger-service-1.0-SNAPSHOT-exec.jar ^
   --spring.profiles.active=docker ^
-  --spring.datasource.url=jdbc:postgresql://localhost:55432/grocery ^
+  --spring.datasource.url=jdbc:postgresql://localhost:55432/ecommerce ^
   --spring.datasource.username=test ^
   --spring.datasource.password=test ^
   --spring.flyway.locations=classpath:db/migration/ledger ^

@@ -119,4 +119,4 @@ volumes:
 
 networks:
   default:
-    name: grocery-network
+    name: ecommerce-network
