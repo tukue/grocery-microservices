@@ -12,6 +12,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Test-only Spring configuration active under the {@code test} profile.
@@ -66,11 +67,11 @@ public class TestSecurityConfig {
         return new RedisRateLimiter(100, 200, 1) {
             @Override
             public Mono<Response> isAllowed(String routeId, String id) {
-                Map<String, Long> headers = new HashMap<>();
-                headers.put(REMAINING_HEADER, 99L);
-                headers.put(REPLENISH_RATE_HEADER, 100L);
-                headers.put(BURST_CAPACITY_HEADER, 200L);
-                headers.put(REQUESTED_TOKENS_HEADER, 1L);
+                Map<String, String> headers = new HashMap<>();
+                headers.put(REMAINING_HEADER, String.valueOf(99L));
+                headers.put(REPLENISH_RATE_HEADER, String.valueOf(100L));
+                headers.put(BURST_CAPACITY_HEADER, String.valueOf(200L));
+                headers.put(REQUESTED_TOKENS_HEADER, String.valueOf(1L));
                 return Mono.just(new Response(true, headers));
             }
         };
