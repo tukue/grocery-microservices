@@ -1,6 +1,6 @@
-# Grocery E-Commerce Platform
+# E-Commerce Microservices Platform
 
-A production-grade grocery store platform built with microservices architecture, demonstrating end-to-end CI/CD, cloud-native deployment, and observability best practices.
+A production-grade e-commerce platform built with microservices architecture, demonstrating end-to-end CI/CD, cloud-native deployment, and observability best practices.
 
 ---
 
@@ -435,7 +435,7 @@ The services will be available at the following ports:
 
 ```sh
 git clone <repo-url>
-cd grocery-ecommerce-platform
+cd ecommerce-microservices
 docker-compose up
 ```
 Access services at:
