@@ -67,8 +67,8 @@ public class CorrelationIdFilter implements GlobalFilter, Ordered {
         return chain.filter(mutatedExchange)
                 .then(Mono.fromRunnable(() ->
                         mutatedExchange.getResponse()
-                                .getHeaders()
-                                .addIfAbsent(CORRELATION_ID_HEADER, resolvedId)
+.getHeaders()
+                                 .add(CORRELATION_ID_HEADER, resolvedId)
                 ));
     }
 
