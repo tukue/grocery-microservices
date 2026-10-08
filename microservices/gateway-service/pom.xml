@@ -30,7 +30,7 @@
             spring-cloud-dependencies BOM manages spring-cloud-gateway-server-mvc and
             the WebFlux variant automatically.
         -->
-        <spring-cloud.version>2025.0.1</spring-cloud.version>
+        <spring-cloud.version>2025.0.2</spring-cloud.version>
 
         <!--
             Fixed vulnerability spring-cloud-gateway-server CVE-2025-41253
@@ -61,32 +61,6 @@
                 <version>${spring-cloud.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
-            </dependency>
-
-            <!-- Override spring-cloud-gateway-server version to fix CVE-2025-41253 -->
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-gateway-server</artifactId>
-                <version>${spring-cloud-gateway-server.version}</version>
-            </dependency>
-
-            <!-- Override bouncycastle version to fix multiple CVEs -->
-            <dependency>
-                <groupId>org.bouncycastle</groupId>
-                <artifactId>bcprov-jdk18on</artifactId>
-                <version>${bouncycastle.version}</version>
-            </dependency>
-
-            <!-- Override jackson versions to fix multiple CVEs -->
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>${jackson-core.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson-databind.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
