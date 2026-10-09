@@ -4,6 +4,11 @@ This document is the production rollout plan for this repository's four Spring
 Boot services and Vite/React frontend. It is deliberately configuration-first:
 no production secrets, database URLs, or Kafka credentials belong in Git.
 
+Define backend requirements and deployment gates with the
+[backend feature-definition template](backend-feature-definition-before-deployment.md)
+before starting a backend feature rollout. For the frontend brief, see
+[`feature-definition-before-vercel.md`](feature-definition-before-vercel.md).
+
 ## Target architecture
 
 ```mermaid

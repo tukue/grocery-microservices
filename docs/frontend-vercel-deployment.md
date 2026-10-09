@@ -6,6 +6,9 @@ The frontend is a Vite single-page application. Vercel hosts the static build;
 the session BFF remains a separate service because the current BFF is a Vite
 development plugin and is not included in `vite build` output.
 
+Define and review feature requirements before deployment using the
+[feature-definition template](feature-definition-before-vercel.md).
+
 ## Prerequisites
 
 - Deploy the BFF on a public HTTPS URL before deploying the frontend.
