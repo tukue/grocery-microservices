@@ -47,8 +47,7 @@ import java.util.List;
  * <h3>Public paths</h3>
  * <ul>
  *   <li>CORS pre-flight OPTIONS on any path</li>
- *   <li>{@code /actuator/health}, {@code /actuator/info},
- *       {@code /actuator/prometheus}</li>
+ *   <li>{@code /actuator/health} — readiness for the deployment platform</li>
  *   <li>{@code GET /api/catalog/**} — product browsing does not require login</li>
  * </ul>
  *
@@ -75,14 +74,15 @@ public class SecurityConfig {
                 .authorizeExchange(exchange -> exchange
                         // CORS pre-flight must pass before any auth check
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // Operational endpoints: no auth required
+                        // Deployment health probe: no auth required; other actuator paths stay protected
                         .pathMatchers(
-                                "/actuator/health",
-                                "/actuator/info",
-                                "/actuator/prometheus"
+                                "/actuator/health"
                         ).permitAll()
                         // Public product catalog: browse without a token
                         .pathMatchers(HttpMethod.GET, "/api/catalog/**").permitAll()
+                        // Session lookup is authenticated by the BFF opaque-cookie store.
+                        .pathMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/logout").permitAll()
+                        .pathMatchers(HttpMethod.GET, "/api/auth/me").permitAll()
                         // Everything else requires a valid, unexpired JWT with the
                         // correct issuer and audience
                         .anyExchange().authenticated()
@@ -96,13 +96,16 @@ public class SecurityConfig {
     /**
      * Reactive JWT decoder with a full validation chain.
      *
-     * <p>Uses JWKS discovery from the configured issuer URI so no signing key is
+     * <p>Uses the explicitly configured JWKS endpoint so no signing key is
      * stored in this service. Key rotation on the identity provider side is
      * transparent — the decoder fetches the current JWKS on the next request.</p>
      */
     @Bean
     public ReactiveJwtDecoder reactiveJwtDecoder() {
-        String jwksUri = props.jwt().issuerUri() + "/.well-known/jwks.json";
+        String jwksUri = props.jwt().jwksUri();
+        if (jwksUri == null || jwksUri.isBlank()) {
+            throw new IllegalStateException("gateway.jwt.jwks-uri must be configured");
+        }
 
         NimbusReactiveJwtDecoder decoder = NimbusReactiveJwtDecoder
                 .withJwkSetUri(jwksUri)
@@ -142,7 +145,9 @@ public class SecurityConfig {
         return new DelegatingOAuth2TokenValidator<>(
                 new JwtTimestampValidator(),
                 new JwtIssuerValidator(issuer),
-                audienceValidator
+                audienceValidator,
+                new JwtClaimValidator<String>("sub", sub -> sub != null && !sub.isBlank()),
+                new JwtClaimValidator<java.time.Instant>("exp", exp -> exp != null)
         );
     }
 

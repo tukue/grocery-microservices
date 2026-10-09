@@ -1,99 +1,160 @@
 import { z } from "zod";
 
-const url = z.string().url();
-
-/**
- * Environment schema for the Node.js BFF.
- *
- * After introducing Spring Cloud Gateway, the BFF no longer holds a map of
- * individual service URLs. All backend traffic is routed through the gateway,
- * which owns the route table. The BFF's sole responsibility is session
- * management (login, logout, /me) and cookie handling.
- *
- * BEFORE: CART_SERVICE_URL, ORDER_SERVICE_URL, PRODUCT_SERVICE_URL each pointed
- *         at a separate Spring Boot service.
- * AFTER:  GATEWAY_URL points at the single gateway entry point. The gateway
- *         dispatches /api/catalog/**, /api/customer/**, and /api/auth/** to the
- *         correct upstream service.
- */
+const httpUrl = z
+  .string()
+  .url()
+  .refine((value) => {
+    const url = new URL(value);
+    return (
+      ["http:", "https:"].includes(url.protocol) &&
+      !url.username &&
+      !url.password &&
+      !url.search &&
+      !url.hash
+    );
+  });
+const origin = httpUrl.refine((value) => new URL(value).origin === value);
 const envSchema = z.object({
   BFF_PORT: z.coerce.number().int().positive().max(65535).default(3000),
-
-  /**
-   * Spring Cloud Gateway base URL.
-   * Dev:    http://localhost:8085
-   * Docker: http://gateway-service:8080  (resolved by Docker Compose DNS)
-   */
-  GATEWAY_URL: url.default("http://localhost:8085"),
-
+  GATEWAY_URL: origin.default("http://localhost:8085"),
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
-
+  PUBLIC_ORIGIN: origin.default("http://localhost:5173"),
   JWT_AUDIENCE: z.string().min(1).default("grocery-api"),
-
-  /**
-   * JWKS discovery URI used by the BFF to verify tokens it receives from the
-   * gateway on the /api/auth/me path. Defaults to the gateway's own issuer
-   * (cart-service in dev) via the gateway's JWT_ISSUER_URI.
-   */
-  JWT_ISSUER_URI: url.optional(),
-  JWT_JWKS_URI: url.optional(),
-
-  REDIS_URL: url.optional(),
+  JWT_ISSUER_URI: httpUrl.default("http://localhost:8081"),
+  JWT_JWKS_URI: httpUrl.optional(),
+  REDIS_URL: z
+    .string()
+    .url()
+    .refine((value) => ["redis:", "rediss:"].includes(new URL(value).protocol))
+    .optional(),
+  SESSION_NAMESPACE: z
+    .string()
+    .regex(/^[a-zA-Z0-9:_-]{1,80}$/)
+    .default("grove:development"),
+  AUTH_MODE: z.enum(["demo", "oidc"]).default("demo"),
+  DEMO_IDENTITY_BASE_URL: origin.default("http://localhost:8081"),
+  OIDC_CLIENT_ID: z.string().min(1).optional(),
+  OIDC_CLIENT_SECRET: z.string().min(1).optional(),
+  OIDC_REDIRECT_URI: httpUrl.optional(),
 });
 
-/**
- * Service URLs visible to the BFF.
- *
- * All four point at the gateway — the gateway's route table handles
- * dispatching to the real service. This keeps the BFF's routing concern simple:
- * it only needs to know the gateway address.
- */
-export type ServiceUrls = {
-  /** Used for /api/catalog/** routes */
-  product: string;
-  /** Used for /api/customer/cart routes */
-  cart: string;
-  /** Used for /api/customer/orders and /api/customer/checkout routes */
-  order: string;
-  /** Used for /api/customer/ledger routes */
-  ledger: string;
+export type ServiceUrls = Record<
+  "product" | "cart" | "order" | "ledger",
+  string
+>;
+export type OidcConfig = {
+  clientId: string;
+  clientSecret?: string;
+  redirectUri: string;
 };
-
 export interface BffConfig {
   cookieSecure: boolean;
   jwt: { audience: string; issuer: string; jwksUri: string };
   port: number;
   redisUrl?: string;
   serviceUrls: ServiceUrls;
+  gatewayUrl?: string;
+  publicOrigin?: string;
+  sessionNamespace?: string;
+  vercelClientIp?: boolean;
+  auth?:
+    | { mode: "demo"; demoIdentityUrl: string }
+    | { mode: "oidc"; oidc: OidcConfig };
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): BffConfig {
-  const parsed = envSchema.parse(env);
-  const gatewayUrl = parsed.GATEWAY_URL;
-
-  // The issuer is still cart-service; the BFF fetches JWKS from the gateway's
-  // /api/auth path which the gateway proxies to the BFF, which in turn relies
-  // on the cart-service demo IdP. In a real deployment replace with the OIDC
-  // provider's issuer URI.
-  const issuer = parsed.JWT_ISSUER_URI ?? gatewayUrl;
-
+  const result = envSchema.safeParse({
+    ...env,
+    BFF_PORT: env.BFF_PORT ?? env.PORT,
+  });
+  if (!result.success) {
+    const names = [
+      ...new Set(result.error.issues.map((issue) => String(issue.path[0]))),
+    ];
+    throw new Error(`Invalid BFF configuration: ${names.join(", ")}`);
+  }
+  const parsed = result.data;
+  const issuer = parsed.JWT_ISSUER_URI;
+  const jwksUri =
+    parsed.JWT_JWKS_URI ?? `${issuer.replace(/\/$/, "")}/.well-known/jwks.json`;
+  if (
+    parsed.AUTH_MODE === "oidc" &&
+    (!parsed.OIDC_CLIENT_ID || !parsed.OIDC_REDIRECT_URI)
+  )
+    throw new Error(
+      "Invalid BFF configuration: OIDC_CLIENT_ID and OIDC_REDIRECT_URI are required",
+    );
+  if (
+    parsed.OIDC_REDIRECT_URI &&
+    parsed.OIDC_REDIRECT_URI !== `${parsed.PUBLIC_ORIGIN}/api/auth/callback`
+  )
+    throw new Error(
+      "Invalid BFF configuration: OIDC_REDIRECT_URI must match PUBLIC_ORIGIN/api/auth/callback",
+    );
+  if (parsed.NODE_ENV === "production") {
+    const required = [
+      "GATEWAY_URL",
+      "PUBLIC_ORIGIN",
+      "JWT_ISSUER_URI",
+      "JWT_JWKS_URI",
+      "JWT_AUDIENCE",
+      "REDIS_URL",
+      "SESSION_NAMESPACE",
+      "AUTH_MODE",
+    ];
+    const missing = required.filter((name) => !env[name]);
+    if (missing.length)
+      throw new Error(
+        `Invalid BFF configuration: production requires ${missing.join(", ")}`,
+      );
+    if (parsed.AUTH_MODE !== "oidc")
+      throw new Error(
+        "Invalid BFF configuration: demo authentication is development-only",
+      );
+    if (
+      [
+        parsed.GATEWAY_URL,
+        parsed.PUBLIC_ORIGIN,
+        issuer,
+        jwksUri,
+        parsed.OIDC_REDIRECT_URI!,
+      ].some((value) => new URL(value).protocol !== "https:")
+    )
+      throw new Error(
+        "Invalid BFF configuration: production HTTP endpoints must use HTTPS",
+      );
+    if (new URL(parsed.REDIS_URL!).protocol !== "rediss:")
+      throw new Error(
+        "Invalid BFF configuration: production Redis must use TLS (rediss://)",
+      );
+  }
   return {
     cookieSecure: parsed.NODE_ENV === "production",
-    jwt: {
-      audience: parsed.JWT_AUDIENCE,
-      issuer,
-      jwksUri: parsed.JWT_JWKS_URI ?? `${issuer}/.well-known/jwks.json`,
-    },
+    jwt: { audience: parsed.JWT_AUDIENCE, issuer, jwksUri },
     port: parsed.BFF_PORT,
+    publicOrigin: parsed.PUBLIC_ORIGIN,
+    gatewayUrl: parsed.GATEWAY_URL,
     redisUrl: parsed.REDIS_URL,
-    // All service URL slots point at the gateway — the gateway routes internally
+    sessionNamespace: parsed.SESSION_NAMESPACE,
+    vercelClientIp: env.VERCEL === "1",
+    auth:
+      parsed.AUTH_MODE === "oidc"
+        ? {
+            mode: "oidc",
+            oidc: {
+              clientId: parsed.OIDC_CLIENT_ID!,
+              clientSecret: parsed.OIDC_CLIENT_SECRET,
+              redirectUri: parsed.OIDC_REDIRECT_URI!,
+            },
+          }
+        : { mode: "demo", demoIdentityUrl: parsed.DEMO_IDENTITY_BASE_URL },
     serviceUrls: {
-      cart: gatewayUrl,
-      order: gatewayUrl,
-      product: gatewayUrl,
-      ledger: gatewayUrl,
+      cart: parsed.GATEWAY_URL,
+      order: parsed.GATEWAY_URL,
+      product: parsed.GATEWAY_URL,
+      ledger: parsed.GATEWAY_URL,
     },
   };
 }

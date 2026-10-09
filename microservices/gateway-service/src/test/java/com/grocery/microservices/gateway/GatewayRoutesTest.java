@@ -168,7 +168,8 @@ class GatewayRoutesTest {
 
         client.get().uri("/api/catalog/products")
                 .exchange()
-                .expectStatus().isOk();
+                .expectStatus().isOk()
+                .expectHeader().exists("X-Correlation-Id");
 
         RecordedRequest recorded = productServer.takeRequest(2, TimeUnit.SECONDS);
         assertThat(recorded).isNotNull();
@@ -179,12 +180,12 @@ class GatewayRoutesTest {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Cart route: StripPrefix(2) removes /api/customer
+    // Cart route: preserve /api/customer
     // ─────────────────────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("Cart route: StripPrefix(2) strips /api/customer before forwarding")
-    void cartRouteStripsApiCustomerPrefix() throws InterruptedException {
+    @DisplayName("Cart route preserves the customer controller prefix")
+    void cartRoutePreservesApiCustomerPrefix() throws InterruptedException {
         cartServer.enqueue(new MockResponse()
                 .setResponseCode(200)
                 .addHeader("Content-Type", "application/json")
@@ -197,8 +198,8 @@ class GatewayRoutesTest {
         RecordedRequest recorded = cartServer.takeRequest(2, TimeUnit.SECONDS);
         assertThat(recorded).isNotNull();
         assertThat(recorded.getPath())
-                .as("StripPrefix(2) must strip /api/customer; upstream sees /cart")
-                .isEqualTo("/cart");
+                .as("Customer controller prefix must be preserved")
+                .isEqualTo("/api/customer/cart");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -206,7 +207,7 @@ class GatewayRoutesTest {
     // ─────────────────────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("Checkout route: POST /api/customer/checkout → order-service /checkout")
+    @DisplayName("Checkout route: POST /api/customer/checkout → order-service /api/customer/checkout")
     void checkoutRouteForwardsToOrderService() throws InterruptedException {
         orderServer.enqueue(new MockResponse()
                 .setResponseCode(201)
@@ -223,31 +224,31 @@ class GatewayRoutesTest {
         assertThat(recorded).isNotNull();
         assertThat(recorded.getMethod()).isEqualTo("POST");
         assertThat(recorded.getPath())
-                .as("StripPrefix(2) must yield /checkout on order-service")
-                .isEqualTo("/checkout");
+                .as("Customer prefix must be preserved on order-service")
+                .isEqualTo("/api/customer/checkout");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Summaries route → summary-service
+    // Ledger route → ledger-service
     // ─────────────────────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("Summaries route: GET /api/customer/summaries/{id} → summary-service /summaries/{id}")
-    void summariesRouteStripsPrefix() throws InterruptedException {
+    @DisplayName("Ledger receipt route preserves customer controller path")
+    void ledgerReceiptRoutePreservesPrefix() throws InterruptedException {
         summaryServer.enqueue(new MockResponse()
                 .setResponseCode(200)
                 .addHeader("Content-Type", "application/json")
                 .setBody("{\"receiptId\":\"r-99\",\"total\":42.50}"));
 
-        client.get().uri("/api/customer/summaries/r-99")
+        client.get().uri("/api/customer/ledger/orders/99/receipt")
                 .exchange()
                 .expectStatus().isOk();
 
         RecordedRequest recorded = summaryServer.takeRequest(2, TimeUnit.SECONDS);
         assertThat(recorded).isNotNull();
         assertThat(recorded.getPath())
-                .as("StripPrefix(2) must yield /summaries/r-99 on summary-service")
-                .isEqualTo("/summaries/r-99");
+                .as("Ledger receipt contract must be preserved")
+                .isEqualTo("/api/customer/ledger/orders/99/receipt");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -299,4 +300,20 @@ class GatewayRoutesTest {
                 .as("X-Gateway-Version must be added by the route filter")
                 .isEqualTo("1.0");
     }
+    @Test
+    void catalogWritesAndUndocumentedPathsNeverReachProductService() {
+        int before = productServer.getRequestCount();
+        client.post().uri("/api/catalog/products").exchange().expectStatus().isNotFound();
+        client.get().uri("/api/catalog/admin").exchange().expectStatus().isNotFound();
+        assertThat(productServer.getRequestCount()).isEqualTo(before);
+    }
+
+    @Test
+    void catalogSearchRetainsQueryParameters() throws InterruptedException {
+        productServer.enqueue(new MockResponse().setBody("[]"));
+        client.get().uri("/api/catalog/products/search?name=apple").exchange().expectStatus().isOk();
+        assertThat(productServer.takeRequest(2, TimeUnit.SECONDS).getPath())
+                .isEqualTo("/products/search?name=apple");
+    }
+
 }
