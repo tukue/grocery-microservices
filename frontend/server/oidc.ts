@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import { generateOpaqueValue } from "./auth-request-store.js";
 import type { OidcConfig } from "./config.js";
@@ -47,6 +47,13 @@ export function createPkce(): PkcePair {
   const verifier = generateOpaqueValue(32);
   const challenge = createHash("sha256").update(verifier).digest("base64url");
   return { challenge, verifier };
+}
+
+/** Constant-time string comparison to avoid leaking secrets via timing (CWE-208). */
+function timingSafeEqualStrings(a: string, b: string): boolean {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  return left.length === right.length && timingSafeEqual(left, right);
 }
 
 function requireString(doc: Record<string, unknown>, key: string): string {
@@ -178,7 +185,10 @@ export function createOidcClient(
         audience: settings.clientId,
         issuer: settings.issuer,
       });
-      if (typeof payload.nonce !== "string" || payload.nonce !== nonce) {
+      if (
+        typeof payload.nonce !== "string" ||
+        !timingSafeEqualStrings(payload.nonce, nonce)
+      ) {
         throw new OidcError("nonce_mismatch");
       }
       return payload;

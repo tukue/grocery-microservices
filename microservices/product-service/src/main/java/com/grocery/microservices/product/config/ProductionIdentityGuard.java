@@ -27,7 +27,7 @@ public class ProductionIdentityGuard {
                     "Production identity configuration error: security.jwt.demo-enabled must be false");
         }
         if (issuerUri == null || issuerUri.isBlank()
-                || !issuerUri.regionMatches(true, 0, "https://", 0, "https://".length())) {
+                || !issuerUri.startsWith("https://")) {
             throw new IllegalStateException(
                     "Production identity configuration error: security.jwt.issuer-uri must be an https issuer URI");
         }

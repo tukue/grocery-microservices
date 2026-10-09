@@ -199,7 +199,9 @@ export function createBff(
         jwt: tokens.accessToken,
       });
       setSessionCookie(res, config, session);
-      res.redirect(302, request.returnTo);
+      // Re-validate at the redirect site so a tampered or legacy stored value
+      // can never become an open redirect (CWE-601).
+      res.redirect(302, safeReturnTo(request.returnTo));
     } catch (error) {
       sendError(
         res,

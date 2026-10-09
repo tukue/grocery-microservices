@@ -23,7 +23,7 @@ public class ProductionIdentityGuard {
 
     static void requireSafeProductionIdentity(String issuerUri, String audience) {
         if (issuerUri == null || issuerUri.isBlank()
-                || !issuerUri.regionMatches(true, 0, "https://", 0, "https://".length())) {
+                || !issuerUri.startsWith("https://")) {
             throw new IllegalStateException(
                     "Production identity configuration error: gateway.jwt.issuer-uri must be an https issuer URI");
         }

@@ -207,6 +207,32 @@ describe("OIDC auth contract", () => {
     expect(callback.headers.location).toBe("/products");
   });
 
+  it("re-validates the stored return destination at callback (CWE-601)", async () => {
+    const { client } = fakeOidcClient();
+    const escapedStore = {
+      async create() {
+        throw new Error("unused");
+      },
+      async consume() {
+        return {
+          codeVerifier: "v",
+          expiresAt: Date.now() + 60_000,
+          nonce: "n",
+          returnTo: "https://evil.test/steal",
+          state: "s",
+        };
+      },
+    };
+    const app = createBff(config, new MemorySessionStore(), verifyToken, {
+      oidc: client,
+      authRequests: escapedStore,
+    });
+    const callback = await request(app)
+      .get("/api/auth/callback?code=abc&state=s")
+      .expect(302);
+    expect(callback.headers.location).toBe("/products");
+  });
+
   it("deletes the session on logout", async () => {
     const { client } = fakeOidcClient();
     const { app } = fixture(client);

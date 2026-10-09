@@ -25,6 +25,13 @@ class ProductionIdentityGuardTest {
     }
 
     @Test
+    void rejectsMixedCaseHttpsProtocol() {
+        assertThrows(IllegalStateException.class,
+                () -> ProductionIdentityGuard.requireSafeProductionIdentity(
+                        false, "HtTpS://id.example.com/realms/grocery", "grocery-api"));
+    }
+
+    @Test
     void rejectsBlankAudience() {
         assertThrows(IllegalStateException.class,
                 () -> ProductionIdentityGuard.requireSafeProductionIdentity(

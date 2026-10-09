@@ -45,15 +45,29 @@ export class RedisAuthRequestStore implements AuthRequestStore {
     return new RedisAuthRequestStore(client as RedisClientType);
   }
 
+  /** Visible for tests: build a store over an already-connected client. */
+  static fromClient(
+    client: RedisClientType,
+    prefix?: string,
+  ): RedisAuthRequestStore {
+    return new RedisAuthRequestStore(client, prefix);
+  }
+
   async create(input: NewAuthorizationRequest): Promise<AuthorizationRequest> {
-    const request = { ...input, state: generateOpaqueValue() };
     const ttl = Math.max(1, Math.ceil((input.expiresAt - Date.now()) / 1000));
-    await this.client.set(
-      this.prefix + request.state,
-      JSON.stringify(request),
-      { EX: ttl, NX: true },
-    );
-    return request;
+    // SET NX returns "OK" only when the key did not exist. If the random state
+    // collides with a live request, regenerate instead of silently returning a
+    // request that could never be consumed (CWE-362).
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const request = { ...input, state: generateOpaqueValue() };
+      const stored = await this.client.set(
+        this.prefix + request.state,
+        JSON.stringify(request),
+        { EX: ttl, NX: true },
+      );
+      if (stored === "OK") return request;
+    }
+    throw new Error("Failed to create authorization request");
   }
 
   async consume(state: string | undefined, now = Date.now()) {
