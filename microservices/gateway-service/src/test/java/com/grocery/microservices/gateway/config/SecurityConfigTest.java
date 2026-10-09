@@ -22,6 +22,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.config.EnableWebFlux;
 import org.springframework.web.reactive.function.server.RouterFunction;
@@ -35,6 +36,8 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.r
 
 /** Exercises the production filter chain and decoder with genuinely signed JWTs. */
 @SpringJUnitConfig(SecurityConfigTest.Config.class)
+// Exercise the production chain even when CI sets spring.profiles.active=test.
+@ActiveProfiles("security-verification")
 class SecurityConfigTest {
     static final String ISSUER = "https://identity.example.test";
     static final RSAKey KEY;
