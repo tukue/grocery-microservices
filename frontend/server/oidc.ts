@@ -35,6 +35,25 @@ export interface OidcClient {
   verifyIdToken(token: string, nonce: string): Promise<JWTPayload>;
 }
 
+export interface LoginTransaction {
+  state: string;
+  nonce: string;
+  verifier: string;
+  returnTo: string;
+  expiresAt: number;
+}
+
+export { safeReturnTo } from "./bff.js";
+export function newLogin(returnTo: unknown): LoginTransaction {
+  return {
+    state: generateOpaqueValue(32),
+    nonce: generateOpaqueValue(32),
+    verifier: generateOpaqueValue(32),
+    returnTo: safeReturnTo(returnTo),
+    expiresAt: Date.now() + 600_000,
+  };
+}
+
 export class OidcError extends Error {
   constructor(readonly reason: string) {
     super(reason);

@@ -19,7 +19,10 @@ export function getRuntime() {
   runtime ??= (async () => {
     const config = loadConfig();
     if (!config.redisUrl) throw new Error("REDIS_URL is required");
-    const sessions = await RedisSessionStore.connect(config.redisUrl);
+    const sessions = await RedisSessionStore.connect(
+      config.redisUrl,
+      (config as any).sessionNamespace,
+    );
     const authRequests =
       config.auth.mode === "oidc"
         ? await RedisAuthRequestStore.connect(config.redisUrl)
