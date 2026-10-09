@@ -16,11 +16,18 @@ const url = z.string().url();
  */
 const envSchema = z.object({
   BFF_PORT: z.coerce.number().int().positive().max(65535).default(3000),
-  GATEWAY_URL: origin.default("http://localhost:8085"),
+
+  /**
+   * Spring Cloud Gateway base URL.
+   * Dev:    http://localhost:8085
+   * Docker: http://gateway-service:8080  (resolved by Docker Compose DNS)
+   */
+  GATEWAY_URL: url.default("http://localhost:8085"),
+
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
-  PUBLIC_ORIGIN: origin.default("http://localhost:5173"),
+
   JWT_AUDIENCE: z.string().min(1).default("grocery-api"),
 
   /**
@@ -81,6 +88,7 @@ export type ServiceUrls = {
   /** Used for /api/customer/ledger routes */
   ledger: string;
 };
+
 export interface BffConfig {
   auth: AuthConfig;
   cookieSecure: boolean;
@@ -88,13 +96,6 @@ export interface BffConfig {
   port: number;
   redisUrl?: string;
   serviceUrls: ServiceUrls;
-  gatewayUrl?: string;
-  publicOrigin?: string;
-  sessionNamespace?: string;
-  vercelClientIp?: boolean;
-  auth?:
-    | { mode: "demo"; demoIdentityUrl: string }
-    | { mode: "oidc"; oidc: OidcConfig };
 }
 
 function trimTrailingSlash(value: string): string {
@@ -174,27 +175,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BffConfig {
       jwksUri,
     },
     port: parsed.BFF_PORT,
-    publicOrigin: parsed.PUBLIC_ORIGIN,
-    gatewayUrl: parsed.GATEWAY_URL,
     redisUrl: parsed.REDIS_URL,
-    sessionNamespace: parsed.SESSION_NAMESPACE,
-    vercelClientIp: env.VERCEL === "1",
-    auth:
-      parsed.AUTH_MODE === "oidc"
-        ? {
-            mode: "oidc",
-            oidc: {
-              clientId: parsed.OIDC_CLIENT_ID!,
-              clientSecret: parsed.OIDC_CLIENT_SECRET,
-              redirectUri: parsed.OIDC_REDIRECT_URI!,
-            },
-          }
-        : { mode: "demo", demoIdentityUrl: parsed.DEMO_IDENTITY_BASE_URL },
+    // All service URL slots point at the gateway — the gateway routes internally
     serviceUrls: {
-      cart: parsed.GATEWAY_URL,
-      order: parsed.GATEWAY_URL,
-      product: parsed.GATEWAY_URL,
-      ledger: parsed.GATEWAY_URL,
+      cart: gatewayUrl,
+      order: gatewayUrl,
+      product: gatewayUrl,
+      ledger: gatewayUrl,
     },
   };
 }

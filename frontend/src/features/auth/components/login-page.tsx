@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useAuthMode } from "../hooks/use-auth-mode";
@@ -10,34 +10,6 @@ export function LoginPage() {
   const mode = useAuthMode();
   const navigate = useNavigate();
   const location = useLocation();
-  const [mode, setMode] = useState<"demo" | "oidc" | null>(null);
-  const [configError, setConfigError] = useState(false);
-  const [configAttempt, setConfigAttempt] = useState(0);
-  useEffect(() => {
-    const controller = new AbortController();
-    setConfigError(false);
-    fetch("/api/auth/config", { signal: controller.signal })
-      .then(async (response) => {
-        if (!response.ok) throw new Error("Unavailable");
-        const body: unknown = await response.json();
-        if (
-          !body ||
-          typeof body !== "object" ||
-          !("mode" in body) ||
-          !["demo", "oidc"].includes(String(body.mode))
-        )
-          throw new Error("Invalid configuration");
-        if (!controller.signal.aborted) setMode(body.mode as "demo" | "oidc");
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setConfigError(true);
-      });
-    return () => controller.abort();
-  }, [configAttempt]);
-  const returnTo =
-    (location.state as { from?: string } | null)?.from ?? "/products";
-  const callbackFailed =
-    new URLSearchParams(location.search).get("error") === "signin";
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);

@@ -46,13 +46,21 @@ export function createTokenVerifier(config: BffConfig): TokenVerifier {
         algorithms: ["RS256"],
         audience: config.jwt.audience,
         issuer: config.jwt.issuer,
-        requiredClaims: ["sub", "exp"],
       })
     ).payload;
 }
 
 async function verifiedIdentity(token: string, verifyToken: TokenVerifier) {
-  return identityClaims(await verifyToken(token));
+  const payload = await verifyToken(token);
+  const email = typeof payload.email === "string" ? payload.email : "";
+  const userId = typeof payload.sub === "string" ? payload.sub : email;
+  const expiresAt =
+    typeof payload.exp === "number"
+      ? payload.exp * 1000
+      : Date.now() + 3_600_000;
+  if (!email || !userId || expiresAt <= Date.now())
+    throw new Error("Invalid identity claims");
+  return { email, expiresAt, userId };
 }
 
 /** Derive a session identity from verified OIDC claims, provider-neutrally. */
@@ -116,7 +124,6 @@ function sendError(
     message,
     path,
     status,
-    correlationId: res.locals.correlationId,
   });
 }
 
@@ -134,7 +141,6 @@ export function createBff(
   const authRequests = deps.authRequests ?? new MemoryAuthRequestStore();
   const app = express();
   app.disable("x-powered-by");
-  app.use(requestSecurity(config));
   app.use(cookieParser());
   app.use(express.json({ limit: "64kb" }));
   app.get("/health", (_req, res) => res.json({ status: "ok" }));
@@ -233,26 +239,17 @@ export function createBff(
       return;
     }
     try {
-      const upstream = await fetch(
-        `${config.auth?.mode === "demo" ? config.auth.demoIdentityUrl : config.serviceUrls.cart}/auth/login`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ username, password }),
-          signal: AbortSignal.timeout(TIMEOUT),
-          redirect: "error",
-        },
-      );
+      const upstream = await fetch(`${config.serviceUrls.cart}/auth/login`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username, password }),
+        signal: AbortSignal.timeout(TIMEOUT),
+      });
       const body = (await upstream.json().catch(() => ({}))) as {
         token?: unknown;
       };
       if (!upstream.ok) {
-        sendError(
-          res,
-          upstream.status === 401 || upstream.status === 403 ? 401 : 502,
-          "Sign-in failed",
-          req.path,
-        );
+        res.status(upstream.status).json(body);
         return;
       }
       if (typeof body.token !== "string") {
@@ -297,7 +294,6 @@ export function createBff(
       req.method,
       req.originalUrl,
       config.serviceUrls,
-      config.gatewayUrl,
     );
     if (!route) {
       sendError(res, 404, "Route not found", req.path);
@@ -310,10 +306,7 @@ export function createBff(
     }
     const queryIndex = req.originalUrl.indexOf("?");
     const query = queryIndex >= 0 ? req.originalUrl.slice(queryIndex) : "";
-    const headers: Record<string, string> = {
-      accept: "application/json",
-      "x-correlation-id": res.locals.correlationId,
-    };
+    const headers: Record<string, string> = { accept: "application/json" };
     if (req.is("application/json"))
       headers["content-type"] = "application/json";
     if (session) headers.authorization = `Bearer ${session.jwt}`;
@@ -332,7 +325,6 @@ export function createBff(
             ? undefined
             : JSON.stringify(req.body ?? {}),
           signal: AbortSignal.timeout(TIMEOUT),
-          redirect: "error",
         },
       );
       const receiptMatch = req.path.match(
@@ -341,7 +333,7 @@ export function createBff(
       if (receiptMatch && upstream.status === 404) {
         const owned = await fetch(
           `${config.serviceUrls.order}/api/customer/orders/${receiptMatch[1]}`,
-          { headers, signal: AbortSignal.timeout(TIMEOUT), redirect: "error" },
+          { headers, signal: AbortSignal.timeout(TIMEOUT) },
         );
         if (!owned.ok) {
           sendError(
@@ -402,31 +394,13 @@ export function createBff(
       sendError(res, 502, "Service unavailable", req.path);
     }
   });
-  app.use("/api", (req, res) =>
-    sendError(res, 404, "Route not found", req.originalUrl),
-  );
-  app.use(
-    (error: unknown, req: Request, res: Response, _next: NextFunction) => {
-      const status =
-        typeof error === "object" &&
-        error !== null &&
-        "status" in error &&
-        error.status === 413
-          ? 413
-          : error instanceof SyntaxError
-            ? 400
-            : 503;
-      sendError(
-        res,
-        status,
-        status === 413
-          ? "Request is too large"
-          : status === 400
-            ? "Invalid request"
-            : "Service unavailable",
-        req.path,
-      );
-    },
+  app.use((error: unknown, req: Request, res: Response, _next: NextFunction) =>
+    sendError(
+      res,
+      400,
+      error instanceof Error ? error.message : "Invalid request",
+      req.path,
+    ),
   );
   return app;
 }
