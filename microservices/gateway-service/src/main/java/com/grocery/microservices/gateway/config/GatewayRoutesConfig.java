@@ -1,6 +1,7 @@
 package com.grocery.microservices.gateway.config;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter;
 import org.springframework.cloud.gateway.route.RouteLocator;
@@ -23,10 +24,10 @@ import org.springframework.context.annotation.Configuration;
  *  POST /api/auth/login                 BFF                   no      —
  *  POST /api/auth/logout                BFF                   no      —
  *  GET  /api/auth/me                    BFF                   yes     —
- *  **   /api/customer/cart/**           cart-service          yes     2
- *  POST /api/customer/checkout          order-service         yes     2
- *  **   /api/customer/orders/**         order-service         yes     2
- *  **   /api/customer/summaries/**      summary-service       yes     2
+ *  **   /api/customer/cart/**           cart-service          yes     —
+ *  POST /api/customer/checkout          order-service         yes     —
+ *  **   /api/customer/orders/**         order-service         yes     —
+ *  **   /api/customer/ledger/**         ledger-service       yes     —
  * </pre>
  *
  * <h3>Cross-cutting filters (applied globally, not per-route)</h3>
@@ -56,14 +57,14 @@ import org.springframework.context.annotation.Configuration;
 public class GatewayRoutesConfig {
 
     private final GatewayProperties props;
-    private final KeyResolver ipKeyResolver;
+    private final KeyResolver customerKeyResolver;
     private final RedisRateLimiter customerRateLimiter;
 
     public GatewayRoutesConfig(GatewayProperties props,
-                               KeyResolver ipKeyResolver,
+                               @Qualifier("customerKeyResolver") KeyResolver customerKeyResolver,
                                RedisRateLimiter customerRateLimiter) {
         this.props = props;
-        this.ipKeyResolver = ipKeyResolver;
+        this.customerKeyResolver = customerKeyResolver;
         this.customerRateLimiter = customerRateLimiter;
     }
 
@@ -76,7 +77,8 @@ public class GatewayRoutesConfig {
                 // ── 1. Product catalog — public ───────────────────────────────────
                 // StripPrefix(2): /api/catalog/products → /products
                 .route("catalog-products", r -> r
-                        .path("/api/catalog/**")
+                        .path("/api/catalog/products", "/api/catalog/products/search", "/api/catalog/products/{id:[0-9]+}")
+                        .and().method("GET")
                         .filters(f -> f
                                 .stripPrefix(2)
                                 .addRequestHeader("X-Gateway-Version", "1.0")
@@ -108,15 +110,14 @@ public class GatewayRoutesConfig {
                 )
 
                 // ── 5. Cart — protected, rate limited ─────────────────────────────
-                // StripPrefix(2): /api/customer/cart → /cart
+                // Customer controllers already own the /api/customer prefix.
                 .route("customer-cart", r -> r
                         .path("/api/customer/cart", "/api/customer/cart/**")
                         .filters(f -> f
-                                .stripPrefix(2)
                                 .addRequestHeader("X-Gateway-Version", "1.0")
                                 .requestRateLimiter(c -> c
                                         .setRateLimiter(customerRateLimiter)
-                                        .setKeyResolver(ipKeyResolver)
+                                        .setKeyResolver(customerKeyResolver)
                                 )
                                 // .circuitBreaker(c -> c.setName("cart-cb")
                                 //     .setFallbackUri("forward:/fallback/cart"))
@@ -125,16 +126,15 @@ public class GatewayRoutesConfig {
                 )
 
                 // ── 6. Checkout — protected, rate limited ─────────────────────────
-                // StripPrefix(2): /api/customer/checkout → /checkout
+                // Preserve the customer checkout contract.
                 .route("customer-checkout", r -> r
                         .path("/api/customer/checkout")
                         .and().method("POST")
                         .filters(f -> f
-                                .stripPrefix(2)
                                 .addRequestHeader("X-Gateway-Version", "1.0")
                                 .requestRateLimiter(c -> c
                                         .setRateLimiter(customerRateLimiter)
-                                        .setKeyResolver(ipKeyResolver)
+                                        .setKeyResolver(customerKeyResolver)
                                 )
                                 // .circuitBreaker(c -> c.setName("order-cb")
                                 //     .setFallbackUri("forward:/fallback/order"))
@@ -146,11 +146,10 @@ public class GatewayRoutesConfig {
                 .route("customer-orders", r -> r
                         .path("/api/customer/orders", "/api/customer/orders/**")
                         .filters(f -> f
-                                .stripPrefix(2)
                                 .addRequestHeader("X-Gateway-Version", "1.0")
                                 .requestRateLimiter(c -> c
                                         .setRateLimiter(customerRateLimiter)
-                                        .setKeyResolver(ipKeyResolver)
+                                        .setKeyResolver(customerKeyResolver)
                                 )
                                 // .circuitBreaker(c -> c.setName("order-cb")
                                 //     .setFallbackUri("forward:/fallback/order"))
@@ -159,14 +158,14 @@ public class GatewayRoutesConfig {
                 )
 
                 // ── 8. Summaries / receipts — protected, rate limited ─────────────
-                .route("customer-summaries", r -> r
-                        .path("/api/customer/summaries", "/api/customer/summaries/**")
+                .route("customer-ledger", r -> r
+                        .path("/api/customer/ledger", "/api/customer/ledger/orders/{id:[0-9]+}/receipt")
+                        .and().method("GET")
                         .filters(f -> f
-                                .stripPrefix(2)
                                 .addRequestHeader("X-Gateway-Version", "1.0")
                                 .requestRateLimiter(c -> c
                                         .setRateLimiter(customerRateLimiter)
-                                        .setKeyResolver(ipKeyResolver)
+                                        .setKeyResolver(customerKeyResolver)
                                 )
                                 // .circuitBreaker(c -> c.setName("summary-cb")
                                 //     .setFallbackUri("forward:/fallback/summary"))

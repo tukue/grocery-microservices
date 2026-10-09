@@ -12,7 +12,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Test-only Spring configuration active under the {@code test} profile.
@@ -29,8 +28,8 @@ import java.util.stream.Collectors;
  *   <li><b>Rate limiter stub</b> — replaces the {@link RedisRateLimiter} bean
  *       declared in {@link RateLimitConfig} with a no-op implementation that
  *       always allows requests. This prevents Spring from attempting a Redis
- *       connection during tests even though Redis autoconfiguration is excluded
- *       in {@code application-test.properties}.</li>
+ *       connection during tests. Redis templates remain configured for the
+ *       limiter lifecycle; Redis health checks are disabled in the test profile.</li>
  * </ol>
  */
 @TestConfiguration
