@@ -1,184 +1,187 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash } from "node:crypto";
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
-import { z } from "zod";
-import type { BffConfig, OidcConfig } from "./config.js";
-import type { LoginTransaction } from "./session-store.js";
+import { generateOpaqueValue } from "./auth-request-store.js";
+import type { OidcConfig } from "./config.js";
 
-const TIMEOUT = 8000;
-const discoverySchema = z.object({
-  issuer: z.string().url(),
-  authorization_endpoint: z.string().url(),
-  token_endpoint: z.string().url(),
-  jwks_uri: z.string().url(),
-});
-const tokenSchema = z.object({
-  access_token: z.string().min(1),
-  id_token: z.string().min(1),
-  token_type: z.string().refine((value) => value.toLowerCase() === "bearer"),
-});
-export function safeReturnTo(value: unknown): string {
-  if (
-    typeof value !== "string" ||
-    !value.startsWith("/") ||
-    value.startsWith("//") ||
-    /[\\\x00-\x20]/.test(value)
-  )
-    return "/products";
-  const url = new URL(value, "https://store.invalid");
-  if (
-    url.origin !== "https://store.invalid" ||
-    url.pathname.startsWith("/api/") ||
-    url.pathname === "/login"
-  )
-    return "/products";
-  return url.pathname + url.search + url.hash;
+const TIMEOUT = 8_000;
+
+export interface OidcDiscovery {
+  authorizationEndpoint: string;
+  endSessionEndpoint?: string;
+  issuer: string;
+  jwksUri: string;
+  tokenEndpoint: string;
 }
-function opaque() {
-  return randomBytes(32).toString("base64url");
+
+export interface OidcTokens {
+  accessToken: string;
+  idToken: string;
 }
-export function newLogin(returnTo: unknown): LoginTransaction {
-  return {
-    state: opaque(),
-    nonce: opaque(),
-    verifier: opaque(),
-    returnTo: safeReturnTo(returnTo),
-    expiresAt: Date.now() + 600_000,
-  };
+
+export interface PkcePair {
+  challenge: string;
+  verifier: string;
 }
-export function identityClaims(payload: JWTPayload, email?: string) {
-  const userId = payload.sub;
-  const expiresAt =
-    typeof payload.exp === "number" && Number.isFinite(payload.exp)
-      ? payload.exp * 1000
-      : 0;
-  const identityEmail = email ?? payload.email;
-  if (
-    typeof userId !== "string" ||
-    !userId.trim() ||
-    typeof identityEmail !== "string" ||
-    !identityEmail.trim() ||
-    expiresAt <= Date.now()
-  )
-    throw new Error("Invalid identity claims");
-  return { userId, email: identityEmail, expiresAt };
+
+export interface OidcClient {
+  authorizationUrl(params: {
+    codeChallenge: string;
+    nonce: string;
+    state: string;
+  }): Promise<string>;
+  discovery(): Promise<OidcDiscovery>;
+  exchangeCode(code: string, codeVerifier: string): Promise<OidcTokens>;
+  verifyAccessToken(token: string): Promise<JWTPayload>;
+  verifyIdToken(token: string, nonce: string): Promise<JWTPayload>;
 }
-export function createOidcClient(config: BffConfig, oidc: OidcConfig) {
-  let discovery: Promise<z.infer<typeof discoverySchema>> | undefined;
-  const metadata = () => {
-    discovery ??= (async () => {
-      const response = await fetch(
-        `${config.jwt.issuer.replace(/\/$/, "")}/.well-known/openid-configuration`,
-        { signal: AbortSignal.timeout(TIMEOUT), redirect: "error" },
-      );
-      if (!response.ok) throw new Error("Identity discovery unavailable");
-      const doc = discoverySchema.parse(await response.json());
-      if (doc.issuer !== config.jwt.issuer)
-        throw new Error("Identity issuer mismatch");
-      for (const endpoint of [
-        doc.authorization_endpoint,
-        doc.token_endpoint,
-        doc.jwks_uri,
-      ]) {
-        const url = new URL(endpoint);
-        if (
-          url.username ||
-          url.password ||
-          url.hash ||
-          !["https:", ...(config.cookieSecure ? [] : ["http:"])].includes(
-            url.protocol,
-          )
-        )
-          throw new Error("Invalid identity endpoint");
-      }
-      return doc;
-    })().catch((error: unknown) => {
-      discovery = undefined;
-      throw error;
+
+export class OidcError extends Error {
+  constructor(readonly reason: string) {
+    super(reason);
+    this.name = "OidcError";
+  }
+}
+
+/** PKCE S256 pair as required by OAuth 2.1 for public clients. */
+export function createPkce(): PkcePair {
+  const verifier = generateOpaqueValue(32);
+  const challenge = createHash("sha256").update(verifier).digest("base64url");
+  return { challenge, verifier };
+}
+
+function requireString(doc: Record<string, unknown>, key: string): string {
+  const value = doc[key];
+  if (typeof value !== "string" || !value) {
+    throw new OidcError(`discovery_missing_${key}`);
+  }
+  return value;
+}
+
+async function fetchDiscovery(discoveryUrl: string): Promise<OidcDiscovery> {
+  let response: Response;
+  try {
+    response = await fetch(discoveryUrl, {
+      headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(TIMEOUT),
     });
-    return discovery;
-  };
+  } catch {
+    throw new OidcError("discovery_unavailable");
+  }
+  if (!response.ok) throw new OidcError("discovery_unavailable");
+  const doc = (await response.json().catch(() => null)) as Record<
+    string,
+    unknown
+  > | null;
+  if (!doc) throw new OidcError("discovery_invalid");
+  const endSessionEndpoint =
+    typeof doc.end_session_endpoint === "string"
+      ? doc.end_session_endpoint
+      : undefined;
   return {
-    async authorizationUrl(login: LoginTransaction) {
-      const doc = await metadata();
-      const url = new URL(doc.authorization_endpoint);
-      const params = {
-        client_id: oidc.clientId,
-        redirect_uri: oidc.redirectUri,
-        response_type: "code",
-        scope: "openid email",
-        state: login.state,
-        nonce: login.nonce,
-        code_challenge_method: "S256",
-        code_challenge: createHash("sha256")
-          .update(login.verifier)
-          .digest("base64url"),
-      };
-      for (const [key, value] of Object.entries(params))
-        url.searchParams.set(key, value);
+    authorizationEndpoint: requireString(doc, "authorization_endpoint"),
+    endSessionEndpoint,
+    issuer: requireString(doc, "issuer"),
+    jwksUri: requireString(doc, "jwks_uri"),
+    tokenEndpoint: requireString(doc, "token_endpoint"),
+  };
+}
+
+export function createOidcClient(
+  settings: OidcConfig,
+  apiAudience: string,
+): OidcClient {
+  let discoveryPromise: Promise<OidcDiscovery> | undefined;
+  let jwks: ReturnType<typeof createRemoteJWKSet> | undefined;
+
+  function discovery(): Promise<OidcDiscovery> {
+    discoveryPromise ??= fetchDiscovery(settings.discoveryUrl);
+    return discoveryPromise;
+  }
+
+  async function getJwks() {
+    if (!jwks) {
+      const doc = await discovery();
+      jwks = createRemoteJWKSet(new URL(doc.jwksUri));
+    }
+    return jwks;
+  }
+
+  return {
+    async authorizationUrl({ codeChallenge, nonce, state }) {
+      const doc = await discovery();
+      const url = new URL(doc.authorizationEndpoint);
+      url.searchParams.set("response_type", "code");
+      url.searchParams.set("client_id", settings.clientId);
+      url.searchParams.set("redirect_uri", settings.redirectUri);
+      url.searchParams.set("scope", settings.scopes.join(" "));
+      url.searchParams.set("state", state);
+      url.searchParams.set("nonce", nonce);
+      url.searchParams.set("code_challenge", codeChallenge);
+      url.searchParams.set("code_challenge_method", "S256");
       return url.toString();
     },
-    async exchange(
-      code: string,
-      login: LoginTransaction,
-      verifyAccess: (token: string) => Promise<JWTPayload>,
-    ) {
-      const doc = await metadata();
+
+    discovery,
+
+    async exchangeCode(code, codeVerifier) {
+      const doc = await discovery();
       const body = new URLSearchParams({
         grant_type: "authorization_code",
         code,
-        redirect_uri: oidc.redirectUri,
-        client_id: oidc.clientId,
-        code_verifier: login.verifier,
+        code_verifier: codeVerifier,
+        client_id: settings.clientId,
+        redirect_uri: settings.redirectUri,
       });
-      const headers: Record<string, string> = {
-        "content-type": "application/x-www-form-urlencoded",
-        accept: "application/json",
-      };
-      if (oidc.clientSecret) {
-        const encode = (value: string) =>
-          new URLSearchParams({ v: value }).toString().slice(2);
-        headers.authorization = `Basic ${Buffer.from(`${encode(oidc.clientId)}:${encode(oidc.clientSecret)}`).toString("base64")}`;
+      if (settings.clientSecret) {
+        body.set("client_secret", settings.clientSecret);
       }
-      const response = await fetch(doc.token_endpoint, {
-        method: "POST",
-        headers,
-        body: body.toString(),
-        signal: AbortSignal.timeout(TIMEOUT),
-        redirect: "error",
-      });
-      if (!response.ok) throw new Error("Identity exchange failed");
-      const tokens = tokenSchema.parse(await response.json());
-      const { payload } = await jwtVerify(
-        tokens.id_token,
-        createRemoteJWKSet(new URL(doc.jwks_uri)),
-        {
+      let response: Response;
+      try {
+        response = await fetch(doc.tokenEndpoint, {
+          method: "POST",
+          headers: {
+            "content-type": "application/x-www-form-urlencoded",
+            accept: "application/json",
+          },
+          body,
+          signal: AbortSignal.timeout(TIMEOUT),
+        });
+      } catch {
+        throw new OidcError("token_endpoint_unavailable");
+      }
+      if (!response.ok) throw new OidcError("token_exchange_failed");
+      const tokens = (await response.json().catch(() => null)) as Record<
+        string,
+        unknown
+      > | null;
+      const accessToken = tokens?.access_token;
+      const idToken = tokens?.id_token;
+      if (typeof accessToken !== "string" || typeof idToken !== "string") {
+        throw new OidcError("token_response_invalid");
+      }
+      return { accessToken, idToken };
+    },
+
+    async verifyAccessToken(token) {
+      return (
+        await jwtVerify(token, await getJwks(), {
           algorithms: ["RS256"],
-          issuer: config.jwt.issuer,
-          audience: oidc.clientId,
-          requiredClaims: ["sub", "exp", "iat", "nonce"],
-        },
-      );
-      if (
-        payload.nonce !== login.nonce ||
-        (payload.azp !== undefined && payload.azp !== oidc.clientId) ||
-        (Array.isArray(payload.aud) &&
-          payload.aud.length > 1 &&
-          payload.azp !== oidc.clientId)
-      )
-        throw new Error("Invalid identity token");
-      const access = await verifyAccess(tokens.access_token);
-      if (access.sub !== payload.sub)
-        throw new Error("Identity subject mismatch");
-      const identity = identityClaims(
-        access,
-        typeof payload.email === "string" ? payload.email : undefined,
-      );
-      const expiresAt = Math.min(
-        identity.expiresAt,
-        Number(payload.exp) * 1000,
-      );
-      if (expiresAt <= Date.now()) throw new Error("Expired identity token");
-      return { ...identity, expiresAt, jwt: tokens.access_token };
+          audience: apiAudience,
+          issuer: settings.issuer,
+        })
+      ).payload;
+    },
+
+    async verifyIdToken(token, nonce) {
+      const { payload } = await jwtVerify(token, await getJwks(), {
+        algorithms: ["RS256"],
+        audience: settings.clientId,
+        issuer: settings.issuer,
+      });
+      if (typeof payload.nonce !== "string" || payload.nonce !== nonce) {
+        throw new OidcError("nonce_mismatch");
+      }
+      return payload;
     },
   };
 }

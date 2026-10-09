@@ -1,4 +1,3 @@
-import { z } from "zod";
 import cookieParser from "cookie-parser";
 import express, {
   type NextFunction,
@@ -6,16 +5,38 @@ import express, {
   type Response,
 } from "express";
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
-import { type BffConfig } from "./config.js";
+import { pathToFileURL } from "node:url";
+import { z } from "zod";
+import { loadConfig, type BffConfig } from "./config.js";
 import { resolveService } from "./proxy.js";
-import { type SessionRecord, type SessionStore } from "./session-store.js";
-
-import { createOidcClient, identityClaims, newLogin } from "./oidc.js";
-import { loginLimiter, requestSecurity } from "./security.js";
+import {
+  RedisSessionStore,
+  type SessionRecord,
+  type SessionStore,
+} from "./session-store.js";
+import {
+  generateOpaqueValue,
+  MemoryAuthRequestStore,
+  RedisAuthRequestStore,
+  type AuthRequestStore,
+} from "./auth-request-store.js";
+import {
+  createOidcClient,
+  createPkce,
+  OidcError,
+  type OidcClient,
+} from "./oidc.js";
 
 const COOKIE_NAME = "grocery_session";
 const TIMEOUT = 8_000;
+const AUTH_REQUEST_TTL_MS = 10 * 60 * 1000;
+const DEFAULT_RETURN_TO = "/products";
 export type TokenVerifier = (token: string) => Promise<JWTPayload>;
+
+export interface BffDependencies {
+  authRequests?: AuthRequestStore;
+  oidc?: OidcClient;
+}
 
 export function createTokenVerifier(config: BffConfig): TokenVerifier {
   const jwks = createRemoteJWKSet(new URL(config.jwt.jwksUri));
@@ -33,9 +54,57 @@ export function createTokenVerifier(config: BffConfig): TokenVerifier {
 async function verifiedIdentity(token: string, verifyToken: TokenVerifier) {
   return identityClaims(await verifyToken(token));
 }
+
+/** Derive a session identity from verified OIDC claims, provider-neutrally. */
+function identityFromClaims(idClaims: JWTPayload, accessClaims: JWTPayload) {
+  const sub = typeof idClaims.sub === "string" ? idClaims.sub : "";
+  const email =
+    (typeof idClaims.email === "string" && idClaims.email) ||
+    (typeof idClaims.preferred_username === "string" &&
+      idClaims.preferred_username) ||
+    sub;
+  const now = Date.now();
+  const idExp =
+    typeof idClaims.exp === "number" ? idClaims.exp * 1000 : now + 3_600_000;
+  const accessExp =
+    typeof accessClaims.exp === "number" ? accessClaims.exp * 1000 : idExp;
+  const expiresAt = Math.min(idExp, accessExp);
+  if (!sub || expiresAt <= now) throw new OidcError("invalid_identity");
+  return { email, expiresAt, userId: sub };
+}
+
+/** Accept only same-origin, internal return destinations. */
+export function safeReturnTo(value: unknown): string {
+  const candidate = typeof value === "string" ? value : "";
+  if (
+    !candidate.startsWith("/") ||
+    candidate.startsWith("//") ||
+    candidate.includes("\\") ||
+    /[\u0000-\u001f]/.test(candidate)
+  ) {
+    return DEFAULT_RETURN_TO;
+  }
+  return candidate;
+}
+
 function publicSession(session: SessionRecord) {
   return { email: session.email, userId: session.userId };
 }
+
+function setSessionCookie(
+  res: Response,
+  config: BffConfig,
+  session: SessionRecord,
+) {
+  res.cookie(COOKIE_NAME, session.id, {
+    httpOnly: true,
+    maxAge: Math.max(0, session.expiresAt - Date.now()),
+    path: "/",
+    sameSite: "lax",
+    secure: config.cookieSecure,
+  });
+}
+
 function sendError(
   res: Response,
   status: number,
@@ -55,101 +124,100 @@ export function createBff(
   config: BffConfig,
   sessions: SessionStore,
   verifyToken: TokenVerifier = createTokenVerifier(config),
+  deps: BffDependencies = {},
 ) {
+  const oidc =
+    deps.oidc ??
+    (config.auth.oidc
+      ? createOidcClient(config.auth.oidc, config.jwt.audience)
+      : undefined);
+  const authRequests = deps.authRequests ?? new MemoryAuthRequestStore();
   const app = express();
   app.disable("x-powered-by");
   app.use(requestSecurity(config));
   app.use(cookieParser());
   app.use(express.json({ limit: "64kb" }));
-  app.use(express.urlencoded({ extended: false, limit: "4kb" }));
-  app.get(["/health", "/api/health"], (_req, res) =>
-    res.json({ status: "ok" }),
-  );
+  app.get("/health", (_req, res) => res.json({ status: "ok" }));
+  app.use("/api/auth", (_req, res, next) => {
+    res.setHeader("Cache-Control", "no-store");
+    next();
+  });
 
-  app.get(["/ready", "/api/ready"], async (_req, res) => {
-    try {
-      await sessions.ping();
-      const target = config.gatewayUrl ?? config.serviceUrls.product;
-      const upstream = await fetch(`${target}/actuator/health`, {
-        signal: AbortSignal.timeout(3000),
-        redirect: "error",
-      });
-      const health = (await upstream.json()) as { status?: string };
-      if (!upstream.ok || health.status !== "UP")
-        throw new Error("Upstream unavailable");
-      res.json({ status: "ready" });
-    } catch {
-      res.status(503).json({ status: "unavailable" });
-    }
+  app.get("/api/auth/config", (_req, res) => {
+    res.json({ mode: config.auth.mode });
   });
-  app.get("/api/auth/config", (_req, res) =>
-    res.json({ mode: config.auth?.mode ?? "demo" }),
-  );
-  const rateLimit = loginLimiter(sessions, config);
-  const oidc =
-    config.auth?.mode === "oidc"
-      ? createOidcClient(config, config.auth.oidc)
-      : null;
-  const cookieOptions = {
-    httpOnly: true,
-    path: "/",
-    sameSite: "lax" as const,
-    secure: config.cookieSecure,
-  };
-  app.post("/api/auth/oidc/start", rateLimit, async (req, res) => {
-    if (!oidc) {
-      sendError(res, 404, "Sign-in method unavailable", req.path);
+
+  // OIDC mode: begin sign-in by redirecting to the external provider.
+  app.get("/api/auth/login", async (req, res) => {
+    if (config.auth.mode !== "oidc" || !oidc) {
+      sendError(res, 404, "Not found", req.path);
       return;
     }
     try {
-      const transaction = newLogin(req.body?.returnTo);
-      const url = await oidc.authorizationUrl(transaction);
-      const id = await sessions.saveLogin(transaction);
-      res.cookie("grocery_login", id, { ...cookieOptions, maxAge: 600_000 });
-      res.redirect(303, url);
+      const pkce = createPkce();
+      const request = await authRequests.create({
+        codeVerifier: pkce.verifier,
+        expiresAt: Date.now() + AUTH_REQUEST_TTL_MS,
+        nonce: generateOpaqueValue(),
+        returnTo: safeReturnTo(req.query.returnTo),
+      });
+      const url = await oidc.authorizationUrl({
+        codeChallenge: pkce.challenge,
+        nonce: request.nonce,
+        state: request.state,
+      });
+      res.redirect(302, url);
     } catch {
-      sendError(res, 502, "Sign-in service unavailable", req.path);
+      sendError(res, 503, "Identity provider unavailable", req.path);
     }
   });
+
+  // OIDC mode: handle the provider redirect and establish the session.
   app.get("/api/auth/callback", async (req, res) => {
-    res.clearCookie("grocery_login", cookieOptions);
-    if (!oidc) {
-      sendError(res, 404, "Sign-in method unavailable", req.path);
+    if (config.auth.mode !== "oidc" || !oidc) {
+      sendError(res, 404, "Not found", req.path);
+      return;
+    }
+    const request = await authRequests.consume(
+      typeof req.query.state === "string" ? req.query.state : undefined,
+    );
+    if (!request) {
+      sendError(res, 400, "Invalid or expired sign-in request", req.path);
+      return;
+    }
+    const code = typeof req.query.code === "string" ? req.query.code : "";
+    if (!code) {
+      sendError(res, 400, "Missing authorization code", req.path);
       return;
     }
     try {
-      const transaction = await sessions.takeLogin(
-        req.cookies.grocery_login ?? "",
-      );
-      if (
-        !transaction ||
-        typeof req.query.state !== "string" ||
-        req.query.state !== transaction.state ||
-        typeof req.query.code !== "string" ||
-        !req.query.code ||
-        req.query.error
-      )
-        throw new Error("Invalid callback");
-      const input = await oidc.exchange(
-        req.query.code,
-        transaction,
-        verifyToken,
-      );
-      const session = await sessions.create(input);
-      await sessions.delete(req.cookies[COOKIE_NAME]);
-      await sessions.delete(req.cookies[COOKIE_NAME]);
-      res.cookie(COOKIE_NAME, session.id, {
-        ...cookieOptions,
-        maxAge: Math.max(0, session.expiresAt - Date.now()),
+      const tokens = await oidc.exchangeCode(code, request.codeVerifier);
+      const idClaims = await oidc.verifyIdToken(tokens.idToken, request.nonce);
+      const accessClaims = await oidc.verifyAccessToken(tokens.accessToken);
+      const session = await sessions.create({
+        ...identityFromClaims(idClaims, accessClaims),
+        jwt: tokens.accessToken,
       });
-      res.redirect(303, transaction.returnTo);
-    } catch {
-      res.redirect(303, "/login?error=signin");
+      setSessionCookie(res, config, session);
+      res.redirect(302, request.returnTo);
+    } catch (error) {
+      sendError(
+        res,
+        error instanceof OidcError &&
+          (error.reason === "nonce_mismatch" ||
+            error.reason === "invalid_identity")
+          ? 400
+          : 502,
+        "Sign-in could not be completed",
+        req.path,
+      );
     }
   });
-  app.post("/api/auth/login", rateLimit, async (req, res) => {
-    if (oidc || config.cookieSecure) {
-      sendError(res, 404, "Password sign-in is disabled", req.path);
+
+  // Development password login. Never available when OIDC mode is active.
+  app.post("/api/auth/login", async (req, res) => {
+    if (config.auth.mode !== "password") {
+      sendError(res, 404, "Not found", req.path);
       return;
     }
     const { username, password } = req.body ?? {};
@@ -198,13 +266,7 @@ export function createBff(
         ...(await verifiedIdentity(body.token, verifyToken)),
         jwt: body.token,
       });
-      res.cookie(COOKIE_NAME, session.id, {
-        httpOnly: true,
-        maxAge: Math.max(0, session.expiresAt - Date.now()),
-        path: "/",
-        sameSite: "lax",
-        secure: config.cookieSecure,
-      });
+      setSessionCookie(res, config, session);
       res.json(publicSession(session));
     } catch {
       sendError(res, 502, "Authentication service unavailable", req.path);
@@ -365,4 +427,24 @@ export function createBff(
     },
   );
   return app;
+}
+
+const isMain =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isMain) {
+  const config = loadConfig();
+  if (!config.redisUrl)
+    throw new Error("REDIS_URL is required for the BFF session store");
+  const sessions = await RedisSessionStore.connect(config.redisUrl);
+  const authRequests =
+    config.auth.mode === "oidc"
+      ? await RedisAuthRequestStore.connect(config.redisUrl)
+      : undefined;
+  createBff(config, sessions, createTokenVerifier(config), {
+    authRequests,
+  }).listen(config.port, () =>
+    // The startup message is operational output for the standalone process.
+    // eslint-disable-next-line no-console
+    console.log(`Grocery BFF listening on http://localhost:${config.port}`),
+  );
 }

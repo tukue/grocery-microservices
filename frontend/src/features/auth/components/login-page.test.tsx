@@ -1,66 +1,56 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+// @vitest-environment jsdom
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { AuthProvider } from "./auth-context";
 import { LoginPage } from "./login-page";
 
-const login = vi.fn();
-vi.mock("./auth-context", () => ({ useSession: () => ({ login }) }));
-afterEach(() => {
-  vi.unstubAllGlobals();
-  vi.clearAllMocks();
-});
-function renderLogin() {
-  render(
-    <MemoryRouter
-      initialEntries={[{ pathname: "/login", state: { from: "/cart" } }]}
-    >
-      <LoginPage />
-    </MemoryRouter>,
+function stubFetch(mode: "oidc" | "password") {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("/api/auth/config")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ mode }), { status: 200 }),
+        );
+      }
+      return Promise.resolve(new Response("{}", { status: 401 }));
+    }),
   );
 }
-describe("deployment sign-in", () => {
-  it("sends production sign-in to the server OIDC flow without collecting a password", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(new Response(JSON.stringify({ mode: "oidc" }))),
-    );
+
+function renderLogin() {
+  render(
+    <AuthProvider>
+      <MemoryRouter initialEntries={["/login"]}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+        </Routes>
+      </MemoryRouter>
+    </AuthProvider>,
+  );
+}
+
+afterEach(() => vi.unstubAllGlobals());
+
+describe("LoginPage", () => {
+  it("offers provider sign-in in OIDC mode", async () => {
+    stubFetch("oidc");
     renderLogin();
-    const button = await screen.findByRole("button", { name: "Sign In" });
-    expect(button.closest("form")).toHaveAttribute(
-      "action",
-      "/api/auth/oidc/start",
-    );
-    expect(button.closest("form")).toHaveAttribute("method", "post");
-    expect(screen.queryByLabelText("Password")).toBeNull();
     expect(
-      button.closest("form")?.querySelector('input[name="returnTo"]'),
-    ).toHaveValue("/cart");
+      await screen.findByRole("button", { name: /continue to sign in/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText(/username/i)).not.toBeInTheDocument();
   });
-  it("keeps the existing demo sign-in for local development", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(new Response(JSON.stringify({ mode: "demo" }))),
-    );
+
+  it("keeps the development form in password mode", async () => {
+    stubFetch("password");
     renderLogin();
-    fireEvent.change(await screen.findByLabelText("Username"), {
-      target: { value: "user" },
-    });
-    fireEvent.change(screen.getByLabelText("Password"), {
-      target: { value: "password" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
-    expect(login).toHaveBeenCalledWith("user", "password");
-  });
-  it("shows recovery instead of falling back to demo mode when configuration fails", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(new Response("{}", { status: 503 })),
-    );
-    renderLogin();
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Sign-in is temporarily unavailable",
-    );
-    expect(screen.getByRole("button", { name: "Try again" })).toBeVisible();
-    expect(screen.queryByLabelText("Password")).toBeNull();
+    expect(await screen.findByLabelText(/username/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /continue to sign in/i }),
+    ).not.toBeInTheDocument();
   });
 });

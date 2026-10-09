@@ -1,11 +1,13 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
+import { useAuthMode } from "../hooks/use-auth-mode";
 import { useSession } from "./auth-context";
 
 export function LoginPage() {
   const submittingRef = useRef(false);
-  const { login } = useSession();
+  const { login, beginLogin } = useSession();
+  const mode = useAuthMode();
   const navigate = useNavigate();
   const location = useLocation();
   const [mode, setMode] = useState<"demo" | "oidc" | null>(null);
@@ -41,6 +43,14 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  function requestedDestination(): string {
+    const destination =
+      (location.state as { from?: string } | null)?.from ?? "/products";
+    return destination.startsWith("/") && !destination.startsWith("//")
+      ? destination
+      : "/products";
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (submittingRef.current) return;
@@ -49,22 +59,17 @@ export function LoginPage() {
     setSubmitting(true);
     try {
       await login(username, password);
-      const destination =
-        (location.state as { from?: string } | null)?.from ?? "/products";
-      navigate(
-        destination.startsWith("/") &&
-          !destination.startsWith("//") &&
-          !/[\\\x00-\x20]/.test(destination)
-          ? destination
-          : "/products",
-        { replace: true },
-      );
+      navigate(requestedDestination(), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
     }
+  }
+
+  function handleProviderSignIn() {
+    beginLogin(requestedDestination());
   }
 
   return (
@@ -81,25 +86,14 @@ export function LoginPage() {
       <section className="login-form">
         <h1>Sign In</h1>
         <p className="muted">Sign in to continue shopping.</p>
-        {callbackFailed && (
-          <p role="alert">Sign-in could not be completed. Please try again.</p>
-        )}
-        {configError ? (
-          <div role="alert">
-            <p>Sign-in is temporarily unavailable.</p>
-            <button onClick={() => setConfigAttempt((attempt) => attempt + 1)}>
-              Try again
-            </button>
-          </div>
-        ) : mode === null ? (
-          <p role="status">Loading sign-in…</p>
-        ) : mode === "oidc" ? (
-          <form method="post" action="/api/auth/oidc/start">
-            <input type="hidden" name="returnTo" value={returnTo} />
-            <button type="submit" className="button button-primary">
-              Sign In
-            </button>
-          </form>
+        {mode === "oidc" ? (
+          <button
+            className="bg-zinc-900 px-4 py-2 text-white disabled:opacity-50"
+            onClick={handleProviderSignIn}
+            type="button"
+          >
+            Continue to sign in
+          </button>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
