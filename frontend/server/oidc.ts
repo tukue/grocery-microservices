@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import { generateOpaqueValue } from "./auth-request-store.js";
+import { safeReturnTo } from "./bff.js";
 import type { OidcConfig } from "./config.js";
 
 const TIMEOUT = 8_000;
